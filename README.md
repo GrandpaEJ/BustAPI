@@ -6,6 +6,10 @@
 
 **BustAPI** is a high-performance, Flask-compatible Python web framework built with a Rust backend using PyO3. It combines Flask's simplicity with modern async capabilities and superior performance.
 
+
+<h1>NOTE</h1>
+- Made by AI , so Docs are not valid 100%
+
 ## ✨ Features
 
 - 🏃‍♂️ **High Performance**: Built with Rust for maximum speed (50,000+ RPS)
