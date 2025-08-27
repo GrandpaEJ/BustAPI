@@ -1,24 +1,39 @@
 [package]
-name = "bustapi-core"
+name = "bustapi_core"
 version = "0.1.0"
 edition = "2021"
-authors = ["Grandpa EJ"]
-description = "A high-performance, memory-safe web framework for Python"
-license = "MIT"
-repository = "https://github.com/Grandpaej/bustapi"
 
 [lib]
 name = "bustapi_core"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.22", features = ["extension-module", "abi3", "abi3-py38"] }
+pyo3 = { version = "0.20", features = ["extension-module"] }
+pyo3-asyncio = { version = "0.20", features = ["tokio-runtime"] }
+tokio = { version = "1.0", features = ["full"] }
+hyper = { version = "1.0", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+async-trait = "0.1"
+futures = "0.3"
+bytes = "1.0"
+http = "1.0"
+http-body = "1.0"
+http-body-util = "0.1"
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["full"] }
+url = "2.0"
+anyhow = "1.0"
+thiserror = "1.0"
 
-
-[features]
-default = []
+[build-dependencies]
+pyo3-build-config = "0.20"
 
 [profile.release]
 lto = true
 codegen-units = 1
 panic = "abort"
+strip = true
