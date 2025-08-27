@@ -1,0 +1,24 @@
+[package]
+name = "bustapi-core"
+version = "0.1.0"
+edition = "2021"
+authors = ["Grandpa EJ"]
+description = "A high-performance, memory-safe web framework for Python"
+license = "MIT"
+repository = "https://github.com/Grandpaej/bustapi"
+
+[lib]
+name = "bustapi_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.22", features = ["extension-module", "abi3", "abi3-py38"] }
+
+
+[features]
+default = []
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"

@@ -1,0 +1,3 @@
+.zen*
+*.pyc
+__pycache__/
