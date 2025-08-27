@@ -10,22 +10,36 @@ on:
 
 jobs:
   build:
-    name: Build Wheels
+    name: Build with Maturin
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
       - uses: actions/checkout@v4
 
+      # Ensure Python is installed
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Cache cargo registry
+      # Ensure Rust is installed
+      - name: Install Rust
+        run: |
+          if ! command -v rustc &> /dev/null
+          then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            source $HOME/.cargo/env
+          fi
+          rustc --version
+          cargo --version
+
+      # Cache cargo dependencies
+      - name: Cache cargo
         uses: actions/cache@v3
         with:
           path: |
@@ -34,51 +48,71 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Install maturin
+      # Install Maturin
+      - name: Install Maturin
         run: pip install maturin
 
-      - name: Build wheels
+      # Build wheel
+      - name: Build wheel
         run: maturin build --release --out dist
 
-      - name: Upload artifacts
+      # Upload artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.os }}-${{ matrix.python-version }}
+          name: wheel-${{ matrix.os }}-${{ matrix.python-version }}
           path: dist/*
 
   android:
-    name: Build Android (aarch64)
+    name: Android build (maturin)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      # Ensure Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install maturin
+      # Ensure Rust
+      - name: Install Rust
+        run: |
+          if ! command -v rustc &> /dev/null
+          then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            source $HOME/.cargo/env
+          fi
+          rustc --version
+          cargo --version
+
+      # Install Maturin
+      - name: Install Maturin
         run: pip install maturin
 
+      # Install Android NDK
       - name: Install Android NDK
         run: |
           sudo apt-get update
-          sudo apt-get install -y android-sdk adb
+          sudo apt-get install -y unzip wget
           wget https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
           unzip -q android-ndk-r26d-linux.zip -d $HOME
           echo "ANDROID_NDK_HOME=$HOME/android-ndk-r26d" >> $GITHUB_ENV
-          echo "PATH=$HOME/android-ndk-r26d/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH" >> $GITHUB_ENV
+          echo "$HOME/android-ndk-r26d/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
 
-      - name: Build Android wheel
+      # Build Android wheel
+      - name: Build Android (aarch64)
         run: maturin build --release --target aarch64-linux-android --out dist
 
-      - name: Upload Android wheel
+      # Upload artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-android
+          name: wheel-android
           path: dist/*
 
   release:
+    name: Publish Release
     needs: [build, android]
     runs-on: ubuntu-latest
     steps:
@@ -94,6 +128,6 @@ jobs:
           name: "BustAPI Release ${{ github.event.inputs.tag }}"
           draft: false
           prerelease: false
-          files: dist/**/*.whl
+          files: dist/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
