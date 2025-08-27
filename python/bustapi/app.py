@@ -115,11 +115,11 @@ class BustAPI:
             # Register with Rust backend
             for method in methods:
                 if inspect.iscoroutinefunction(f):
-                    # Async handler
-                    self._rust_app.add_async_route(method, rule, self._wrap_async_handler(f))
+                    # Async handler executed synchronously via asyncio.run inside wrapper
+                    self._rust_app.add_route(method, rule, self._wrap_async_handler(f, rule))
                 else:
                     # Sync handler
-                    self._rust_app.add_route(method, rule, self._wrap_sync_handler(f))
+                    self._rust_app.add_route(method, rule, self._wrap_sync_handler(f, rule))
             
             return f
         return decorator
@@ -151,6 +151,34 @@ class BustAPI:
     def options(self, rule: str, **options) -> Callable:
         """Convenience decorator for OPTIONS routes."""
         return self.route(rule, methods=['OPTIONS'], **options)
+
+    def _extract_path_params(self, rule: str, path: str):
+        """Extract path params from a Flask-style rule like '/greet/<name>' or '/users/<int:id>'."""
+        rule_parts = rule.strip('/').split('/')
+        path_parts = path.strip('/').split('/')
+        args = []
+        kwargs = {}
+        if len(rule_parts) != len(path_parts):
+            return args, kwargs
+        for rp, pp in zip(rule_parts, path_parts):
+            if rp.startswith('<') and rp.endswith('>'):
+                inner = rp[1:-1]  # strip < >
+                if ':' in inner:
+                    typ, name = inner.split(':', 1)
+                    typ = typ.strip()
+                    name = name.strip()
+                else:
+                    typ = 'str'
+                    name = inner.strip()
+                val = pp
+                if typ == 'int':
+                    try:
+                        val = int(pp)
+                    except ValueError:
+                        val = pp
+                # Only populate kwargs to avoid duplicate positional+keyword arguments
+                kwargs[name] = val
+        return args, kwargs
 
     def before_request(self, f: Callable) -> Callable:
         """
@@ -244,12 +272,13 @@ class BustAPI:
             # Register with Rust backend
             for method in methods:
                 if inspect.iscoroutinefunction(view_func):
-                    self._rust_app.add_async_route(method, rule, self._wrap_async_handler(view_func))
+                    # Async handler executed synchronously via asyncio.run inside wrapper
+                    self._rust_app.add_route(method, rule, self._wrap_async_handler(view_func, rule))
                 else:
-                    self._rust_app.add_route(method, rule, self._wrap_sync_handler(view_func))
+                    self._rust_app.add_route(method, rule, self._wrap_sync_handler(view_func, rule))
 
-    def _wrap_sync_handler(self, handler: Callable) -> Callable:
-        """Wrap synchronous handler with request context and middleware."""
+    def _wrap_sync_handler(self, handler: Callable, rule: str) -> Callable:
+        """Wrap handler with request context, middleware, and path param support."""
         @wraps(handler)
         def wrapper(rust_request):
             try:
@@ -265,8 +294,15 @@ class BustAPI:
                     if result is not None:
                         return self._make_response(result)
                 
-                # Call the actual handler (Flask-style handlers don't take request as param)
-                result = handler()
+                # Extract path params from rule and path
+                args, kwargs = self._extract_path_params(rule, request.path)
+
+                # Call the actual handler (Flask-style handlers take path params)
+                if inspect.iscoroutinefunction(handler):
+                    import asyncio
+                    result = asyncio.run(handler(**kwargs))
+                else:
+                    result = handler(**kwargs)
                 response = self._make_response(result)
                 
                 # Run after request handlers
@@ -293,10 +329,10 @@ class BustAPI:
         
         return wrapper
 
-    def _wrap_async_handler(self, handler: Callable) -> Callable:
-        """Wrap asynchronous handler with request context and middleware."""
+    def _wrap_async_handler(self, handler: Callable, rule: str) -> Callable:
+        """Wrap asynchronous handler; executed synchronously via asyncio.run for now."""
         @wraps(handler)
-        async def wrapper(rust_request):
+        def wrapper(rust_request):
             try:
                 # Convert Rust request to Python Request object
                 request = Request._from_rust_request(rust_request)
@@ -306,26 +342,24 @@ class BustAPI:
                 
                 # Run before request handlers
                 for before_func in self.before_request_funcs:
-                    if inspect.iscoroutinefunction(before_func):
-                        result = await before_func()
-                    else:
-                        result = before_func()
+                    result = before_func()
                     if result is not None:
-                        return self._response_to_rust_format(self._make_response(result))
+                        return self._make_response(result)
+
+                # Extract path params
+                args, kwargs = self._extract_path_params(rule, request.path)
                 
-                # Call the actual handler (Flask-style handlers don't take request as param)
+                # Call the handler (await if coroutine)
                 if inspect.iscoroutinefunction(handler):
-                    result = await handler()
+                    import asyncio
+                    result = asyncio.run(handler(**kwargs))
                 else:
-                    result = handler()
+                    result = handler(**kwargs)
                 response = self._make_response(result)
                 
                 # Run after request handlers
                 for after_func in self.after_request_funcs:
-                    if inspect.iscoroutinefunction(after_func):
-                        response = await after_func(response) or response
-                    else:
-                        response = after_func(response) or response
+                    response = after_func(response) or response
                 
                 # Convert Python Response to dict/tuple for Rust
                 return self._response_to_rust_format(response)
@@ -338,10 +372,7 @@ class BustAPI:
                 # Teardown handlers
                 for teardown_func in self.teardown_request_funcs:
                     try:
-                        if inspect.iscoroutinefunction(teardown_func):
-                            await teardown_func(None)
-                        else:
-                            teardown_func(None)
+                        teardown_func(None)
                     except Exception:
                         pass
                 

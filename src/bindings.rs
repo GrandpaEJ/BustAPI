@@ -13,6 +13,7 @@ use pyo3::types::{PyBytes, PyString};
 use std::collections::HashMap;
 use std::str::FromStr;
 use tokio::runtime::Runtime;
+use pyo3_asyncio::tokio as pyo3_tokio;
 
 /// Python wrapper for the BustAPI application
 #[pyclass]
@@ -25,7 +26,8 @@ pub struct PyBustApp {
 impl PyBustApp {
     #[new]
     pub fn new() -> PyResult<Self> {
-        let runtime = Runtime::new()
+        // Initialize a Tokio runtime integrated with pyo3-asyncio
+        let runtime = pyo3_tokio::init_multi_thread()
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to create async runtime: {}", e)))?;
         
         Ok(Self {
@@ -322,32 +324,63 @@ impl PyAsyncRouteHandler {
 #[async_trait]
 impl RouteHandler for PyAsyncRouteHandler {
     async fn handle(&self, req: RequestData) -> ResponseData {
-        // For now, treat async handlers like sync handlers
-        // TODO: Implement proper async support with pyo3_asyncio
-        Python::with_gil(|py| {
+        // Call the Python handler and detect if it returned a coroutine
+        let call_result = Python::with_gil(|py| -> Result<(bool, PyObject), PyErr> {
             let py_req = PyRequest::from_request_data(req);
-            let py_req_obj = match Py::new(py, py_req) {
-                Ok(obj) => obj,
+            let py_req_obj = Py::new(py, py_req)?;
+            let out = self.handler.call1(py, (py_req_obj,))?;
+            // Determine if this is a coroutine using asyncio.iscoroutine
+            let asyncio = py.import("asyncio")?;
+            let is_coro: bool = asyncio
+                .call_method1("iscoroutine", (out.as_ref(py),))?
+                .extract()?;
+            Ok((is_coro, out))
+        });
+
+        let (is_coro, obj) = match call_result {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("Error calling async Python handler: {:?}", e);
+                return ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Async handler error"));
+            }
+        };
+
+        if is_coro {
+            // Await the coroutine on the pyo3-asyncio integrated tokio runtime
+            let fut = Python::with_gil(|py| pyo3_tokio::into_future(obj.as_ref(py)));
+            let fut = match fut {
+                Ok(f) => f,
                 Err(e) => {
-                    eprintln!("Failed to create PyRequest object (async): {:?}", e);
+                    eprintln!("Error creating future from coroutine: {:?}", e);
                     return ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Async handler error"));
                 }
             };
 
-            match self.handler.call1(py, (py_req_obj,)) {
-                Ok(result) => {
-                    convert_python_result_to_response(py, result)
-                        .unwrap_or_else(|e| {
-                            eprintln!("Error converting async Python response: {:?}", e);
-                            ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Handler error"))
-                        })
-                },
+            match fut.await {
+                Ok(py_result) => {
+                    Python::with_gil(|py| {
+                        convert_python_result_to_response(py, py_result)
+                            .unwrap_or_else(|e| {
+                                eprintln!("Error converting async Python response: {:?}", e);
+                                ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Handler error"))
+                            })
+                    })
+                }
                 Err(e) => {
-                    eprintln!("Error calling async Python handler: {:?}", e);
+                    eprintln!("Async Python handler raised: {:?}", e);
                     ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Async handler error"))
                 }
             }
-        })
+        } else {
+            // Not a coroutine: convert directly to ResponseData
+            Python::with_gil(|py| {
+                convert_python_result_to_response(py, obj)
+                    .unwrap_or_else(|e| {
+                        eprintln!("Error converting Python response: {:?}", e);
+                        ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Handler error"))
+                    })
+            })
+        }
     }
 }
 
