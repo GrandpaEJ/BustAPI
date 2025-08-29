@@ -80,24 +80,13 @@ jobs:
         run: |
           cargo clippy --all-targets --all-features -- -D warnings
 
-      - name: Create Python virtual environment
-        run: |
-          python -m venv .venv
-          
       - name: Build and install Rust extension with maturin
         run: |
-          # Activate virtual environment
-          source .venv/bin/activate || . .venv/bin/activate || .venv\\Scripts\\activate
-          
-          # Install in development mode
-          maturin develop
-          
-          # Verify installation
+          maturin develop --release
           python -c "import bustapi; print(f'BustAPI {bustapi.__version__} installed successfully')"
 
       - name: Run basic tests
         run: |
-          source .venv/bin/activate || . .venv/bin/activate || .venv\\Scripts\\activate
           python test_basic.py
 
   build-wheels:
