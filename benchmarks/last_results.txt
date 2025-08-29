@@ -1,0 +1,1 @@
+{'target': 'fastapi', 'success': 10099, 'errors': 0, 'elapsed': 15.080266237258911, 'rps': 669.6831369626841, 'concurrency': 100}

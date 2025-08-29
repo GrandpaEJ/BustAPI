@@ -92,7 +92,7 @@ pytest
 python benchmarks/benchmark_core.py
 ```
 
-## 📊 Performance
+## 📊 Wished Performance 
 
 BustAPI targets exceptional performance:
 

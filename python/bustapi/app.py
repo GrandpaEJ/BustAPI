@@ -74,7 +74,8 @@ class BustAPI:
         self.blueprints: Dict[str, Blueprint] = {}
 
         # URL map and rules
-        self.url_map = {}
+        # url_map maps rule -> {endpoint, methods}
+        self.url_map: Dict[str, Dict] = {}
 
         # Jinja environment (placeholder for template support)
         self.jinja_env = None
@@ -82,6 +83,13 @@ class BustAPI:
         # Initialize Rust backend
         self._rust_app = None
         self._init_rust_backend()
+        # register a simple OpenAPI endpoint
+        try:
+            # register only if rust backend initialized successfully
+            self.get("/openapi.json")(self._openapi_route)
+        except Exception:
+            # ignore registration errors in environments where Rust backend isn't available
+            pass
 
     def _init_rust_backend(self):
         """Initialize the Rust backend application."""
@@ -115,6 +123,9 @@ class BustAPI:
 
             # Store view function
             self._view_functions[endpoint] = f
+
+            # Store the rule and methods for OpenAPI generation and debugging
+            self.url_map[rule] = {"endpoint": endpoint, "methods": methods}
 
             # Register with Rust backend
             for method in methods:
@@ -403,6 +414,55 @@ class BustAPI:
     def _make_response(self, result: Any) -> Response:
         """Convert various return types to Response objects."""
         return make_response(result)
+
+    # --- Templating helpers ---
+    def create_jinja_env(self):
+        """Create and cache a Jinja2 environment using the application's template_folder."""
+        if self.jinja_env is None:
+            try:
+                from .templating import create_jinja_env as _create_env
+
+                self.jinja_env = _create_env(self.template_folder)
+            except Exception as e:
+                raise RuntimeError(f"Failed to create Jinja environment: {e}")
+        return self.jinja_env
+
+    def render_template(self, template_name: str, **context) -> str:
+        """Render a template using the app's Jinja environment."""
+        env = self.create_jinja_env()
+        from .templating import render_template as _render
+
+        return _render(env, template_name, context)
+
+    # --- OpenAPI generation ---
+    def _generate_openapi(self) -> Dict:
+        """Generate a minimal OpenAPI-like JSON document from registered routes.
+
+        This is intentionally minimal: it provides paths and methods with docstrings
+        or function names as operationId/summary.
+        """
+        info = {"title": "BustAPI Application", "version": self.config.get("VERSION", "0.1.0")}
+        paths: Dict[str, Dict] = {}
+        for rule, meta in self.url_map.items():
+            methods = meta.get("methods", ["GET"])
+            paths.setdefault(rule, {})
+            for m in methods:
+                endpoint = meta.get("endpoint")
+                view = self._view_functions.get(endpoint)
+                summary = None
+                if view is not None:
+                    summary = (view.__doc__ or "").strip().splitlines()[0] if view.__doc__ else view.__name__
+                paths[rule][m.lower()] = {
+                    "summary": summary or endpoint,
+                    "operationId": endpoint,
+                    "responses": {"200": {"description": "Successful response"}},
+                }
+
+        return {"openapi": "3.0.0", "info": info, "paths": paths}
+
+    def _openapi_route(self):
+        """Simple route handler that returns the generated OpenAPI JSON."""
+        return self._generate_openapi()
 
     def _handle_exception(self, exception: Exception) -> Response:
         """Handle exceptions and return appropriate error responses."""
