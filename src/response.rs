@@ -309,26 +309,31 @@ pub fn forbidden() -> ResponseData {
 }
 
 /// Create JSON response from serializable data
+#[allow(dead_code)]
 pub fn json<T: serde::Serialize>(data: &T) -> Result<ResponseData, serde_json::Error> {
     ResponseData::json(data)
 }
 
 /// Create HTML response
+#[allow(dead_code)]
 pub fn html<S: Into<String>>(content: S) -> ResponseData {
     ResponseData::html(content)
 }
 
 /// Create text response
+#[allow(dead_code)]
 pub fn text<S: Into<String>>(content: S) -> ResponseData {
     ResponseData::text(content)
 }
 
 /// Create redirect response
+#[allow(dead_code)]
 pub fn redirect<S: Into<String>>(url: S) -> ResponseData {
     ResponseData::redirect(url, false)
 }
 
 /// Create permanent redirect response
+#[allow(dead_code)]
 pub fn redirect_permanent<S: Into<String>>(url: S) -> ResponseData {
     ResponseData::redirect(url, true)
 }

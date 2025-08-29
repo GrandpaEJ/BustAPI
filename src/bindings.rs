@@ -1,4 +1,5 @@
 //! PyO3 bindings to expose Rust functionality to Python
+#![allow(non_local_definitions)]
 
 use crate::request::RequestData;
 use crate::response::ResponseData;

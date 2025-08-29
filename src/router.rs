@@ -267,11 +267,13 @@ impl Default for Router {
 }
 
 /// Simple function-based route handler
+#[allow(dead_code)]
 pub struct FunctionHandler<F> {
     func: F,
 }
 
 impl<F> FunctionHandler<F> {
+    #[allow(dead_code)]
     pub fn new(func: F) -> Self {
         Self { func }
     }
@@ -289,6 +291,7 @@ where
 }
 
 /// CORS middleware implementation
+#[allow(dead_code)]
 pub struct CorsMiddleware {
     allowed_origins: Vec<String>,
     allowed_methods: Vec<Method>,
@@ -296,6 +299,7 @@ pub struct CorsMiddleware {
 }
 
 impl CorsMiddleware {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             allowed_origins: vec!["*".to_string()],
@@ -304,6 +308,7 @@ impl CorsMiddleware {
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_origins(mut self, origins: Vec<String>) -> Self {
         self.allowed_origins = origins;
         self
