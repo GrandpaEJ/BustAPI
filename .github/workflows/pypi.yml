@@ -131,6 +131,14 @@ jobs:
         with:
           path: dist
 
+      - name: Flatten downloaded artifacts
+        run: |
+          echo "Flattening artifacts into dist/ (move files from nested artifact folders)"
+          # move any files from subdirectories into dist/
+          find dist -mindepth 2 -type f -exec mv -t dist {} + || true
+          # remove any now-empty directories created by download-artifact
+          find dist -type d -empty -delete || true
+
       - name: Display collected files
         run: |
           echo "Collected files:"
@@ -143,3 +151,11 @@ jobs:
           password: ${{ secrets.PYPI_API_TOKEN }}
           packages-dir: dist
           skip-existing: true
+      - name: Verify dist contents
+        run: |
+          echo "Checking dist/ files before publish"
+          if [ -z "$(ls -A dist 2>/dev/null)" ]; then
+            echo "No files in dist/ to publish - aborting"
+            ls -la dist || true
+            exit 1
+          fi
