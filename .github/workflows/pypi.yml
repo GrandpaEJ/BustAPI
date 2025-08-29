@@ -36,15 +36,36 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Create venv and install maturin
+      - name: Create venv and install maturin (Unix)
+        if: runner.os != 'Windows'
         run: |
           python -m venv .venv
-          ./.venv/bin/python -m pip install --upgrade pip
-          ./.venv/bin/python -m pip install maturin
+          VENV_PY=./.venv/bin/python
+          $VENV_PY -m pip install --upgrade pip
+          $VENV_PY -m pip install maturin
+          echo "VENV_PY=$VENV_PY" >> $GITHUB_ENV
 
-      - name: Build wheels
+      - name: Create venv and install maturin (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          ./.venv/bin/python -m maturin build --release --out dist
+          python -m venv .venv
+          $VENV = '.\\.venv\\Scripts\\python.exe'
+          & $VENV -m pip install --upgrade pip
+          & $VENV -m pip install maturin
+          Write-Output "VENV_PY=$VENV" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build wheels (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          $VENV_PY -m maturin build --release --out dist
+
+      - name: Build wheels (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $VENV = $env:VENV_PY
+          & $VENV -m maturin build --release --out dist
 
       - name: Upload wheels artifact
         uses: actions/upload-artifact@v4
@@ -68,15 +89,25 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Create venv and install maturin
+      - name: Create venv and install maturin (sdist)
         run: |
           python -m venv .venv
-          ./.venv/bin/python -m pip install --upgrade pip
-          ./.venv/bin/python -m pip install maturin
+          VENV_PY=./.venv/bin/python
+          $VENV_PY -m pip install --upgrade pip
+          $VENV_PY -m pip install maturin
+          echo "VENV_PY=$VENV_PY" >> $GITHUB_ENV
 
-      - name: Build sdist
+      - name: Build sdist (Unix)
+        if: runner.os != 'Windows'
         run: |
-          ./.venv/bin/python -m maturin sdist --out dist
+          $VENV_PY -m maturin sdist --out dist
+
+      - name: Build sdist (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $VENV = $env:VENV_PY
+          & $VENV -m maturin sdist --out dist
 
       - name: Upload sdist artifact
         uses: actions/upload-artifact@v4
