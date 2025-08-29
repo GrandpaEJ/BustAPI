@@ -70,7 +70,8 @@ impl ResponseData {
         };
 
         let mut response = Self::with_status(status);
-        response.set_header("Location", &url.into());
+        // Avoid needless borrow on generic arg
+        response.set_header("Location", url.into());
         response
     }
 
@@ -269,16 +270,19 @@ fn format_cookie(name: &str, value: &str, options: CookieOptions) -> String {
 // Convenience functions for common responses
 
 /// Create OK response
+#[allow(dead_code)]
 pub fn ok() -> ResponseData {
     ResponseData::with_status(StatusCode::OK)
 }
 
 /// Create Not Found response
+#[allow(dead_code)]
 pub fn not_found() -> ResponseData {
     ResponseData::error(StatusCode::NOT_FOUND, Some("Not Found"))
 }
 
 /// Create Internal Server Error response
+#[allow(dead_code)]
 pub fn internal_server_error() -> ResponseData {
     ResponseData::error(
         StatusCode::INTERNAL_SERVER_ERROR,
@@ -287,16 +291,19 @@ pub fn internal_server_error() -> ResponseData {
 }
 
 /// Create Bad Request response
+#[allow(dead_code)]
 pub fn bad_request(message: Option<&str>) -> ResponseData {
     ResponseData::error(StatusCode::BAD_REQUEST, message)
 }
 
 /// Create Unauthorized response
+#[allow(dead_code)]
 pub fn unauthorized() -> ResponseData {
     ResponseData::error(StatusCode::UNAUTHORIZED, Some("Unauthorized"))
 }
 
 /// Create Forbidden response
+#[allow(dead_code)]
 pub fn forbidden() -> ResponseData {
     ResponseData::error(StatusCode::FORBIDDEN, Some("Forbidden"))
 }

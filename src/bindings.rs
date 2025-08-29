@@ -22,6 +22,7 @@ pub struct PyBustApp {
     runtime: Runtime,
 }
 
+#[allow(non_local_definitions)]
 #[pymethods]
 impl PyBustApp {
     #[new]
@@ -186,6 +187,7 @@ pub struct PyResponse {
     pub data: ResponseData,
 }
 
+#[allow(non_local_definitions)]
 #[pymethods]
 impl PyResponse {
     #[new]

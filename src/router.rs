@@ -16,6 +16,7 @@ pub trait RouteHandler: Send + Sync {
 }
 
 /// Route information
+#[allow(dead_code)]
 pub struct Route {
     pub path: String,
     pub method: Method,
@@ -202,7 +203,7 @@ impl Router {
         let req_parts: Vec<&str> = req.path.trim_matches('/').split('/').collect();
 
         for ((method, pattern), handler) in self.routes.iter() {
-            if method != &req.method {
+            if method != req.method {
                 continue;
             }
 

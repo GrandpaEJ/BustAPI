@@ -38,8 +38,6 @@ fn create_app() -> PyResult<bindings::PyBustApp> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_module_creation() {
         // Basic test to ensure module compiles
