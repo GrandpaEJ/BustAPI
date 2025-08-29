@@ -10,10 +10,10 @@ use hyper::StatusCode;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyString};
+use pyo3_asyncio::tokio as pyo3_tokio;
 use std::collections::HashMap;
 use std::str::FromStr;
 use tokio::runtime::Runtime;
-use pyo3_asyncio::tokio as pyo3_tokio;
 
 /// Python wrapper for the BustAPI application
 #[pyclass]
@@ -30,8 +30,10 @@ impl PyBustApp {
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to create async runtime: {}", e)))?;
-        
+            .map_err(|e| {
+                PyRuntimeError::new_err(format!("Failed to create async runtime: {}", e))
+            })?;
+
         Ok(Self {
             server: BustServer::new(),
             runtime,
@@ -42,10 +44,12 @@ impl PyBustApp {
     pub fn add_route(&mut self, method: &str, path: &str, handler: PyObject) -> PyResult<()> {
         let method = Method::from_str(method)
             .map_err(|e| PyRuntimeError::new_err(format!("Invalid HTTP method: {}", e)))?;
-        
+
         let py_handler = PyRouteHandler::new(handler);
-        self.server.router_mut().add_route(method, path.to_string(), py_handler);
-        
+        self.server
+            .router_mut()
+            .add_route(method, path.to_string(), py_handler);
+
         Ok(())
     }
 
@@ -53,10 +57,12 @@ impl PyBustApp {
     pub fn add_async_route(&mut self, method: &str, path: &str, handler: PyObject) -> PyResult<()> {
         let method = Method::from_str(method)
             .map_err(|e| PyRuntimeError::new_err(format!("Invalid HTTP method: {}", e)))?;
-        
+
         let async_handler = PyAsyncRouteHandler::new(handler);
-        self.server.router_mut().add_route(method, path.to_string(), async_handler);
-        
+        self.server
+            .router_mut()
+            .add_route(method, path.to_string(), async_handler);
+
         Ok(())
     }
 
@@ -71,11 +77,7 @@ impl PyBustApp {
 
         // Release the GIL while running the async server loop to avoid deadlock
         let result = Python::with_gil(|py| {
-            py.allow_threads(|| {
-                self.runtime.block_on(async {
-                    self.server.serve().await
-                })
-            })
+            py.allow_threads(|| self.runtime.block_on(async { self.server.serve().await }))
         });
 
         result.map_err(|e| PyRuntimeError::new_err(format!("Server error: {}", e)))
@@ -134,7 +136,8 @@ impl PyRequest {
 
     /// Get request body as string
     pub fn body_as_string(&self) -> PyResult<String> {
-        self.data.body_as_string()
+        self.data
+            .body_as_string()
             .map_err(|e| PyRuntimeError::new_err(format!("Invalid UTF-8: {}", e)))
     }
 
@@ -144,7 +147,7 @@ impl PyRequest {
         if json_str.is_empty() {
             return Ok(py.None());
         }
-        
+
         let json_module = py.import("json")?;
         let result = json_module.call_method1("loads", (json_str,))?;
         Ok(result.into())
@@ -186,7 +189,11 @@ pub struct PyResponse {
 #[pymethods]
 impl PyResponse {
     #[new]
-    pub fn new(response: Option<PyObject>, status: Option<u16>, headers: Option<HashMap<String, String>>) -> PyResult<Self> {
+    pub fn new(
+        response: Option<PyObject>,
+        status: Option<u16>,
+        headers: Option<HashMap<String, String>>,
+    ) -> PyResult<Self> {
         let mut resp_data = ResponseData::new();
 
         // Set status if provided
@@ -254,7 +261,8 @@ impl PyResponse {
 
     /// Get response body as string
     pub fn body_as_string(&self) -> PyResult<String> {
-        self.data.body_as_string()
+        self.data
+            .body_as_string()
             .map_err(|e| PyRuntimeError::new_err(format!("Invalid UTF-8: {}", e)))
     }
 }
@@ -289,7 +297,10 @@ impl RouteHandler for PyRouteHandler {
                 Ok(obj) => obj,
                 Err(e) => {
                     eprintln!("Failed to create PyRequest object: {:?}", e);
-                    return ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Handler error"));
+                    return ResponseData::error(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Some("Handler error"),
+                    );
                 }
             };
 
@@ -297,12 +308,14 @@ impl RouteHandler for PyRouteHandler {
             match self.handler.call1(py, (py_req_obj,)) {
                 Ok(result) => {
                     // Convert Python result to ResponseData
-                    convert_python_result_to_response(py, result)
-                        .unwrap_or_else(|e| {
-                            eprintln!("Error converting Python response: {:?}", e);
-                            ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Handler error"))
-                        })
-                },
+                    convert_python_result_to_response(py, result).unwrap_or_else(|e| {
+                        eprintln!("Error converting Python response: {:?}", e);
+                        ResponseData::error(
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Some("Handler error"),
+                        )
+                    })
+                }
                 Err(e) => {
                     eprintln!("Error calling Python handler: {:?}", e);
                     ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Handler error"))
@@ -343,7 +356,10 @@ impl RouteHandler for PyAsyncRouteHandler {
             Ok(v) => v,
             Err(e) => {
                 eprintln!("Error calling async Python handler: {:?}", e);
-                return ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Async handler error"));
+                return ResponseData::error(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Some("Async handler error"),
+                );
             }
         };
 
@@ -354,33 +370,38 @@ impl RouteHandler for PyAsyncRouteHandler {
                 Ok(f) => f,
                 Err(e) => {
                     eprintln!("Error creating future from coroutine: {:?}", e);
-                    return ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Async handler error"));
+                    return ResponseData::error(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Some("Async handler error"),
+                    );
                 }
             };
 
             match fut.await {
-                Ok(py_result) => {
-                    Python::with_gil(|py| {
-                        convert_python_result_to_response(py, py_result)
-                            .unwrap_or_else(|e| {
-                                eprintln!("Error converting async Python response: {:?}", e);
-                                ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Handler error"))
-                            })
+                Ok(py_result) => Python::with_gil(|py| {
+                    convert_python_result_to_response(py, py_result).unwrap_or_else(|e| {
+                        eprintln!("Error converting async Python response: {:?}", e);
+                        ResponseData::error(
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Some("Handler error"),
+                        )
                     })
-                }
+                }),
                 Err(e) => {
                     eprintln!("Async Python handler raised: {:?}", e);
-                    ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Async handler error"))
+                    ResponseData::error(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Some("Async handler error"),
+                    )
                 }
             }
         } else {
             // Not a coroutine: convert directly to ResponseData
             Python::with_gil(|py| {
-                convert_python_result_to_response(py, obj)
-                    .unwrap_or_else(|e| {
-                        eprintln!("Error converting Python response: {:?}", e);
-                        ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Handler error"))
-                    })
+                convert_python_result_to_response(py, obj).unwrap_or_else(|e| {
+                    eprintln!("Error converting Python response: {:?}", e);
+                    ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Handler error"))
+                })
             })
         }
     }
@@ -398,7 +419,7 @@ fn convert_python_result_to_response(py: Python, result: PyObject) -> PyResult<R
                 response.status = StatusCode::from_u16(status)
                     .map_err(|e| PyRuntimeError::new_err(format!("Invalid status code: {}", e)))?;
                 return Ok(response);
-            },
+            }
             3 => {
                 let body = tuple.get_item(0)?;
                 let status: u16 = tuple.get_item(1)?.extract()?;
@@ -408,7 +429,7 @@ fn convert_python_result_to_response(py: Python, result: PyObject) -> PyResult<R
                     .map_err(|e| PyRuntimeError::new_err(format!("Invalid status code: {}", e)))?;
                 response.headers = headers;
                 return Ok(response);
-            },
+            }
             _ => {}
         }
     }

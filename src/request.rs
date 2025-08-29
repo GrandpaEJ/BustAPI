@@ -69,7 +69,10 @@ impl RequestData {
     /// Check if request has form data content type
     pub fn is_form(&self) -> bool {
         self.get_header("content-type")
-            .map(|ct| ct.to_lowercase().contains("application/x-www-form-urlencoded"))
+            .map(|ct| {
+                ct.to_lowercase()
+                    .contains("application/x-www-form-urlencoded")
+            })
             .unwrap_or(false)
     }
 
@@ -90,7 +93,7 @@ impl RequestData {
     /// Get cookies from request headers
     pub fn get_cookies(&self) -> HashMap<String, String> {
         let mut cookies = HashMap::new();
-        
+
         if let Some(cookie_header) = self.get_header("cookie") {
             for cookie_pair in cookie_header.split(';') {
                 let cookie_pair = cookie_pair.trim();
@@ -99,7 +102,7 @@ impl RequestData {
                 }
             }
         }
-        
+
         cookies
     }
 
@@ -173,18 +176,26 @@ mod tests {
     #[test]
     fn test_header_retrieval() {
         let mut req = RequestData::new(Method::GET, "/".to_string());
-        req.headers.insert("Content-Type".to_string(), "application/json".to_string());
-        
-        assert_eq!(req.get_header("content-type"), Some(&"application/json".to_string()));
-        assert_eq!(req.get_header("Content-Type"), Some(&"application/json".to_string()));
+        req.headers
+            .insert("Content-Type".to_string(), "application/json".to_string());
+
+        assert_eq!(
+            req.get_header("content-type"),
+            Some(&"application/json".to_string())
+        );
+        assert_eq!(
+            req.get_header("Content-Type"),
+            Some(&"application/json".to_string())
+        );
         assert_eq!(req.get_header("missing"), None);
     }
 
     #[test]
     fn test_json_detection() {
         let mut req = RequestData::new(Method::POST, "/".to_string());
-        req.headers.insert("Content-Type".to_string(), "application/json".to_string());
-        
+        req.headers
+            .insert("Content-Type".to_string(), "application/json".to_string());
+
         assert!(req.is_json());
         assert!(!req.is_form());
     }
@@ -192,8 +203,11 @@ mod tests {
     #[test]
     fn test_cookie_parsing() {
         let mut req = RequestData::new(Method::GET, "/".to_string());
-        req.headers.insert("Cookie".to_string(), "session=abc123; theme=dark".to_string());
-        
+        req.headers.insert(
+            "Cookie".to_string(),
+            "session=abc123; theme=dark".to_string(),
+        );
+
         let cookies = req.get_cookies();
         assert_eq!(cookies.get("session"), Some(&"abc123".to_string()));
         assert_eq!(cookies.get("theme"), Some(&"dark".to_string()));

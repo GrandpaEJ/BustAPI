@@ -50,8 +50,7 @@ impl Router {
         H: RouteHandler + 'static,
     {
         debug!("Adding route: {} {}", method, path);
-        self.routes
-            .insert((method, path), Arc::new(handler));
+        self.routes.insert((method, path), Arc::new(handler));
     }
 
     /// Add middleware to the router
@@ -65,7 +64,8 @@ impl Router {
 
     /// Get all registered routes (for debugging/inspection)
     pub fn get_routes(&self) -> Vec<(Method, String, Arc<dyn RouteHandler>)> {
-        self.routes.iter()
+        self.routes
+            .iter()
             .map(|((method, path), handler)| (method.clone(), path.clone(), handler.clone()))
             .collect()
     }
@@ -116,7 +116,9 @@ impl Router {
 
         // Process middleware (response phase)
         for middleware in &self.middleware {
-            middleware.process_response(&req_data, &mut response_data).await;
+            middleware
+                .process_response(&req_data, &mut response_data)
+                .await;
         }
 
         Ok(self.convert_response(response_data))
@@ -173,10 +175,10 @@ impl Router {
         }
 
         builder
-            .body(http_body_util::Full::new(bytes::Bytes::from(
-                response.body,
-            )))
-            .unwrap_or_else(|_| self.error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error"))
+            .body(http_body_util::Full::new(bytes::Bytes::from(response.body)))
+            .unwrap_or_else(|_| {
+                self.error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error")
+            })
     }
 
     /// Create error response
@@ -297,10 +299,7 @@ impl CorsMiddleware {
         Self {
             allowed_origins: vec!["*".to_string()],
             allowed_methods: vec![Method::GET, Method::POST, Method::PUT, Method::DELETE],
-            allowed_headers: vec![
-                "Content-Type".to_string(),
-                "Authorization".to_string(),
-            ],
+            allowed_headers: vec!["Content-Type".to_string(), "Authorization".to_string()],
         }
     }
 
@@ -326,9 +325,12 @@ impl Middleware for CorsMiddleware {
         // Add CORS headers
         resp.headers.insert(
             "Access-Control-Allow-Origin".to_string(),
-            self.allowed_origins.first().unwrap_or(&"*".to_string()).clone(),
+            self.allowed_origins
+                .first()
+                .unwrap_or(&"*".to_string())
+                .clone(),
         );
-        
+
         resp.headers.insert(
             "Access-Control-Allow-Methods".to_string(),
             self.allowed_methods
@@ -337,7 +339,7 @@ impl Middleware for CorsMiddleware {
                 .collect::<Vec<_>>()
                 .join(", "),
         );
-        
+
         resp.headers.insert(
             "Access-Control-Allow-Headers".to_string(),
             self.allowed_headers.join(", "),

@@ -144,3 +144,5 @@ ex.toml
 ex.py.toml
 
 .zen*
+.mypy_*
+.ruff_*

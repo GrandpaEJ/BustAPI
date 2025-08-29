@@ -17,84 +17,79 @@ Example:
         app.run(debug=True)
 """
 
+import logging
+import platform
+import sys
+from http import HTTPStatus
+
 __version__ = "0.1.0"
 __author__ = "BustAPI Team"
 __email__ = "hello@bustapi.dev"
 
 # Import core classes and functions
 from .app import BustAPI
+from .blueprints import Blueprint
+from .flask_compat import Flask
+from .helpers import abort, redirect, url_for
 from .request import Request, request
 from .response import Response, jsonify, make_response
-from .helpers import abort, redirect, url_for
-from .blueprints import Blueprint
-
-# Import Flask compatibility helpers
-from .flask_compat import Flask
-
 # Import testing utilities
 from .testing import TestClient
 
-# Common HTTP status codes for convenience
-from http import HTTPStatus
-
 __all__ = [
     # Core classes
-    'BustAPI',
-    'Request',
-    'Response', 
-    'Blueprint',
-    'TestClient',
-    
+    "BustAPI",
+    "Request",
+    "Response",
+    "Blueprint",
+    "TestClient",
     # Global objects
-    'request',
-    
+    "request",
     # Helper functions
-    'jsonify',
-    'make_response',
-    'abort',
-    'redirect',
-    'url_for',
-    
+    "jsonify",
+    "make_response",
+    "abort",
+    "redirect",
+    "url_for",
     # Flask compatibility
-    'Flask',
-    
+    "Flask",
     # HTTP status codes
-    'HTTPStatus',
-    
+    "HTTPStatus",
     # Version info
-    '__version__',
+    "__version__",
 ]
 
 # Convenience imports for common use cases
 try:
-    from .extensions.cors import CORS
-    __all__.append('CORS')
+    from .extensions.cors import CORS  # noqa: F401
+
+    __all__.append("CORS")
 except ImportError:
     pass
+
 
 def get_version():
     """Get the current version of BustAPI."""
     return __version__
 
+
 def get_debug_info():
     """Get debug information about the current BustAPI installation."""
-    import sys
-    import platform
-    
     try:
         from . import bustapi_core
-        rust_version = getattr(bustapi_core, '__version__', 'unknown')
+
+        rust_version = getattr(bustapi_core, "__version__", "unknown")
     except ImportError:
-        rust_version = 'not available'
-    
+        rust_version = "not available"
+
     return {
-        'bustapi_version': __version__,
-        'rust_core_version': rust_version,
-        'python_version': sys.version,
-        'platform': platform.platform(),
-        'architecture': platform.architecture(),
+        "bustapi_version": __version__,
+        "rust_core_version": rust_version,
+        "python_version": sys.version,
+        "platform": platform.platform(),
+        "architecture": platform.architecture(),
     }
 
+
 # Set up default logging
-import logging
-logging.getLogger('bustapi').addHandler(logging.NullHandler())
+logging.getLogger("bustapi").addHandler(logging.NullHandler())

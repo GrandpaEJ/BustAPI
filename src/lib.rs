@@ -5,16 +5,16 @@
 
 use pyo3::prelude::*;
 
-mod server;
-mod router;
+mod bindings;
 mod request;
 mod response;
-mod bindings;
+mod router;
+mod server;
 
-pub use server::BustServer;
-pub use router::{Router, RouteHandler};
 pub use request::RequestData;
 pub use response::ResponseData;
+pub use router::{RouteHandler, Router};
+pub use server::BustServer;
 
 /// Python module definition for bustapi_core
 #[pymodule]
@@ -23,10 +23,10 @@ fn bustapi_core(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<bindings::PyBustApp>()?;
     m.add_class::<bindings::PyRequest>()?;
     m.add_class::<bindings::PyResponse>()?;
-    
+
     // Add helper functions
     m.add_function(wrap_pyfunction!(create_app, m)?)?;
-    
+
     Ok(())
 }
 

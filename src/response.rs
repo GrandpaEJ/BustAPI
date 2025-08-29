@@ -68,7 +68,7 @@ impl ResponseData {
         } else {
             StatusCode::FOUND
         };
-        
+
         let mut response = Self::with_status(status);
         response.set_header("Location", &url.into());
         response
@@ -79,7 +79,7 @@ impl ResponseData {
         let body = message
             .unwrap_or(status.canonical_reason().unwrap_or("Unknown Error"))
             .to_string();
-        
+
         let mut response = Self::with_status(status);
         response.set_body(body.into_bytes());
         response.set_header("Content-Type", "text/plain; charset=utf-8");
@@ -105,7 +105,10 @@ impl ResponseData {
     }
 
     /// Set response body as JSON
-    pub fn set_body_json<T: serde::Serialize>(&mut self, data: &T) -> Result<&mut Self, serde_json::Error> {
+    pub fn set_body_json<T: serde::Serialize>(
+        &mut self,
+        data: &T,
+    ) -> Result<&mut Self, serde_json::Error> {
         let json_string = serde_json::to_string(data)?;
         self.body = json_string.into_bytes();
         self.set_header("Content-Type", "application/json");
@@ -277,7 +280,10 @@ pub fn not_found() -> ResponseData {
 
 /// Create Internal Server Error response
 pub fn internal_server_error() -> ResponseData {
-    ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Internal Server Error"))
+    ResponseData::error(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Some("Internal Server Error"),
+    )
 }
 
 /// Create Bad Request response
@@ -337,10 +343,13 @@ mod tests {
     fn test_json_response() {
         let data = json!({"message": "Hello, World!"});
         let resp = ResponseData::json(&data).unwrap();
-        
+
         assert_eq!(resp.status, StatusCode::OK);
-        assert_eq!(resp.get_header("Content-Type"), Some(&"application/json".to_string()));
-        
+        assert_eq!(
+            resp.get_header("Content-Type"),
+            Some(&"application/json".to_string())
+        );
+
         let body_str = resp.body_as_string().unwrap();
         assert!(body_str.contains("Hello, World!"));
     }
@@ -361,8 +370,11 @@ mod tests {
             same_site: Some(SameSite::Strict),
             ..Default::default()
         };
-        
+
         let cookie = format_cookie("session", "abc123", options);
-        assert_eq!(cookie, "session=abc123; Max-Age=3600; Path=/; Secure; HttpOnly; SameSite=Strict");
+        assert_eq!(
+            cookie,
+            "session=abc123; Max-Age=3600; Path=/; Secure; HttpOnly; SameSite=Strict"
+        );
     }
 }
