@@ -86,7 +86,7 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           # run maturin using the virtualenv's python so it won't pick a different system interpreter
-          ./.venv/bin/python -m maturin develop --release --interpreter ./.venv/bin/python
+          ./.venv/bin/python -m maturin develop --release
           ./.venv/bin/python -c "import bustapi; print(f'BustAPI {bustapi.__version__} installed successfully')"
 
       - name: Build and install Rust extension with maturin (Windows)
@@ -95,7 +95,7 @@ jobs:
           # on Windows run the same pattern using the venv python executable
           .\\.venv\\Scripts\\python -m pip install --upgrade pip
           .\\.venv\\Scripts\\python -m pip install maturin
-          .\\.venv\\Scripts\\python -m maturin develop --release --interpreter .\\.venv\\Scripts\\python
+          .\\.venv\\Scripts\\python -m maturin develop --release
           .\\.venv\\Scripts\\python -c "import bustapi; print(f'BustAPI {bustapi.__version__} installed successfully')"
 
       - name: Run basic tests (Unix)
@@ -137,7 +137,7 @@ jobs:
       - name: Build wheels with maturin
         run: |
           # Use the virtualenv python as the interpreter so maturin targets the correct Python
-          ./.venv/bin/python -m maturin build --release --out dist --interpreter ./.venv/bin/python
+          ./.venv/bin/python -m maturin build --release --out dist
 
       - name: Upload wheels as artifacts
         uses: actions/upload-artifact@v4

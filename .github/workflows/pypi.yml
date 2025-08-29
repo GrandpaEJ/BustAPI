@@ -44,7 +44,7 @@ jobs:
 
       - name: Build wheels
         run: |
-          ./.venv/bin/python -m maturin build --release --out dist --interpreter ./.venv/bin/python
+          ./.venv/bin/python -m maturin build --release --out dist
 
       - name: Upload wheels artifact
         uses: actions/upload-artifact@v4

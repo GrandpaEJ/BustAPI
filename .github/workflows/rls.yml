@@ -57,7 +57,7 @@ jobs:
 
       # Build wheel
       - name: Build wheel
-        run: ./.venv/bin/python -m maturin build --release --out dist --interpreter ./.venv/bin/python
+        run: ./.venv/bin/python -m maturin build --release --out dist
 
       # Upload artifact
       - name: Upload artifact
@@ -108,7 +108,7 @@ jobs:
 
       # Build Android wheel
       - name: Build Android (aarch64)
-        run: ./.venv/bin/python -m maturin build --release --target aarch64-linux-android --out dist --interpreter ./.venv/bin/python
+        run: ./.venv/bin/python -m maturin build --release --target aarch64-linux-android --out dist
 
       # Upload artifact
       - name: Upload artifact
