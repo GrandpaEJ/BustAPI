@@ -4,11 +4,9 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**BustAPI** is a high-performance, Flask-compatible Python web framework built with a Rust backend using PyO3. It combines Flask's simplicity with modern async capabilities and superior performance.
+**BustAPI** is a high-performance, Flask-compatible Python web framework built with a Rust backend using PyO3. It combines Flask's simplicity with modern async capabilities.
 
-
-<h1>NOTE</h1>
-- Made by AI , so Docs are not valid 100%
+NOTE: Documentation links and domains in this repository are placeholders. Update them to point to your project's real documentation when available.
 
 ## ✨ Features
 
@@ -142,11 +140,7 @@ bustapi init myproject
 
 ## 📚 Documentation
 
-- [Quick Start Guide](https://bustapi.dev/quickstart)
-- [API Reference](https://bustapi.dev/api)
-- [Migration from Flask](https://bustapi.dev/migration)
-- [Performance Guide](https://bustapi.dev/performance)
-- [Extension Development](https://bustapi.dev/extensions)
+Documentation links are not configured for this repository. Please refer to the source code and examples in the `examples/` folder for usage.
 
 ## 🤝 Contributing
 
@@ -173,11 +167,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔗 Links
 
-- [Homepage](https://bustapi.dev)
-- [Documentation](https://bustapi.dev/docs)
-- [PyPI Package](https://pypi.org/project/bustapi/)
-- [GitHub Repository](https://github.com/bustapi/bustapi)
-- [Issue Tracker](https://github.com/bustapi/bustapi/issues)
+- PyPI: https://pypi.org/project/bustapi/ (if published)
+- Repository: https://github.com/GrandpaEJ/BustAPI
+- Issues: https://github.com/GrandpaEJ/BustAPI/issues
 
 ---
 
