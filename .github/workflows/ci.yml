@@ -80,14 +80,31 @@ jobs:
         run: |
           cargo clippy --all-targets --all-features -- -D warnings
 
-      - name: Build and install Rust extension with maturin
+      - name: Create Python virtual environment
+        run: |
+          python -m venv .venv
+
+      - name: Build and install Rust extension with maturin (Unix)
+        if: runner.os != 'Windows'
         run: |
           maturin develop --release
-          python -c "import bustapi; print(f'BustAPI {bustapi.__version__} installed successfully')"
+          ./.venv/bin/python -c "import bustapi; print(f'BustAPI {bustapi.__version__} installed successfully')"
 
-      - name: Run basic tests
+      - name: Build and install Rust extension with maturin (Windows)
+        if: runner.os == 'Windows'
         run: |
-          python test_basic.py
+          maturin develop --release
+          .\.venv\Scripts\python -c "import bustapi; print(f'BustAPI {bustapi.__version__} installed successfully')"
+
+      - name: Run basic tests (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          ./.venv/bin/python test_basic.py
+
+      - name: Run basic tests (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          .\.venv\Scripts\python test_basic.py
 
   build-wheels:
     name: Build wheels on ${{ matrix.os }}
