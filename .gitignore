@@ -138,3 +138,9 @@ Thumbs.db
 # UV
 .uv/
 uv.lock
+
+ex.yml
+ex.toml
+ex.py.toml
+
+.zen*

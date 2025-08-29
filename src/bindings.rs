@@ -26,8 +26,10 @@ pub struct PyBustApp {
 impl PyBustApp {
     #[new]
     pub fn new() -> PyResult<Self> {
-        // Initialize a Tokio runtime integrated with pyo3-asyncio
-        let runtime = pyo3_tokio::init_multi_thread()
+        // Create a Tokio runtime
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to create async runtime: {}", e)))?;
         
         Ok(Self {
