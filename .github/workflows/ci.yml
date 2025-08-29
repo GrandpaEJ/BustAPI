@@ -50,27 +50,36 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: Install Python tools into a virtualenv
+      - name: Create venv and install Python tools (Unix)
+        if: runner.os != 'Windows'
         run: |
-          # create and activate a portable virtualenv and install tooling there
+          # create a portable virtualenv and install tooling there (Linux / macOS)
           python -m venv .venv
           ./.venv/bin/python -m pip install --upgrade pip
           ./.venv/bin/python -m pip install maturin pytest pytest-asyncio pytest-cov black isort ruff
 
+      - name: Create venv and install Python tools (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          # create a portable virtualenv and install tooling there (Windows)
+          python -m venv .venv
+          .\\.venv\\Scripts\\python -m pip install --upgrade pip
+          .\\.venv\\Scripts\\python -m pip install maturin pytest pytest-asyncio pytest-cov black isort ruff
+
       - name: Check Python code formatting with black
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         run: |
-          black --check --diff python/
+          ./.venv/bin/python -m black --check --diff python/
 
       - name: Check Python imports ordering with isort
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         run: |
-          isort --check-only --diff python/
+          ./.venv/bin/python -m isort --check-only --diff python/
 
       - name: Lint Python code with ruff
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         run: |
-          ruff check python/
+          ./.venv/bin/python -m ruff check python/
 
       - name: Check Rust code formatting
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
