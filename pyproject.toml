@@ -73,6 +73,11 @@ python-source = "python"
 line-length = 88
 target-version = ['py38']
 
+[tool.isort]
+profile = "black"
+line_length = 88
+known_first_party = ["bustapi"]
+
 [tool.mypy]
 python_version = "3.8"
 strict = true

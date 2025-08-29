@@ -9,7 +9,8 @@ This example shows how to migrate from Flask to BustAPI with minimal changes.
 # app = Flask(__name__)
 
 # BustAPI equivalent - just change the import!
-from bustapi import Flask, request, jsonify, Blueprint
+from bustapi import Blueprint, Flask, jsonify, request
+
 app = Flask(__name__)
 
 # Create a blueprint (Flask-compatible)

@@ -6,7 +6,7 @@ Basic test to verify BustAPI functionality
 def test_import():
     """Test that we can import BustAPI"""
     try:
-        from bustapi import BustAPI, request, jsonify
+        from bustapi import BustAPI, jsonify, request
         print("✅ Import successful")
         return True
     except ImportError as e:
