@@ -36,14 +36,15 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Install maturin
+      - name: Create venv and install maturin
         run: |
-          python -m pip install --upgrade pip
-          pip install maturin
+          python -m venv .venv
+          ./.venv/bin/python -m pip install --upgrade pip
+          ./.venv/bin/python -m pip install maturin
 
       - name: Build wheels
         run: |
-          maturin build --release --out dist --find-interpreter
+          ./.venv/bin/python -m maturin build --release --out dist --interpreter ./.venv/bin/python
 
       - name: Upload wheels artifact
         uses: actions/upload-artifact@v4
@@ -67,14 +68,15 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install maturin
+      - name: Create venv and install maturin
         run: |
-          python -m pip install --upgrade pip
-          pip install maturin
+          python -m venv .venv
+          ./.venv/bin/python -m pip install --upgrade pip
+          ./.venv/bin/python -m pip install maturin
 
       - name: Build sdist
         run: |
-          maturin sdist --out dist
+          ./.venv/bin/python -m maturin sdist --out dist
 
       - name: Upload sdist artifact
         uses: actions/upload-artifact@v4

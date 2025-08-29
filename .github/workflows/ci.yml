@@ -50,10 +50,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: Install Python dependencies
+      - name: Install Python tools into a virtualenv
         run: |
-          python -m pip install --upgrade pip
-          pip install maturin pytest pytest-asyncio pytest-cov black isort ruff
+          # create and activate a portable virtualenv and install tooling there
+          python -m venv .venv
+          ./.venv/bin/python -m pip install --upgrade pip
+          ./.venv/bin/python -m pip install maturin pytest pytest-asyncio pytest-cov black isort ruff
 
       - name: Check Python code formatting with black
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
@@ -80,21 +82,21 @@ jobs:
         run: |
           cargo clippy --all-targets --all-features -- -D warnings
 
-      - name: Create Python virtual environment
-        run: |
-          python -m venv .venv
-
       - name: Build and install Rust extension with maturin (Unix)
         if: runner.os != 'Windows'
         run: |
-          maturin develop --release
+          # run maturin using the virtualenv's python so it won't pick a different system interpreter
+          ./.venv/bin/python -m maturin develop --release --interpreter ./.venv/bin/python
           ./.venv/bin/python -c "import bustapi; print(f'BustAPI {bustapi.__version__} installed successfully')"
 
       - name: Build and install Rust extension with maturin (Windows)
         if: runner.os == 'Windows'
         run: |
-          maturin develop --release
-          .\.venv\Scripts\python -c "import bustapi; print(f'BustAPI {bustapi.__version__} installed successfully')"
+          # on Windows run the same pattern using the venv python executable
+          .\\.venv\\Scripts\\python -m pip install --upgrade pip
+          .\\.venv\\Scripts\\python -m pip install maturin
+          .\\.venv\\Scripts\\python -m maturin develop --release --interpreter .\\.venv\\Scripts\\python
+          .\\.venv\\Scripts\\python -c "import bustapi; print(f'BustAPI {bustapi.__version__} installed successfully')"
 
       - name: Run basic tests (Unix)
         if: runner.os != 'Windows'
@@ -126,14 +128,16 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install maturin
+      - name: Create venv and install maturin
         run: |
-          python -m pip install --upgrade pip
-          pip install maturin
+          python -m venv .venv
+          ./.venv/bin/python -m pip install --upgrade pip
+          ./.venv/bin/python -m pip install maturin
 
       - name: Build wheels with maturin
         run: |
-          maturin build --release --out dist --find-interpreter
+          # Use the virtualenv python as the interpreter so maturin targets the correct Python
+          ./.venv/bin/python -m maturin build --release --out dist --interpreter ./.venv/bin/python
 
       - name: Upload wheels as artifacts
         uses: actions/upload-artifact@v4
@@ -165,23 +169,20 @@ jobs:
 
       - name: Install dependencies
         run: |
-          source .venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install maturin requests httpx pytest-benchmark
+          ./.venv/bin/python -m pip install --upgrade pip
+          ./.venv/bin/python -m pip install maturin requests httpx pytest-benchmark
 
       - name: Build package
         run: |
-          source .venv/bin/activate
-          maturin develop
+          ./.venv/bin/python -m maturin develop
 
       - name: Run benchmarks
         run: |
-          source .venv/bin/activate
           mkdir -p benchmarks/results
-          python -c "import bustapi; print('Running benchmarks for BustAPI', bustapi.__version__)" > benchmarks/results/version.txt
-          python examples/hello_world.py &
+          ./.venv/bin/python -c "import bustapi; print('Running benchmarks for BustAPI', bustapi.__version__)" > benchmarks/results/version.txt
+          ./.venv/bin/python examples/hello_world.py &
           sleep 2
-          python -m pytest examples/benchmark_requests.py -v
+          ./.venv/bin/python -m pytest examples/benchmark_requests.py -v
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4

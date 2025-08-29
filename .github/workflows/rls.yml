@@ -48,13 +48,16 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      # Install Maturin
-      - name: Install Maturin
-        run: pip install maturin
+      # Install Maturin into a venv and build wheel using the selected interpreter
+      - name: Create venv and install maturin
+        run: |
+          python -m venv .venv
+          ./.venv/bin/python -m pip install --upgrade pip
+          ./.venv/bin/python -m pip install maturin
 
       # Build wheel
       - name: Build wheel
-        run: maturin build --release --out dist
+        run: ./.venv/bin/python -m maturin build --release --out dist --interpreter ./.venv/bin/python
 
       # Upload artifact
       - name: Upload artifact
@@ -86,9 +89,12 @@ jobs:
           rustc --version
           cargo --version
 
-      # Install Maturin
-      - name: Install Maturin
-        run: pip install maturin
+      # Install Maturin into a venv
+      - name: Create venv and install maturin
+        run: |
+          python -m venv .venv
+          ./.venv/bin/python -m pip install --upgrade pip
+          ./.venv/bin/python -m pip install maturin
 
       # Install Android NDK
       - name: Install Android NDK
@@ -102,7 +108,7 @@ jobs:
 
       # Build Android wheel
       - name: Build Android (aarch64)
-        run: maturin build --release --target aarch64-linux-android --out dist
+        run: ./.venv/bin/python -m maturin build --release --target aarch64-linux-android --out dist --interpreter ./.venv/bin/python
 
       # Upload artifact
       - name: Upload artifact
