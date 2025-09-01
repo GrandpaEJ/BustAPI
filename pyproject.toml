@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "bustapi"
-version = "0.1.1"
+version = "0.1.5"
 description = "High-performance Flask-compatible web framework with async support"
 authors = [
     {name = "BustAPI Team", email = "hello@bustapi.dev"}
@@ -39,6 +39,9 @@ dependencies = [
     "typing-extensions>=4.0.0",
     "werkzeug>=2.0.0",
     "jinja2>=3.1",
+    "pydantic>=2.10.6",
+    "requests>=2.32.4",
+    "colorama>=0.4.6",
 ]
 
 [project.optional-dependencies]

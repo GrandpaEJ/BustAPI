@@ -1,3 +1,1 @@
-{'target': 'bustapi', 'success': 10049, 'errors': 0, 'elapsed': 33.85763216018677, 'rps': 296.8016177993874, 'concurrency': 50}
-{'target': 'flask', 'success': 10049, 'errors': 0, 'elapsed': 43.417314529418945, 'rps': 231.45144071936883, 'concurrency': 50}
-{'target': 'fastapi', 'success': 10049, 'errors': 0, 'elapsed': 42.72043800354004, 'rps': 235.2269889921842, 'concurrency': 50}
+{'target': 'bustapi', 'success': 10099, 'errors': 0, 'elapsed': 39.465922832489014, 'rps': 255.89164715252352, 'concurrency': 100}

@@ -2,6 +2,7 @@
 
 use hyper::StatusCode;
 use std::collections::HashMap;
+use bytes::Bytes;
 
 /// HTTP response data structure
 #[derive(Debug, Clone)]
@@ -18,6 +19,26 @@ impl ResponseData {
             status: StatusCode::OK,
             headers: HashMap::new(),
             body: Vec::new(),
+        }
+    }
+
+    /// Create response from static bytes (zero-copy)
+    pub fn from_static(body: &'static [u8]) -> Self {
+        Self {
+            status: StatusCode::OK,
+            headers: HashMap::new(),
+            body: body.to_vec(),
+        }
+    }
+
+    /// Create JSON response with pre-serialized content
+    pub fn json_static(json: &'static str) -> Self {
+        let mut headers = HashMap::new();
+        headers.insert("Content-Type".to_string(), "application/json".to_string());
+        Self {
+            status: StatusCode::OK,
+            headers,
+            body: json.as_bytes().to_vec(),
         }
     }
 

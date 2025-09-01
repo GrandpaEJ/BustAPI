@@ -245,10 +245,10 @@ def _get_current_object():
     raise RuntimeError("Working outside of application context")
 
 
-# Template helpers (placeholders)
+# Template helpers
 def render_template(template_name: str, **context) -> str:
     """
-    Render template (Flask-compatible placeholder).
+    Render template using Jinja2 (Flask-compatible).
 
     Args:
         template_name: Template filename
@@ -256,13 +256,32 @@ def render_template(template_name: str, **context) -> str:
 
     Returns:
         Rendered template string
-
-    Note:
-        This is a placeholder. Template rendering should be
-        implemented with a proper template engine like Jinja2.
     """
-    # TODO: Implement template rendering
-    return f"<!-- Template: {template_name} -->"
+    try:
+        from jinja2 import Environment, FileSystemLoader, select_autoescape
+        import os
+
+        # Get template directory (default to 'templates')
+        template_dir = context.pop('_template_dir', 'templates')
+        if not os.path.exists(template_dir):
+            os.makedirs(template_dir, exist_ok=True)
+
+        # Create Jinja2 environment
+        env = Environment(
+            loader=FileSystemLoader(template_dir),
+            autoescape=select_autoescape(['html', 'xml'])
+        )
+
+        # Load and render template
+        template = env.get_template(template_name)
+        return template.render(**context)
+
+    except ImportError:
+        # Fallback if Jinja2 is not installed
+        return f"<!-- Template: {template_name} (Jinja2 not installed) -->"
+    except Exception as e:
+        # Fallback for template errors
+        return f"<!-- Template Error: {template_name} - {str(e)} -->"
 
 
 def render_template_string(source: str, **context) -> str:

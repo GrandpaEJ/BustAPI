@@ -89,6 +89,9 @@ impl BustServer {
 
             tokio::task::spawn(async move {
                 if let Err(err) = http1::Builder::new()
+                    .keep_alive(true)
+                    .half_close(true)
+                    .max_buf_size(8192)
                     .serve_connection(
                         io,
                         service_fn(move |req: Request<hyper::body::Incoming>| {
@@ -96,6 +99,7 @@ impl BustServer {
                             async move { router.handle_request(req).await }
                         }),
                     )
+                    .with_upgrades()
                     .await
                 {
                     error!("Error serving connection: {:?}", err);
@@ -130,6 +134,9 @@ impl BustServer {
 
                     tokio::task::spawn(async move {
                         if let Err(err) = http1::Builder::new()
+                            .keep_alive(true)
+                            .half_close(true)
+                            .max_buf_size(8192)
                             .serve_connection(
                                 io,
                                 service_fn(move |req: Request<hyper::body::Incoming>| {
@@ -137,6 +144,7 @@ impl BustServer {
                                     async move { router.handle_request(req).await }
                                 }),
                             )
+                            .with_upgrades()
                             .await
                         {
                             error!("Error serving connection: {:?}", err);

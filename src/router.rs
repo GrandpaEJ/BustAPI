@@ -146,12 +146,13 @@ impl Router {
             })
             .unwrap_or_default();
 
-        // Convert headers
-        let headers = parts
-            .headers
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
-            .collect();
+        // Convert headers (optimized with pre-allocation)
+        let mut headers = HashMap::with_capacity(parts.headers.len());
+        for (k, v) in parts.headers.iter() {
+            if let Ok(value_str) = v.to_str() {
+                headers.insert(k.as_str().to_string(), value_str.to_string());
+            }
+        }
 
         Ok(RequestData {
             method: parts.method,

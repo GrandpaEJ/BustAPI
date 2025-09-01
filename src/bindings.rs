@@ -14,6 +14,7 @@ use pyo3::types::{PyBytes, PyString, PyDict};
 use pyo3_asyncio::tokio as pyo3_tokio;
 use std::collections::HashMap;
 use std::str::FromStr;
+use std::sync::{Arc, Mutex};
 use tokio::runtime::Runtime;
 
 /// Python wrapper for the BustAPI application
@@ -29,11 +30,12 @@ impl PyBustApp {
     #[new]
     pub fn new() -> PyResult<Self> {
         // Create an optimized Tokio runtime for high performance
+        let cpu_count = num_cpus::get();
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
-            .worker_threads(num_cpus::get()) // Use all available CPU cores
+            .worker_threads(cpu_count) // Use all available CPU cores
+            .max_blocking_threads(cpu_count * 4) // More blocking threads for Python GIL
             .thread_name("bustapi-worker")
-            .thread_stack_size(2 * 1024 * 1024) // 2MB stack size
             .build()
             .map_err(|e| {
                 PyRuntimeError::new_err(format!("Failed to create async runtime: {}", e))
@@ -93,6 +95,19 @@ impl PyBustApp {
         // For now, just call the sync version
         // TODO: Implement proper async interface
         self.run(host, port)
+    }
+
+    /// Add a fast Rust-only route for testing maximum performance
+    pub fn add_fast_route(&mut self, method: &str, path: &str, response_body: String) -> PyResult<()> {
+        let method = Method::from_str(method)
+            .map_err(|e| PyRuntimeError::new_err(format!("Invalid HTTP method: {}", e)))?;
+
+        let fast_handler = FastRouteHandler::new(response_body);
+        self.server
+            .router_mut()
+            .add_route(method, path.to_string(), fast_handler);
+
+        Ok(())
     }
 }
 
@@ -293,63 +308,85 @@ impl PyResponse {
     }
 }
 
+/// Simple response cache for static responses
+type ResponseCache = Arc<Mutex<HashMap<String, ResponseData>>>;
+
+/// Fast Rust-only route handler for maximum performance testing
+pub struct FastRouteHandler {
+    response_body: String,
+}
+
+impl FastRouteHandler {
+    pub fn new(response_body: String) -> Self {
+        Self { response_body }
+    }
+}
+
+#[async_trait]
+impl RouteHandler for FastRouteHandler {
+    async fn handle(&self, _req: RequestData) -> ResponseData {
+        ResponseData::text(&self.response_body)
+    }
+}
+
 /// Route handler for synchronous Python functions
 pub struct PyRouteHandler {
     handler: PyObject,
+    cache: ResponseCache,
 }
 
 impl PyRouteHandler {
     pub fn new(handler: PyObject) -> Self {
-        Self { handler }
+        Self {
+            handler,
+            cache: Arc::new(Mutex::new(HashMap::new())),
+        }
     }
 }
 
 #[async_trait]
 impl RouteHandler for PyRouteHandler {
     async fn handle(&self, req: RequestData) -> ResponseData {
-        // Use pyo3-asyncio for better async integration without blocking the GIL
+        // Simplified approach: use tokio::task::spawn_blocking for Python calls
         let handler = self.handler.clone();
 
-        // Convert request data to Python object outside of async context when possible
-        let result = pyo3_tokio::get_runtime()
-            .spawn_blocking(move || {
-                Python::with_gil(|py| {
-                    let py_req = PyRequest::from_request_data(req);
-                    let py_req_obj = match Py::new(py, py_req) {
-                        Ok(obj) => obj,
-                        Err(e) => {
-                            eprintln!("Failed to create PyRequest object: {:?}", e);
-                            return Err(ResponseData::error(
+        let result = tokio::task::spawn_blocking(move || {
+            Python::with_gil(|py| {
+                let py_req = PyRequest::from_request_data(req);
+                let py_req_obj = match Py::new(py, py_req) {
+                    Ok(obj) => obj,
+                    Err(e) => {
+                        eprintln!("Failed to create PyRequest object: {:?}", e);
+                        return ResponseData::error(
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Some("Handler error"),
+                        );
+                    }
+                };
+
+                // Call the Python handler
+                match handler.call1(py, (py_req_obj,)) {
+                    Ok(result) => {
+                        // Convert Python result to ResponseData
+                        convert_python_result_to_response(py, result).unwrap_or_else(|e| {
+                            eprintln!("Error converting Python response: {:?}", e);
+                            ResponseData::error(
                                 StatusCode::INTERNAL_SERVER_ERROR,
                                 Some("Handler error"),
-                            ));
-                        }
-                    };
-
-                    // Call the Python handler
-                    match handler.call1(py, (py_req_obj,)) {
-                        Ok(result) => {
-                            // Convert Python result to ResponseData
-                            Ok(convert_python_result_to_response(py, result).unwrap_or_else(|e| {
-                                eprintln!("Error converting Python response: {:?}", e);
-                                ResponseData::error(
-                                    StatusCode::INTERNAL_SERVER_ERROR,
-                                    Some("Handler error"),
-                                )
-                            }))
-                        }
-                        Err(e) => {
-                            eprintln!("Error calling Python handler: {:?}", e);
-                            Ok(ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Handler error")))
-                        }
+                            )
+                        })
                     }
-                })
+                    Err(e) => {
+                        eprintln!("Error calling Python handler: {:?}", e);
+                        ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Handler error"))
+                    }
+                }
             })
-            .await;
+        })
+        .await;
 
         match result {
-            Ok(Ok(response_data)) => response_data,
-            Ok(Err(response_data)) => response_data,
+            Ok(response_data) => response_data,
             Err(e) => {
                 eprintln!("Error in spawn_blocking: {:?}", e);
                 ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Handler error"))

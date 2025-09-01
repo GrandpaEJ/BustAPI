@@ -23,16 +23,17 @@ import sys
 from http import HTTPStatus
 
 __version__ = "0.1.0"
-__author__ = "BustAPI Team"
-__email__ = "hello@bustapi.dev"
+__author__ = "BustAPI"
+__email__ = "grandpaabir@gmail.com"
 
 # Import core classes and functions
 from .app import BustAPI
 from .blueprints import Blueprint
 from .flask_compat import Flask
-from .helpers import abort, redirect, url_for
+from .helpers import abort, redirect, url_for, render_template
 from .request import Request, request
 from .response import Response, jsonify, make_response
+from . import logging
 
 # Import testing utilities
 from .testing import TestClient
@@ -52,6 +53,10 @@ __all__ = [
     "abort",
     "redirect",
     "url_for",
+    "render_template",
+
+    # Logging
+    "logging",
     # Flask compatibility
     "Flask",
     # HTTP status codes
@@ -93,4 +98,5 @@ def get_debug_info():
 
 
 # Set up default logging
-logging.getLogger("bustapi").addHandler(logging.NullHandler())
+import logging as _logging
+_logging.getLogger("bustapi").addHandler(_logging.NullHandler())

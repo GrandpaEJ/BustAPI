@@ -3,12 +3,14 @@ BustAPI Application class - Flask-compatible web framework
 """
 
 import inspect
+import time
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 from .blueprints import Blueprint
 from .request import Request, _request_ctx
 from .response import Response, make_response
+from .logging import get_logger, log_startup, log_shutdown
 
 
 class BustAPI:
@@ -33,6 +35,13 @@ class BustAPI:
         template_folder: Optional[str] = None,
         instance_relative_config: bool = False,
         root_path: Optional[str] = None,
+        # FastAPI-style parameters
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        version: Optional[str] = None,
+        docs_url: Optional[str] = None,
+        redoc_url: Optional[str] = None,
+        openapi_url: Optional[str] = None,
     ):
         """
         Initialize BustAPI application.
@@ -80,13 +89,61 @@ class BustAPI:
         # Jinja environment (placeholder for template support)
         self.jinja_env = None
 
+        # FastAPI-style configuration
+        self.title = title or "BustAPI"
+        self.description = description or "A high-performance Python web framework"
+        self.version = version or "1.0.0"
+        self.docs_url = docs_url
+        self.redoc_url = redoc_url
+        self.openapi_url = openapi_url
+
+        # Initialize colorful logger
+        try:
+            self.logger = get_logger("bustapi.app")
+        except Exception:
+            # Fallback if logging module has issues
+            self.logger = None
+
+        # Flask compatibility attributes
+        self.debug = False
+        self.testing = False
+        self.secret_key = None
+        self.permanent_session_lifetime = None
+        self.use_x_sendfile = False
+        self.logger = None
+        self.json_encoder = None
+        self.json_decoder = None
+        self.jinja_options = {}
+        self.got_first_request = False
+        self.shell_context_processors = []
+        self.cli = None
+        self.instance_path = None
+        self.open_session = None
+        self.save_session = None
+        self.session_interface = None
+        self.wsgi_app = None
+        self.response_class = None
+        self.request_class = None
+        self.test_client_class = None
+        self.test_cli_runner_class = None
+        self.url_rule_class = None
+        self.url_map_class = None
+        self.subdomain_matching = False
+        self.url_defaults = None
+        self.template_context_processors = {}
+        self._template_fragment_cache = None
+
         # Initialize Rust backend
         self._rust_app = None
         self._init_rust_backend()
-        # register a simple OpenAPI endpoint
+        # Register auto documentation endpoints
         try:
-            # register only if rust backend initialized successfully
-            self.get("/openapi.json")(self._openapi_route)
+            if self.openapi_url:
+                self.get(self.openapi_url)(self._openapi_route)
+            if self.docs_url:
+                self.get(self.docs_url)(self._swagger_ui)
+            if self.redoc_url:
+                self.get(self.redoc_url)(self._redoc_ui)
         except Exception:
             # ignore registration errors in environments where Rust backend isn't available
             pass
@@ -171,6 +228,73 @@ class BustAPI:
     def options(self, rule: str, **options) -> Callable:
         """Convenience decorator for OPTIONS routes."""
         return self.route(rule, methods=["OPTIONS"], **options)
+
+    # Flask compatibility methods
+    def shell_context_processor(self, f):
+        """Register a shell context processor function."""
+        self.shell_context_processors.append(f)
+        return f
+
+    def make_shell_context(self):
+        """Create shell context."""
+        context = {'app': self}
+        for processor in self.shell_context_processors:
+            context.update(processor())
+        return context
+
+    def app_context(self):
+        """Create application context."""
+        return _AppContext(self)
+
+    def request_context(self, environ_or_request):
+        """Create request context."""
+        return _RequestContext(self, environ_or_request)
+
+    def test_request_context(self, *args, **kwargs):
+        """Create test request context."""
+        return _RequestContext(self, None)
+
+    def preprocess_request(self):
+        """Preprocess request."""
+        for func in self.before_request_funcs:
+            result = func()
+            if result is not None:
+                return result
+
+    def process_response(self, response):
+        """Process response."""
+        for func in self.after_request_funcs:
+            response = func(response)
+        return response
+
+    def do_teardown_request(self, exc=None):
+        """Teardown request."""
+        for func in self.teardown_request_funcs:
+            func(exc)
+
+    def do_teardown_appcontext(self, exc=None):
+        """Teardown app context."""
+        for func in self.teardown_appcontext_funcs:
+            func(exc)
+
+    def make_default_options_response(self):
+        """Make default OPTIONS response."""
+        from .response import Response
+        return Response('', 200, {'Allow': 'GET,HEAD,POST,OPTIONS'})
+
+    def create_jinja_environment(self):
+        """Create Jinja2 environment."""
+        if self.jinja_env is None:
+            try:
+                from jinja2 import Environment, FileSystemLoader
+                template_folder = self.template_folder or 'templates'
+                self.jinja_env = Environment(
+                    loader=FileSystemLoader(template_folder),
+                    **self.jinja_options
+                )
+            except ImportError:
+                pass
+        return self.jinja_env
 
     def _extract_path_params(self, rule: str, path: str):
         """Extract path params from a Flask-style rule like '/greet/<name>' or '/users/<int:id>'."""
@@ -328,7 +452,12 @@ class BustAPI:
                 # Note: Async handlers are now handled directly by Rust PyAsyncRouteHandler
                 # This wrapper should only handle sync functions for better performance
                 result = handler(**kwargs)
-                response = self._make_response(result)
+
+                # Handle tuple responses properly
+                if isinstance(result, tuple):
+                    response = self._make_response(*result)
+                else:
+                    response = self._make_response(result)
 
                 # Run after request handlers
                 for after_func in self.after_request_funcs:
@@ -378,7 +507,12 @@ class BustAPI:
                 # Call the handler (sync only - async handled by Rust)
                 # Note: Async handlers are now handled directly by Rust PyAsyncRouteHandler
                 result = handler(**kwargs)
-                response = self._make_response(result)
+
+                # Handle tuple responses properly
+                if isinstance(result, tuple):
+                    response = self._make_response(*result)
+                else:
+                    response = self._make_response(result)
 
                 # Run after request handlers
                 for after_func in self.after_request_funcs:
@@ -404,9 +538,9 @@ class BustAPI:
 
         return wrapper
 
-    def _make_response(self, result: Any) -> Response:
+    def _make_response(self, *args) -> Response:
         """Convert various return types to Response objects."""
-        return make_response(result)
+        return make_response(*args)
 
     # --- Templating helpers ---
     def create_jinja_env(self):
@@ -429,33 +563,130 @@ class BustAPI:
 
     # --- OpenAPI generation ---
     def _generate_openapi(self) -> Dict:
-        """Generate a minimal OpenAPI-like JSON document from registered routes.
+        """Generate OpenAPI 3.1.0 specification for the application."""
+        try:
+            from .openapi.utils import get_openapi_spec
 
-        This is intentionally minimal: it provides paths and methods with docstrings
-        or function names as operationId/summary.
-        """
-        info = {"title": "BustAPI Application", "version": self.config.get("VERSION", "0.1.0")}
-        paths: Dict[str, Dict] = {}
-        for rule, meta in self.url_map.items():
-            methods = meta.get("methods", ["GET"])
-            paths.setdefault(rule, {})
-            for m in methods:
+            # Extract route information from url_map
+            routes = []
+            for rule, meta in self.url_map.items():
+                methods = meta.get("methods", ["GET"])
                 endpoint = meta.get("endpoint")
-                view = self._view_functions.get(endpoint)
-                summary = None
-                if view is not None:
-                    summary = (view.__doc__ or "").strip().splitlines()[0] if view.__doc__ else view.__name__
-                paths[rule][m.lower()] = {
-                    "summary": summary or endpoint,
-                    "operationId": endpoint,
-                    "responses": {"200": {"description": "Successful response"}},
-                }
+                handler = self._view_functions.get(endpoint)
 
-        return {"openapi": "3.0.0", "info": info, "paths": paths}
+                routes.append({
+                    'path': rule,
+                    'methods': methods,
+                    'handler': handler,
+                    'endpoint': endpoint
+                })
+
+            # Generate OpenAPI spec using our custom implementation
+            return get_openapi_spec(
+                title=self.title,
+                version=self.version,
+                description=self.description,
+                routes=routes,
+                servers=[{"url": "/", "description": "Development server"}]
+            )
+
+        except Exception as e:
+            # Fallback to simple implementation if there are issues
+            info = {"title": self.title, "version": self.version}
+            if self.description:
+                info["description"] = self.description
+
+            paths: Dict[str, Dict] = {}
+            for rule, meta in self.url_map.items():
+                methods = meta.get("methods", ["GET"])
+                paths.setdefault(rule, {})
+                for m in methods:
+                    endpoint = meta.get("endpoint")
+                    view = self._view_functions.get(endpoint)
+                    summary = None
+                    if view is not None:
+                        summary = (view.__doc__ or "").strip().splitlines()[0] if view.__doc__ else view.__name__
+                    paths[rule][m.lower()] = {
+                        "summary": summary or endpoint,
+                        "operationId": endpoint,
+                        "responses": {"200": {"description": "Successful response"}},
+                    }
+
+            return {"openapi": "3.1.0", "info": info, "paths": paths}
 
     def _openapi_route(self):
         """Simple route handler that returns the generated OpenAPI JSON."""
         return self._generate_openapi()
+
+    def _swagger_ui(self):
+        """Swagger UI documentation page."""
+        openapi_url = self.openapi_url or "/openapi.json"
+        html = f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>{self.title} - Swagger UI</title>
+            <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui.css" />
+            <style>
+                html {{ box-sizing: border-box; overflow: -moz-scrollbars-vertical; overflow-y: scroll; }}
+                *, *:before, *:after {{ box-sizing: inherit; }}
+                body {{ margin:0; background: #fafafa; }}
+            </style>
+        </head>
+        <body>
+            <div id="swagger-ui"></div>
+            <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-bundle.js"></script>
+            <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-standalone-preset.js"></script>
+            <script>
+                window.onload = function() {{
+                    const ui = SwaggerUIBundle({{
+                        url: '{openapi_url}',
+                        dom_id: '#swagger-ui',
+                        deepLinking: true,
+                        presets: [
+                            SwaggerUIBundle.presets.apis,
+                            SwaggerUIStandalonePreset
+                        ],
+                        plugins: [
+                            SwaggerUIBundle.plugins.DownloadUrl
+                        ],
+                        layout: "StandaloneLayout"
+                    }});
+                }};
+            </script>
+        </body>
+        </html>
+        '''
+        from .response import make_response
+        response = make_response(html)
+        response.headers['Content-Type'] = 'text/html'
+        return response
+
+    def _redoc_ui(self):
+        """ReDoc documentation page."""
+        openapi_url = self.openapi_url or "/openapi.json"
+        html = f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>{self.title} - ReDoc</title>
+            <meta charset="utf-8"/>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">
+            <style>
+                body {{ margin: 0; padding: 0; }}
+            </style>
+        </head>
+        <body>
+            <redoc spec-url='{openapi_url}'></redoc>
+            <script src="https://cdn.jsdelivr.net/npm/redoc@2.0.0/bundles/redoc.standalone.js"></script>
+        </body>
+        </html>
+        '''
+        from .response import make_response
+        response = make_response(html)
+        response.headers['Content-Type'] = 'text/html'
+        return response
 
     def _handle_exception(self, exception: Exception) -> Response:
         """Handle exceptions and return appropriate error responses."""
@@ -515,12 +746,38 @@ class BustAPI:
         if debug:
             self.config["DEBUG"] = True
 
+        # Log startup with colorful output
+        if self.logger:
+            self.logger.log_startup(f"Starting {self.title} v{self.version}")
+            self.logger.info(f"Listening on http://{host}:{port}")
+            self.logger.info(f"Debug mode: {'ON' if debug else 'OFF'}")
+
+            if self.docs_url:
+                self.logger.info(f"📚 API docs: http://{host}:{port}{self.docs_url}")
+            if self.redoc_url:
+                self.logger.info(f"📖 ReDoc: http://{host}:{port}{self.redoc_url}")
+        else:
+            print(f"🚀 Starting {self.title} v{self.version}")
+            print(f"📍 Listening on http://{host}:{port}")
+            print(f"🔧 Debug mode: {'ON' if debug else 'OFF'}")
+
+            if self.docs_url:
+                print(f"📚 API docs: http://{host}:{port}{self.docs_url}")
+            if self.redoc_url:
+                print(f"📖 ReDoc: http://{host}:{port}{self.redoc_url}")
+
         try:
             self._rust_app.run(host, port)
         except KeyboardInterrupt:
-            print("\nShutting down server...")
+            if self.logger:
+                self.logger.log_shutdown("Server stopped by user")
+            else:
+                print("\n🛑 Server stopped by user")
         except Exception as e:
-            print(f"Server error: {e}")
+            if self.logger:
+                self.logger.error(f"Server error: {e}")
+            else:
+                print(f"❌ Server error: {e}")
 
     async def run_async(
         self, host: str = "127.0.0.1", port: int = 5000, debug: bool = False, **options

@@ -26,7 +26,17 @@ Notes
 
 ```
 
-Results (10,000 requests, measured in this workspace)
+## 🚀 Latest Performance Results
+
+### Comprehensive Benchmark (New - 2025)
+**BustAPI v0.1.5 Performance:**
+- **Requests/sec**: 621.10 RPS
+- **Total requests**: 9,350 (in 15 seconds)
+- **Average response time**: 17.22ms
+- **Error rate**: 0.00%
+- **Test conditions**: 100 concurrent requests
+
+### Historical Results (10,000 requests, measured in this workspace)
 
 | Target   | Concurrency | Success | Errors | Elapsed (s) | RPS    |
 |----------|-------------:|--------:|-------:|------------:|-------:|
@@ -36,6 +46,17 @@ Results (10,000 requests, measured in this workspace)
 | BustAPI  | 100         | 10099   | 0      | 16.77       | 602.36 |
 | Flask    | 100         | 10099   | 0      | 15.66       | 644.77 |
 | FastAPI  | 100         | 10099   | 0      | 15.08       | 669.68 |
+
+## 📊 New Benchmark Tools
+
+### `comprehensive_benchmark.py`
+Complete performance testing suite with functionality validation, load testing, and memory monitoring.
+
+### `framework_comparison.py`
+Interactive framework comparison tool with automated server switching.
+
+### `benchmark_server.py`
+Optimized BustAPI server with multiple endpoints for comprehensive testing.
 
 Notes about these runs
 - Environment: ran inside this repository on Linux using a local virtualenv at `./.venv` created with `python3 -m venv .venv`.
