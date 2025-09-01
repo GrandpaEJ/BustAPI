@@ -822,8 +822,6 @@ class BustAPI:
         return TestClient(self, use_cookies=use_cookies, **kwargs)
 
 
-
-
 class _AppContext:
     """Application context manager."""
 

@@ -118,9 +118,7 @@ class ColoredFormatter(logging.Formatter):
             duration_colored = f"{duration_color}{duration_formatted}{Style.RESET_ALL}"
 
             # Build message
-            message = (
-                f"{method_colored} {path_colored} - {status_colored} - {duration_colored}"
-            )
+            message = f"{method_colored} {path_colored} - {status_colored} - {duration_colored}"
 
             # Add error if present
             if error:
