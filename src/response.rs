@@ -1,8 +1,8 @@
 //! HTTP Response data structures and utilities
 
+use bytes::Bytes;
 use hyper::StatusCode;
 use std::collections::HashMap;
-use bytes::Bytes;
 
 /// HTTP response data structure
 #[derive(Debug, Clone)]

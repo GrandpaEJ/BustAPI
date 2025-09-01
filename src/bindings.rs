@@ -10,7 +10,7 @@ use http::Method;
 use hyper::StatusCode;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyString, PyDict};
+use pyo3::types::{PyBytes, PyDict, PyString};
 use pyo3_asyncio::tokio as pyo3_tokio;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -98,7 +98,12 @@ impl PyBustApp {
     }
 
     /// Add a fast Rust-only route for testing maximum performance
-    pub fn add_fast_route(&mut self, method: &str, path: &str, response_body: String) -> PyResult<()> {
+    pub fn add_fast_route(
+        &mut self,
+        method: &str,
+        path: &str,
+        response_body: String,
+    ) -> PyResult<()> {
         let method = Method::from_str(method)
             .map_err(|e| PyRuntimeError::new_err(format!("Invalid HTTP method: {}", e)))?;
 
@@ -378,7 +383,10 @@ impl RouteHandler for PyRouteHandler {
                     }
                     Err(e) => {
                         eprintln!("Error calling Python handler: {:?}", e);
-                        ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Handler error"))
+                        ResponseData::error(
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Some("Handler error"),
+                        )
                     }
                 }
             })
