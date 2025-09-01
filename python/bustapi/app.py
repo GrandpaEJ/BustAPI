@@ -155,7 +155,7 @@ class BustAPI:
 
             self._rust_app = bustapi_core.PyBustApp()
         except ImportError as e:
-            raise RuntimeError(f"Failed to import Rust backend: {e}")
+            raise RuntimeError(f"Failed to import Rust backend: {e}") from e
 
     def route(self, rule: str, **options) -> Callable:
         """
@@ -553,7 +553,7 @@ class BustAPI:
 
                 self.jinja_env = _create_env(self.template_folder)
             except Exception as e:
-                raise RuntimeError(f"Failed to create Jinja environment: {e}")
+                raise RuntimeError(f"Failed to create Jinja environment: {e}") from e
         return self.jinja_env
 
     def render_template(self, template_name: str, **context) -> str:
