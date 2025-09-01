@@ -258,18 +258,19 @@ def render_template(template_name: str, **context) -> str:
         Rendered template string
     """
     try:
-        from jinja2 import Environment, FileSystemLoader, select_autoescape
         import os
 
+        from jinja2 import Environment, FileSystemLoader, select_autoescape
+
         # Get template directory (default to 'templates')
-        template_dir = context.pop('_template_dir', 'templates')
+        template_dir = context.pop("_template_dir", "templates")
         if not os.path.exists(template_dir):
             os.makedirs(template_dir, exist_ok=True)
 
         # Create Jinja2 environment
         env = Environment(
             loader=FileSystemLoader(template_dir),
-            autoescape=select_autoescape(['html', 'xml'])
+            autoescape=select_autoescape(["html", "xml"]),
         )
 
         # Load and render template

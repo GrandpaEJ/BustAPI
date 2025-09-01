@@ -5,7 +5,7 @@ Simplified OpenAPI 3.1.0 specification models for BustAPI.
 Custom implementation optimized for BustAPI's needs.
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 
 class OpenAPIInfo:
@@ -86,7 +86,7 @@ class OpenAPISpec:
                 "title": self.info.title,
                 "version": self.info.version,
             },
-            "paths": {}
+            "paths": {},
         }
 
         if self.info.description:

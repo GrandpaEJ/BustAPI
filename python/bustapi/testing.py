@@ -92,7 +92,8 @@ class TestResponse:
         return "application/json" in content_type.lower()
 
     def __repr__(self) -> str:
-        return f'<TestResponse {self.status_code} [{self.headers.get("Content-Type", "")}]>'
+        content_type = self.headers.get("Content-Type", "")
+        return f"<TestResponse {self.status_code} [{content_type}]>"
 
 
 class TestClient:

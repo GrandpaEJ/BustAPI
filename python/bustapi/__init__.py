@@ -17,7 +17,7 @@ Example:
         app.run(debug=True)
 """
 
-import logging
+import logging as _logging
 import platform
 import sys
 from http import HTTPStatus
@@ -26,14 +26,15 @@ __version__ = "0.1.0"
 __author__ = "BustAPI"
 __email__ = "grandpaabir@gmail.com"
 
+from . import logging
+
 # Import core classes and functions
 from .app import BustAPI
 from .blueprints import Blueprint
 from .flask_compat import Flask
-from .helpers import abort, redirect, url_for, render_template
+from .helpers import abort, redirect, render_template, url_for
 from .request import Request, request
 from .response import Response, jsonify, make_response
-from . import logging
 
 # Import testing utilities
 from .testing import TestClient
@@ -54,7 +55,6 @@ __all__ = [
     "redirect",
     "url_for",
     "render_template",
-
     # Logging
     "logging",
     # Flask compatibility
@@ -98,5 +98,4 @@ def get_debug_info():
 
 
 # Set up default logging
-import logging as _logging
 _logging.getLogger("bustapi").addHandler(_logging.NullHandler())

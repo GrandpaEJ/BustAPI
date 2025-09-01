@@ -3,14 +3,13 @@ BustAPI Application class - Flask-compatible web framework
 """
 
 import inspect
-import time
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 from .blueprints import Blueprint
+from .logging import get_logger
 from .request import Request, _request_ctx
 from .response import Response, make_response
-from .logging import get_logger, log_startup, log_shutdown
 
 
 class BustAPI:
@@ -145,7 +144,8 @@ class BustAPI:
             if self.redoc_url:
                 self.get(self.redoc_url)(self._redoc_ui)
         except Exception:
-            # ignore registration errors in environments where Rust backend isn't available
+            # ignore registration errors in environments where Rust backend
+            # isn't available
             pass
 
     def _init_rust_backend(self):
@@ -187,7 +187,8 @@ class BustAPI:
             # Register with Rust backend
             for method in methods:
                 if inspect.iscoroutinefunction(f):
-                    # Async handler executed synchronously via asyncio.run inside wrapper
+                    # Async handler executed synchronously via asyncio.run
+                    # inside wrapper
                     self._rust_app.add_route(
                         method, rule, self._wrap_async_handler(f, rule)
                     )
@@ -237,7 +238,7 @@ class BustAPI:
 
     def make_shell_context(self):
         """Create shell context."""
-        context = {'app': self}
+        context = {"app": self}
         for processor in self.shell_context_processors:
             context.update(processor())
         return context
@@ -280,17 +281,18 @@ class BustAPI:
     def make_default_options_response(self):
         """Make default OPTIONS response."""
         from .response import Response
-        return Response('', 200, {'Allow': 'GET,HEAD,POST,OPTIONS'})
+
+        return Response("", 200, {"Allow": "GET,HEAD,POST,OPTIONS"})
 
     def create_jinja_environment(self):
         """Create Jinja2 environment."""
         if self.jinja_env is None:
             try:
                 from jinja2 import Environment, FileSystemLoader
-                template_folder = self.template_folder or 'templates'
+
+                template_folder = self.template_folder or "templates"
                 self.jinja_env = Environment(
-                    loader=FileSystemLoader(template_folder),
-                    **self.jinja_options
+                    loader=FileSystemLoader(template_folder), **self.jinja_options
                 )
             except ImportError:
                 pass
@@ -574,12 +576,14 @@ class BustAPI:
                 endpoint = meta.get("endpoint")
                 handler = self._view_functions.get(endpoint)
 
-                routes.append({
-                    'path': rule,
-                    'methods': methods,
-                    'handler': handler,
-                    'endpoint': endpoint
-                })
+                routes.append(
+                    {
+                        "path": rule,
+                        "methods": methods,
+                        "handler": handler,
+                        "endpoint": endpoint,
+                    }
+                )
 
             # Generate OpenAPI spec using our custom implementation
             return get_openapi_spec(
@@ -587,10 +591,10 @@ class BustAPI:
                 version=self.version,
                 description=self.description,
                 routes=routes,
-                servers=[{"url": "/", "description": "Development server"}]
+                servers=[{"url": "/", "description": "Development server"}],
             )
 
-        except Exception as e:
+        except Exception:
             # Fallback to simple implementation if there are issues
             info = {"title": self.title, "version": self.version}
             if self.description:
@@ -605,7 +609,11 @@ class BustAPI:
                     view = self._view_functions.get(endpoint)
                     summary = None
                     if view is not None:
-                        summary = (view.__doc__ or "").strip().splitlines()[0] if view.__doc__ else view.__name__
+                        summary = (
+                            (view.__doc__ or "").strip().splitlines()[0]
+                            if view.__doc__
+                            else view.__name__
+                        )
                     paths[rule][m.lower()] = {
                         "summary": summary or endpoint,
                         "operationId": endpoint,
@@ -621,7 +629,7 @@ class BustAPI:
     def _swagger_ui(self):
         """Swagger UI documentation page."""
         openapi_url = self.openapi_url or "/openapi.json"
-        html = f'''
+        html = f"""
         <!DOCTYPE html>
         <html>
         <head>
@@ -656,16 +664,17 @@ class BustAPI:
             </script>
         </body>
         </html>
-        '''
+        """
         from .response import make_response
+
         response = make_response(html)
-        response.headers['Content-Type'] = 'text/html'
+        response.headers["Content-Type"] = "text/html"
         return response
 
     def _redoc_ui(self):
         """ReDoc documentation page."""
         openapi_url = self.openapi_url or "/openapi.json"
-        html = f'''
+        html = f"""
         <!DOCTYPE html>
         <html>
         <head>
@@ -682,10 +691,11 @@ class BustAPI:
             <script src="https://cdn.jsdelivr.net/npm/redoc@2.0.0/bundles/redoc.standalone.js"></script>
         </body>
         </html>
-        '''
+        """
         from .response import make_response
+
         response = make_response(html)
-        response.headers['Content-Type'] = 'text/html'
+        response.headers["Content-Type"] = "text/html"
         return response
 
     def _handle_exception(self, exception: Exception) -> Response:
@@ -811,28 +821,7 @@ class BustAPI:
 
         return TestClient(self, use_cookies=use_cookies, **kwargs)
 
-    def app_context(self):
-        """
-        Create an application context.
 
-        Returns:
-            Application context manager
-        """
-        # Placeholder for application context implementation
-        return _AppContext(self)
-
-    def request_context(self, environ_or_request):
-        """
-        Create a request context.
-
-        Args:
-            environ_or_request: WSGI environ dict or Request object
-
-        Returns:
-            Request context manager
-        """
-        # Placeholder for request context implementation
-        return _RequestContext(self, environ_or_request)
 
 
 class _AppContext:
