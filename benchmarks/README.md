@@ -38,14 +38,11 @@ Notes
 
 ### Historical Results (10,000 requests, measured in this workspace)
 
-| Target   | Concurrency | Success | Errors | Elapsed (s) | RPS    |
-|----------|-------------:|--------:|-------:|------------:|-------:|
-| BustAPI  | 50          | 10049   | 0      | 16.06       | 625.54 |
-| Flask    | 50          | 10049   | 0      | 15.82       | 635.29 |
-| FastAPI  | 50          | 10049   | 0      | 14.87       | 675.60 |
-| BustAPI  | 100         | 10099   | 0      | 16.77       | 602.36 |
-| Flask    | 100         | 10099   | 0      | 15.66       | 644.77 |
-| FastAPI  | 100         | 10099   | 0      | 15.08       | 669.68 |
+| Target   | Success | Errors | Elapsed (s) | RPS       | Concurrency |
+|----------|---------|--------|-------------|-----------|-------------|
+| bustapi  | 10049   | 0      | 15.31       | 656.26    | 50          |
+| flask    | 10049   | 0      | 16.14       | 622.72    | 50          |
+| fastapi  | 10049   | 0      | 15.74       | 638.26    | 50          |
 
 ## 📊 New Benchmark Tools
 
