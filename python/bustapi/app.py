@@ -325,12 +325,9 @@ class BustAPI:
                 args, kwargs = self._extract_path_params(rule, request.path)
 
                 # Call the actual handler (Flask-style handlers take path params)
-                if inspect.iscoroutinefunction(handler):
-                    import asyncio  # Import locally where needed
-
-                    result = asyncio.run(handler(**kwargs))
-                else:
-                    result = handler(**kwargs)
+                # Note: Async handlers are now handled directly by Rust PyAsyncRouteHandler
+                # This wrapper should only handle sync functions for better performance
+                result = handler(**kwargs)
                 response = self._make_response(result)
 
                 # Run after request handlers
@@ -378,13 +375,9 @@ class BustAPI:
                 # Extract path params
                 args, kwargs = self._extract_path_params(rule, request.path)
 
-                # Call the handler (await if coroutine)
-                if inspect.iscoroutinefunction(handler):
-                    import asyncio  # Import locally where needed
-
-                    result = asyncio.run(handler(**kwargs))
-                else:
-                    result = handler(**kwargs)
+                # Call the handler (sync only - async handled by Rust)
+                # Note: Async handlers are now handled directly by Rust PyAsyncRouteHandler
+                result = handler(**kwargs)
                 response = self._make_response(result)
 
                 # Run after request handlers

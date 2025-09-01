@@ -10,7 +10,7 @@ use http::Method;
 use hyper::StatusCode;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyString};
+use pyo3::types::{PyBytes, PyString, PyDict};
 use pyo3_asyncio::tokio as pyo3_tokio;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -28,9 +28,12 @@ pub struct PyBustApp {
 impl PyBustApp {
     #[new]
     pub fn new() -> PyResult<Self> {
-        // Create a Tokio runtime
+        // Create an optimized Tokio runtime for high performance
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
+            .worker_threads(num_cpus::get()) // Use all available CPU cores
+            .thread_name("bustapi-worker")
+            .thread_stack_size(2 * 1024 * 1024) // 2MB stack size
             .build()
             .map_err(|e| {
                 PyRuntimeError::new_err(format!("Failed to create async runtime: {}", e))
@@ -143,16 +146,26 @@ impl PyRequest {
             .map_err(|e| PyRuntimeError::new_err(format!("Invalid UTF-8: {}", e)))
     }
 
-    /// Get request body as JSON (simplified)
+    /// Get request body as JSON (optimized)
     pub fn json(&self, py: Python) -> PyResult<PyObject> {
         let json_str = self.body_as_string()?;
         if json_str.is_empty() {
             return Ok(py.None());
         }
 
-        let json_module = py.import("json")?;
-        let result = json_module.call_method1("loads", (json_str,))?;
-        Ok(result.into())
+        // Use serde_json for faster parsing, then convert to Python
+        match serde_json::from_str::<serde_json::Value>(&json_str) {
+            Ok(value) => {
+                // Convert serde_json::Value to Python object more efficiently
+                json_value_to_python(py, &value)
+            }
+            Err(_) => {
+                // Fallback to Python json module if serde fails
+                let json_module = py.import("json")?;
+                let result = json_module.call_method1("loads", (json_str,))?;
+                Ok(result.into())
+            }
+        }
     }
 
     /// Get form data
@@ -294,37 +307,54 @@ impl PyRouteHandler {
 #[async_trait]
 impl RouteHandler for PyRouteHandler {
     async fn handle(&self, req: RequestData) -> ResponseData {
-        Python::with_gil(|py| {
-            let py_req = PyRequest::from_request_data(req);
-            let py_req_obj = match Py::new(py, py_req) {
-                Ok(obj) => obj,
-                Err(e) => {
-                    eprintln!("Failed to create PyRequest object: {:?}", e);
-                    return ResponseData::error(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Some("Handler error"),
-                    );
-                }
-            };
+        // Use pyo3-asyncio for better async integration without blocking the GIL
+        let handler = self.handler.clone();
 
-            // Call the Python handler
-            match self.handler.call1(py, (py_req_obj,)) {
-                Ok(result) => {
-                    // Convert Python result to ResponseData
-                    convert_python_result_to_response(py, result).unwrap_or_else(|e| {
-                        eprintln!("Error converting Python response: {:?}", e);
-                        ResponseData::error(
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            Some("Handler error"),
-                        )
-                    })
-                }
-                Err(e) => {
-                    eprintln!("Error calling Python handler: {:?}", e);
-                    ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Handler error"))
-                }
+        // Convert request data to Python object outside of async context when possible
+        let result = pyo3_tokio::get_runtime()
+            .spawn_blocking(move || {
+                Python::with_gil(|py| {
+                    let py_req = PyRequest::from_request_data(req);
+                    let py_req_obj = match Py::new(py, py_req) {
+                        Ok(obj) => obj,
+                        Err(e) => {
+                            eprintln!("Failed to create PyRequest object: {:?}", e);
+                            return Err(ResponseData::error(
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                Some("Handler error"),
+                            ));
+                        }
+                    };
+
+                    // Call the Python handler
+                    match handler.call1(py, (py_req_obj,)) {
+                        Ok(result) => {
+                            // Convert Python result to ResponseData
+                            Ok(convert_python_result_to_response(py, result).unwrap_or_else(|e| {
+                                eprintln!("Error converting Python response: {:?}", e);
+                                ResponseData::error(
+                                    StatusCode::INTERNAL_SERVER_ERROR,
+                                    Some("Handler error"),
+                                )
+                            }))
+                        }
+                        Err(e) => {
+                            eprintln!("Error calling Python handler: {:?}", e);
+                            Ok(ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Handler error")))
+                        }
+                    }
+                })
+            })
+            .await;
+
+        match result {
+            Ok(Ok(response_data)) => response_data,
+            Ok(Err(response_data)) => response_data,
+            Err(e) => {
+                eprintln!("Error in spawn_blocking: {:?}", e);
+                ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Handler error"))
             }
-        })
+        }
     }
 }
 
@@ -406,6 +436,38 @@ impl RouteHandler for PyAsyncRouteHandler {
                     ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("Handler error"))
                 })
             })
+        }
+    }
+}
+
+/// Helper function to convert serde_json::Value to Python object efficiently
+fn json_value_to_python(py: Python, value: &serde_json::Value) -> PyResult<PyObject> {
+    match value {
+        serde_json::Value::Null => Ok(py.None()),
+        serde_json::Value::Bool(b) => Ok(b.to_object(py)),
+        serde_json::Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                Ok(i.to_object(py))
+            } else if let Some(f) = n.as_f64() {
+                Ok(f.to_object(py))
+            } else {
+                Ok(py.None())
+            }
+        }
+        serde_json::Value::String(s) => Ok(s.to_object(py)),
+        serde_json::Value::Array(arr) => {
+            let py_list = pyo3::types::PyList::empty(py);
+            for item in arr {
+                py_list.append(json_value_to_python(py, item)?)?;
+            }
+            Ok(py_list.to_object(py))
+        }
+        serde_json::Value::Object(obj) => {
+            let py_dict = PyDict::new(py);
+            for (key, val) in obj {
+                py_dict.set_item(key, json_value_to_python(py, val)?)?;
+            }
+            Ok(py_dict.to_object(py))
         }
     }
 }

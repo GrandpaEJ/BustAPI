@@ -28,6 +28,7 @@ tower-http = { version = "0.5", features = ["full"] }
 url = "2.0"
 anyhow = "1.0"
 thiserror = "1.0"
+num_cpus = "1.0"
 
 [build-dependencies]
 pyo3-build-config = "0.20"
