@@ -14,7 +14,6 @@ use pyo3::types::{PyBytes, PyDict, PyString};
 use pyo3_asyncio::tokio as pyo3_tokio;
 use std::collections::HashMap;
 use std::str::FromStr;
-use std::sync::{Arc, Mutex};
 use tokio::runtime::Runtime;
 
 /// Python wrapper for the BustAPI application
@@ -313,9 +312,6 @@ impl PyResponse {
     }
 }
 
-/// Simple response cache for static responses
-type ResponseCache = Arc<Mutex<HashMap<String, ResponseData>>>;
-
 /// Fast Rust-only route handler for maximum performance testing
 pub struct FastRouteHandler {
     response_body: String,
@@ -337,15 +333,11 @@ impl RouteHandler for FastRouteHandler {
 /// Route handler for synchronous Python functions
 pub struct PyRouteHandler {
     handler: PyObject,
-    cache: ResponseCache,
 }
 
 impl PyRouteHandler {
     pub fn new(handler: PyObject) -> Self {
-        Self {
-            handler,
-            cache: Arc::new(Mutex::new(HashMap::new())),
-        }
+        Self { handler }
     }
 }
 
