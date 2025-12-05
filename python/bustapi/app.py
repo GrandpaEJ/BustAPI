@@ -767,14 +767,7 @@ class BustAPI:
             if self.redoc_url:
                 self.logger.info(f"📖 ReDoc: http://{host}:{port}{self.redoc_url}")
         else:
-            print(f"🚀 Starting {self.title} v{self.version}")
-            print(f"📍 Listening on http://{host}:{port}")
-            print(f"🔧 Debug mode: {'ON' if debug else 'OFF'}")
-
-            if self.docs_url:
-                print(f"📚 API docs: http://{host}:{port}{self.docs_url}")
-            if self.redoc_url:
-                print(f"📖 ReDoc: http://{host}:{port}{self.redoc_url}")
+            print(f"🚀 {self.title} server running on http://{host}:{port}")
 
         try:
             self._rust_app.run(host, port)
