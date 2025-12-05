@@ -24,6 +24,9 @@ app.static_folder = "examples/templates/static"
 @app.route("/")
 def index():
     """Home page with template"""
+    if request.wants_json():
+        return {"title": "BustAPI Templates", "message": "Welcome to BustAPI with Jinja2!"}
+
     return app.render_template(
         "index.html",
         title="BustAPI Templates",
@@ -39,6 +42,9 @@ def users_list():
         {"id": 2, "name": "Bob", "email": "bob@example.com", "active": False},
         {"id": 3, "name": "Charlie", "email": "charlie@example.com", "active": True},
     ]
+
+    if request.wants_json():
+        return {"users": users, "total_users": len(users)}
 
     return app.render_template(
         "users.html",
@@ -75,7 +81,12 @@ def user_detail(user_id):
 
     user = users.get(user_id)
     if not user:
+        if request.wants_json():
+            return {"error": "User not found"}, 404
         return app.render_template("404.html", title="User Not Found"), 404
+
+    if request.wants_json():
+        return user
 
     return app.render_template("user_detail.html", title=f'User: {user["name"]}', user=user)
 
@@ -83,6 +94,9 @@ def user_detail(user_id):
 @app.route("/form")
 def contact_form():
     """Contact form page"""
+    if request.wants_json():
+        return {"title": "Contact Form", "fields": ["name", "email", "message"]}
+
     return app.render_template("form.html", title="Contact Form")
 
 
@@ -94,6 +108,9 @@ def handle_form():
     message = request.form.get("message", "")
 
     # In a real app, you'd save this to a database
+    if request.wants_json():
+        return {"status": "success", "name": name, "email": email, "message": message}
+
     return app.render_template(
         "form_success.html",
         title="Form Submitted",
@@ -118,6 +135,9 @@ def dashboard():
         {"user": "Bob", "action": "Commented on a post", "time": "5 minutes ago"},
         {"user": "Charlie", "action": "Updated profile", "time": "10 minutes ago"},
     ]
+
+    if request.wants_json():
+        return {"stats": stats, "recent_activity": recent_activity}
 
     return app.render_template(
         "dashboard.html",
@@ -156,6 +176,9 @@ def blog():
             "tags": ["api", "rest", "backend"],
         },
     ]
+
+    if request.wants_json():
+        return {"posts": posts}
 
     return app.render_template("blog.html", title="Blog", posts=posts)
 
@@ -200,7 +223,12 @@ def index():
 
     post = posts.get(post_id)
     if not post:
+        if request.wants_json():
+            return {"error": "Post not found"}, 404
         return app.render_template("404.html", title="Post Not Found"), 404
+
+    if request.wants_json():
+        return post
 
     return app.render_template("blog_post.html", title=post["title"], post=post)
 
@@ -213,6 +241,6 @@ if __name__ == "__main__":
 
     print("🚀 Starting BustAPI Template Example...")
     print("📁 Make sure you have the template files in the 'templates' directory")
-    print("📍 Visit: http://127.0.0.1:8000")
+    print("📍 Visit: http://127.0.0.1:8003")
 
-    app.run(host="127.0.0.1", port=8000, debug=True)
+    app.run(host="127.0.0.1", port=8003, debug=True)
