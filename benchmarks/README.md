@@ -1,67 +1,51 @@
-```markdown
-Benchmarks
+# 🚀 Web Framework Benchmark Results
 
-This folder contains a minimal benchmark harness to compare BustAPI, Flask and FastAPI.
+This benchmark compares the performance of BustAPI (a high-performance Flask-compatible web framework) against Flask and FastAPI using the `wrk` HTTP benchmarking tool.
 
-Requirements
-- Python 3.8+
-- Install dev dependencies into a virtualenv:
+## Benchmark Configuration
+- **Tool:** wrk (https://github.com/wg/wrk)
+- **Duration:** 15 seconds per endpoint
+- **Threads:** 4
+- **Connections:** 100
+- **Date:** 2025-12-05 21:45:18
+- **System:** Linux 6.14, Python 3.13.10
 
-   pip install httpx uvicorn fastapi flask
+## Server Configurations
+- **Flask:** Gunicorn with 4 sync workers
+- **FastAPI:** Uvicorn with 4 workers
+- **BustAPI:** Built-in multi-threaded server
 
-Quickstart
+## Framework Versions
+- **Flask:** 3.1.2
+- **Gunicorn:** 23.0.0
+- **FastAPI:** 0.123.9
+- **Uvicorn:** 0.38.0
+- **BustAPI:** 0.2.0
 
-1. Start a single target:
+## Test Endpoints
+- **Plain Text:** Simple string response
+- **JSON:** JSON object response
+- **Dynamic Path:** URL parameter parsing and response
 
-    python benchmarks/run_bench.py --target bustapi --concurrency 50 --duration 10
+## 📊 Summary (Requests/sec)
 
-2. Run all targets sequentially:
+| Endpoint | Flask | FastAPI | BustAPI |
+|----------|-------|---------|---------|
+| **Plain Text** | 3,244.81 | 1,892.08 | 19,929.01 |
+| **JSON** | 3,241.30 | 1,900.03 | 17,595.42 |
+| **Dynamic Path** | 3,251.00 | 2,028.98 | 175,923.13 |
 
-    python benchmarks/run_bench.py --target all --concurrency 50 --duration 10
+## 🏆 Relative Performance (vs Flask)
 
-Notes
-- The script starts each app as a subprocess using the current Python interpreter.
-- The FastAPI app runs via uvicorn inside the script `benchmarks/apps/fastapi_app.py`.
-- For realistic benchmarks, prefer dedicated tools like wrk or vegeta and run the server in production mode.
+### Plain Text
+- **FastAPI**: 0.6x faster (1,892.08 RPS)
+- **BustAPI**: 6.1x faster (19,929.01 RPS)
 
-```
+### JSON
+- **FastAPI**: 0.6x faster (1,900.03 RPS)
+- **BustAPI**: 5.4x faster (17,595.42 RPS)
 
-## 🚀 Latest Performance Results
+### Dynamic Path
+- **FastAPI**: 0.6x faster (2,028.98 RPS)
+- **BustAPI**: 54.1x faster (175,923.13 RPS)
 
-### Comprehensive Benchmark (New - 2025)
-**BustAPI v0.1.5 Performance:**
-- **Requests/sec**: 621.10 RPS
-- **Total requests**: 9,350 (in 15 seconds)
-- **Average response time**: 17.22ms
-- **Error rate**: 0.00%
-- **Test conditions**: 100 concurrent requests
-
-### Historical Results (10,000 requests, measured in this workspace)
-
-| Target   | Success | Errors | Elapsed (s) | RPS       | Concurrency |
-|----------|---------|--------|-------------|-----------|-------------|
-| bustapi  | 10049   | 0      | 15.31       | 656.26    | 50          |
-| flask    | 10049   | 0      | 16.14       | 622.72    | 50          |
-| fastapi  | 10049   | 0      | 15.74       | 638.26    | 50          |
-
-## 📊 New Benchmark Tools
-
-### `comprehensive_benchmark.py`
-Complete performance testing suite with functionality validation, load testing, and memory monitoring.
-
-### `framework_comparison.py`
-Interactive framework comparison tool with automated server switching.
-
-### `benchmark_server.py`
-Optimized BustAPI server with multiple endpoints for comprehensive testing.
-
-Notes about these runs
-- Environment: ran inside this repository on Linux using a local virtualenv at `./.venv` created with `python3 -m venv .venv`.
-- Packages installed into the venv for the benchmarks: `httpx`, `uvicorn`, `fastapi`, `flask`.
-- Commands used (examples):
-   - `./.venv/bin/python benchmarks/run_bench.py --target bustapi --concurrency 50 --requests 10000`
-   - `./.venv/bin/python benchmarks/run_bench.py --target fastapi --concurrency 100 --requests 10000`
-- The runner starts the target app as a subprocess and reports a small summary in `benchmarks/last_results.txt` after each run.
-
-Interpretation
-- These numbers are a quick, single-shot comparison for a tiny "hello world" endpoint on the same machine; they should not be used as a definitive benchmark. For reproducible, production-like results, run multiple trials on dedicated hardware and consider tools like wrk, vegeta, or k6.

@@ -1,41 +1,28 @@
 from fastapi import FastAPI
-import time
 import uvicorn
 
-app = FastAPI(title="FastAPI Benchmark Server", version="1.0.0")
+app = FastAPI()
 
-users = [
-    {"id": 1, "name": "Alice", "email": "alice@example.com"},
-    {"id": 2, "name": "Bob", "email": "bob@example.com"},
-    {"id": 3, "name": "Charlie", "email": "charlie@example.com"},
-]
+from fastapi.responses import PlainTextResponse
 
+# 1. Plain Text
+@app.get("/", response_class=PlainTextResponse)
+def index():
+    return "Hello, World!"
 
-@app.get("/")
-def root():
-    return {
-        "message": "FastAPI Benchmark Server",
-        "version": "1.0.0",
-        "timestamp": time.time(),
-        "status": "running",
-    }
+# 2. JSON
+@app.get("/json")
+def json_endpoint():
+    return {"message": "Hello, World!"}
 
-
-@app.get("/api/test")
-def api_test():
-    return {
-        "test": True,
-        "framework": "FastAPI",
-        "performance": "async",
-        "timestamp": time.time(),
-    }
-
-
-@app.get("/api/users")
-def get_users():
-    return {"users": users, "count": len(users), "timestamp": time.time()}
-
+# 3. Dynamic Path
+@app.get("/user/{user_id}")
+def user(user_id: int):
+    return {"user_id": user_id, "name": f"User {user_id}"}
 
 if __name__ == "__main__":
-    print("🚀 Starting FastAPI Benchmark Server...")
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    # Run with single worker to be comparable to other single-process tests
+    # or use production settings. For fair comparison with BustAPI (multi-threaded),
+    # we might want to let uvicorn use workers, but usually benchmarks compare single core performance
+    # or max throughput. Let's stick to default for now, or maybe workers=1.
+    uvicorn.run(app, host="127.0.0.1", port=8001, log_level="warning")
