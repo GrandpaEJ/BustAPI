@@ -38,14 +38,16 @@ jobs:
       - name: Setup UV
         uses: astral-sh/setup-uv@v3
 
+      - name: Create virtual environment
+        run: uv venv
+
       - name: Install dependencies
         run: |
-          uv pip install --system -e .
-          uv pip install --system mkdocs mkdocs-material mkdocstrings[python] maturin
+          uv pip install -e .
+          uv pip install mkdocs mkdocs-material mkdocstrings[python] maturin
 
       - name: Build Rust extension
-        run: |
-          maturin develop
+        run: uv run maturin develop
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
