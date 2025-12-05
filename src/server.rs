@@ -1,15 +1,8 @@
-//! HTTP Server implementation using Tokio and Hyper
+//! Actix-web HTTP Server implementation for maximum performance
 
-use crate::router::Router;
-use anyhow::Result;
-use hyper::server::conn::http1;
-use hyper::service::service_fn;
-use hyper::Request;
-use hyper_util::rt::TokioIo;
-use std::net::SocketAddr;
+use actix_web::{web, App, HttpServer, HttpRequest, HttpResponse};
 use std::sync::Arc;
-use tokio::net::TcpListener;
-use tracing::{error, info};
+use tokio::sync::RwLock;
 
 /// Configuration for the BustAPI server
 #[derive(Debug, Clone)]
@@ -17,6 +10,7 @@ pub struct ServerConfig {
     pub host: String,
     pub port: u16,
     pub debug: bool,
+    pub workers: usize,
 }
 
 impl Default for ServerConfig {
@@ -25,146 +19,130 @@ impl Default for ServerConfig {
             host: "127.0.0.1".to_string(),
             port: 5000,
             debug: false,
+            workers: num_cpus::get(),
         }
     }
 }
 
-/// Main HTTP server struct
-#[derive(Clone)]
-pub struct BustServer {
-    router: Arc<Router>,
-    config: ServerConfig,
+/// Route handler trait for polymorphic handlers
+pub trait RouteHandler: Send + Sync + 'static {
+    fn handle(&self, req: &HttpRequest, body: web::Bytes) -> HttpResponse;
 }
 
-impl BustServer {
-    /// Create a new server instance
+/// Storage for routes
+pub struct RouteStorage {
+    routes: std::collections::HashMap<(String, String), Arc<dyn RouteHandler>>,
+}
+
+impl RouteStorage {
     pub fn new() -> Self {
         Self {
-            router: Arc::new(Router::new()),
-            config: ServerConfig::default(),
+            routes: std::collections::HashMap::new(),
         }
     }
 
-    /// Create a new server with custom configuration
-    pub fn with_config(config: ServerConfig) -> Self {
-        Self {
-            router: Arc::new(Router::new()),
-            config,
-        }
+    pub fn add_route<H: RouteHandler>(&mut self, method: &str, path: &str, handler: H) {
+        let key = (method.to_uppercase(), path.to_string());
+        self.routes.insert(key, Arc::new(handler));
     }
 
-    /// Get a mutable reference to the router
-    pub fn router_mut(&mut self) -> &mut Router {
-        Arc::get_mut(&mut self.router).expect("Router should be mutable")
-    }
-
-    /// Get router reference
-    pub fn router(&self) -> &Router {
-        &self.router
-    }
-
-    /// Set server configuration
-    pub fn set_config(&mut self, config: ServerConfig) {
-        self.config = config;
-    }
-
-    /// Get server configuration
-    pub fn config(&self) -> &ServerConfig {
-        &self.config
-    }
-
-    /// Start the server
-    pub async fn serve(&self) -> Result<()> {
-        let addr: SocketAddr = format!("{}:{}", self.config.host, self.config.port).parse()?;
-        let listener = TcpListener::bind(addr).await?;
-
-        info!("BustAPI server starting on http://{}", addr);
-
-        let router = Arc::clone(&self.router);
-
-        loop {
-            let (stream, _) = listener.accept().await?;
-            let io = TokioIo::new(stream);
-            let router = Arc::clone(&router);
-
-            tokio::task::spawn(async move {
-                if let Err(err) = http1::Builder::new()
-                    .keep_alive(true)
-                    .half_close(true)
-                    .max_buf_size(8192)
-                    .serve_connection(
-                        io,
-                        service_fn(move |req: Request<hyper::body::Incoming>| {
-                            let router = Arc::clone(&router);
-                            async move { router.handle_request(req).await }
-                        }),
-                    )
-                    .with_upgrades()
-                    .await
-                {
-                    error!("Error serving connection: {:?}", err);
-                }
-            });
-        }
-    }
-
-    /// Start the server with graceful shutdown
-    pub async fn serve_with_shutdown(&self) -> Result<()> {
-        let addr: SocketAddr = format!("{}:{}", self.config.host, self.config.port).parse()?;
-        let listener = TcpListener::bind(addr).await?;
-
-        info!("BustAPI server starting on http://{}", addr);
-
-        let router = Arc::clone(&self.router);
-
-        // Handle shutdown signal
-        let shutdown_signal = async {
-            tokio::signal::ctrl_c()
-                .await
-                .expect("Failed to install CTRL+C signal handler");
-            info!("Received shutdown signal, gracefully shutting down server...");
-        };
-
-        tokio::select! {
-            _ = async {
-                loop {
-                    let (stream, _) = listener.accept().await?;
-                    let io = TokioIo::new(stream);
-                    let router = Arc::clone(&router);
-
-                    tokio::task::spawn(async move {
-                        if let Err(err) = http1::Builder::new()
-                            .keep_alive(true)
-                            .half_close(true)
-                            .max_buf_size(8192)
-                            .serve_connection(
-                                io,
-                                service_fn(move |req: Request<hyper::body::Incoming>| {
-                                    let router = Arc::clone(&router);
-                                    async move { router.handle_request(req).await }
-                                }),
-                            )
-                            .with_upgrades()
-                            .await
-                        {
-                            error!("Error serving connection: {:?}", err);
-                        }
-                    });
-                }
-                #[allow(unreachable_code)]
-                Ok::<(), anyhow::Error>(())
-            } => {}
-            _ = shutdown_signal => {
-                info!("Server shutdown complete");
-            }
-        }
-
-        Ok(())
+    pub fn get_handler(&self, method: &str, path: &str) -> Option<Arc<dyn RouteHandler>> {
+        let key = (method.to_uppercase(), path.to_string());
+        self.routes.get(&key).cloned()
     }
 }
 
-impl Default for BustServer {
+impl Default for RouteStorage {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// Fast route handler that returns static response (no Python needed)
+pub struct FastRouteHandler {
+    response_body: String,
+    content_type: String,
+}
+
+impl FastRouteHandler {
+    pub fn new(response_body: String) -> Self {
+        Self {
+            response_body,
+            content_type: "application/json".to_string(),
+        }
+    }
+
+    pub fn with_content_type(mut self, content_type: &str) -> Self {
+        self.content_type = content_type.to_string();
+        self
+    }
+}
+
+impl RouteHandler for FastRouteHandler {
+    fn handle(&self, _req: &HttpRequest, _body: web::Bytes) -> HttpResponse {
+        HttpResponse::Ok()
+            .content_type(self.content_type.clone())
+            .body(self.response_body.clone())
+    }
+}
+
+/// Shared application state
+pub struct AppState {
+    pub routes: RwLock<RouteStorage>,
+}
+
+impl AppState {
+    pub fn new() -> Self {
+        Self {
+            routes: RwLock::new(RouteStorage::new()),
+        }
+    }
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Main request handler - dispatches to registered route handlers
+pub async fn handle_request(
+    req: HttpRequest,
+    body: web::Bytes,
+    state: web::Data<Arc<AppState>>,
+) -> HttpResponse {
+    let method = req.method().as_str();
+    let path = req.path();
+    
+    // Get handler from routes
+    let routes = state.routes.read().await;
+    if let Some(handler) = routes.get_handler(method, path) {
+        drop(routes); // Release lock before handling
+        handler.handle(&req, body)
+    } else {
+        HttpResponse::NotFound()
+            .content_type("application/json")
+            .body(r#"{"error": "Not Found"}"#)
+    }
+}
+
+/// Start the Actix-web server
+pub async fn start_server(
+    config: ServerConfig,
+    state: Arc<AppState>,
+) -> std::io::Result<()> {
+    let addr = format!("{}:{}", config.host, config.port);
+    
+    tracing::info!("🚀 BustAPI server starting on http://{}", addr);
+    tracing::info!("   Workers: {}", config.workers);
+    
+    HttpServer::new(move || {
+        App::new()
+            .app_data(web::Data::new(state.clone()))
+            .default_service(web::route().to(handle_request))
+    })
+    .workers(config.workers)
+    .bind(&addr)?
+    .run()
+    .await
 }
