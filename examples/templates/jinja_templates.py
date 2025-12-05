@@ -233,6 +233,69 @@ def index():
     return app.render_template("blog_post.html", title=post["title"], post=post)
 
 
+@app.route("/content-demo")
+def content_demo():
+    """Demonstrate different content types based on Accept header"""
+    if request.wants_json():
+        return {
+            "type": "json",
+            "message": "This is JSON content",
+            "supported_types": ["text", "html", "xml", "json", "image", "audio", "video", "font", "application"]
+        }
+    elif request.wants_xml():
+        xml_content = """<?xml version="1.0" encoding="UTF-8"?>
+<response>
+    <type>xml</type>
+    <message>This is XML content</message>
+    <supported_types>
+        <type>text</type>
+        <type>html</type>
+        <type>xml</type>
+        <type>json</type>
+        <type>image</type>
+        <type>audio</type>
+        <type>video</type>
+        <type>font</type>
+        <type>application</type>
+    </supported_types>
+</response>"""
+        from bustapi.response import xmlify
+        return xmlify(xml_content)
+    elif request.wants_text():
+        from bustapi.response import textify
+        return textify("This is plain text content. Supported content types: text, html, xml, json, image, audio, video, font, application")
+    elif request.wants_html():
+        html_content = """<!DOCTYPE html>
+<html>
+<head><title>Content Demo</title></head>
+<body>
+    <h1>HTML Content</h1>
+    <p>This is HTML content.</p>
+    <p>Supported content types:</p>
+    <ul>
+        <li>text</li>
+        <li>html</li>
+        <li>xml</li>
+        <li>json</li>
+        <li>image</li>
+        <li>audio</li>
+        <li>video</li>
+        <li>font</li>
+        <li>application</li>
+    </ul>
+</body>
+</html>"""
+        from bustapi.response import htmlify
+        return htmlify(html_content)
+    else:
+        # Default to JSON
+        return {
+            "type": "default_json",
+            "message": "Default JSON response - specify Accept header for different content types",
+            "supported_types": ["text", "html", "xml", "json", "image", "audio", "video", "font", "application"]
+        }
+
+
 if __name__ == "__main__":
     # Create template directories if they don't exist
     os.makedirs("templates", exist_ok=True)

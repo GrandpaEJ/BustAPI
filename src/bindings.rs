@@ -318,15 +318,22 @@ fn convert_py_result_to_response(py: Python, result: PyObject) -> HttpResponse {
                     tuple.get_item(2).and_then(|h| h.extract::<HashMap<String, String>>()),
                 ) {
                     let response_body = python_to_response_body(py, body.into());
-                    let mut builder = HttpResponse::build(
-                        actix_web::http::StatusCode::from_u16(status)
-                            .unwrap_or(actix_web::http::StatusCode::OK),
-                    );
-                    for (k, v) in hdrs {
-                        builder.insert_header((k.as_str(), v.as_str()));
+                    let status_code = actix_web::http::StatusCode::from_u16(status)
+                        .unwrap_or(actix_web::http::StatusCode::OK);
+
+                    let mut response = HttpResponse::build(status_code);
+                    let mut content_type = "application/json";
+
+                    // Set headers
+                    for (k, v) in &hdrs {
+                        if k.to_lowercase() == "content-type" {
+                            content_type = v;
+                        }
+                        response.insert_header((k.as_str(), v.as_str()));
                     }
-                    return builder
-                        .content_type("application/json")
+
+                    return response
+                        .content_type(content_type)
                         .body(response_body);
                 }
             }
@@ -336,8 +343,16 @@ fn convert_py_result_to_response(py: Python, result: PyObject) -> HttpResponse {
 
     // Default: treat as response body
     let body = python_to_response_body(py, result);
+
+    // Check if body looks like HTML
+    let content_type = if body.trim().starts_with("<") && body.contains("</") {
+        "text/html; charset=utf-8"
+    } else {
+        "application/json"
+    };
+
     HttpResponse::Ok()
-        .content_type("application/json")
+        .content_type(content_type)
         .body(body)
 }
 

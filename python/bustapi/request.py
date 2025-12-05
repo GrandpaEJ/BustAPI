@@ -259,6 +259,45 @@ class Request:
         accept = self.headers.get("Accept", "")
         return "application/json" in accept and "text/html" not in accept
 
+    def accepts_mime_type(self, mime_type: str) -> bool:
+        """Check if client accepts a specific MIME type."""
+        accept = self.headers.get("Accept", "")
+        if not accept or accept == "*/*":
+            return True
+        return mime_type in accept
+
+    def wants_text(self) -> bool:
+        """Check if client prefers text response."""
+        return self.accepts_mime_type("text/plain") or self.accepts_mime_type("text/*")
+
+    def wants_html(self) -> bool:
+        """Check if client prefers HTML response."""
+        return self.accepts_mime_type("text/html")
+
+    def wants_xml(self) -> bool:
+        """Check if client prefers XML response."""
+        return self.accepts_mime_type("application/xml") or self.accepts_mime_type("text/xml")
+
+    def wants_image(self) -> bool:
+        """Check if client prefers image response."""
+        return self.accepts_mime_type("image/*")
+
+    def wants_audio(self) -> bool:
+        """Check if client prefers audio response."""
+        return self.accepts_mime_type("audio/*")
+
+    def wants_video(self) -> bool:
+        """Check if client prefers video response."""
+        return self.accepts_mime_type("video/*")
+
+    def wants_font(self) -> bool:
+        """Check if client prefers font response."""
+        return self.accepts_mime_type("font/*") or self.accepts_mime_type("application/font-*")
+
+    def wants_application(self) -> bool:
+        """Check if client prefers application response."""
+        return self.accepts_mime_type("application/*")
+
     def is_xhr(self) -> bool:
         """Check if request was made via XMLHttpRequest."""
         return self.headers.get("X-Requested-With", "").lower() == "xmlhttprequest"

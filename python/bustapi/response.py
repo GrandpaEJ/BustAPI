@@ -268,6 +268,54 @@ def jsonify(*args, **kwargs) -> Response:
     return response
 
 
+def textify(text: str, status: int = 200) -> Response:
+    """
+    Create a plain text response.
+
+    Args:
+        text: Text content
+        status: HTTP status code
+
+    Returns:
+        Response object with text data
+    """
+    response = Response(text, status=status)
+    response.content_type = "text/plain; charset=utf-8"
+    return response
+
+
+def xmlify(xml_content: str, status: int = 200) -> Response:
+    """
+    Create an XML response.
+
+    Args:
+        xml_content: XML content string
+        status: HTTP status code
+
+    Returns:
+        Response object with XML data
+    """
+    response = Response(xml_content, status=status)
+    response.content_type = "application/xml; charset=utf-8"
+    return response
+
+
+def htmlify(html_content: str, status: int = 200) -> Response:
+    """
+    Create an HTML response.
+
+    Args:
+        html_content: HTML content string
+        status: HTTP status code
+
+    Returns:
+        Response object with HTML data
+    """
+    response = Response(html_content, status=status)
+    response.content_type = "text/html; charset=utf-8"
+    return response
+
+
 # HTTP status code helpers
 def abort(code: int, description: Optional[str] = None, **kwargs):
     """
