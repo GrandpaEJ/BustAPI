@@ -47,7 +47,10 @@ jobs:
           uv pip install mkdocs mkdocs-material mkdocstrings[python] maturin
 
       - name: Build Rust extension
-        run: uv run maturin develop
+        run: |
+          uv venv
+          uv sync
+          uv run maturin develop
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
