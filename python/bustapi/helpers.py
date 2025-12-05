@@ -262,8 +262,18 @@ def render_template(template_name: str, **context) -> str:
 
         from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-        # Get template directory (default to 'templates')
-        template_dir = context.pop("_template_dir", "templates")
+        # Get template directory
+        template_dir = context.pop("_template_dir", None)
+
+        # If no explicit template_dir, try to get from current app
+        if template_dir is None:
+            try:
+                current_app = _get_current_object()
+                template_dir = getattr(current_app, 'template_folder', None) or "templates"
+            except RuntimeError:
+                # No app context, use default
+                template_dir = "templates"
+
         if not os.path.exists(template_dir):
             os.makedirs(template_dir, exist_ok=True)
 

@@ -12,23 +12,22 @@ This example demonstrates how to use Jinja2 templates with BustAPI:
 
 import os
 
-from bustapi import BustAPI, render_template, request
+from bustapi import BustAPI, request
 
 app = BustAPI()
 
 # Configure template directory
-app.template_folder = "templates"
-app.static_folder = "static"
+app.template_folder = "examples/templates/templates"
+app.static_folder = "examples/templates/static"
 
 
 @app.route("/")
 def index():
     """Home page with template"""
-    return render_template(
+    return app.render_template(
         "index.html",
         title="BustAPI Templates",
         message="Welcome to BustAPI with Jinja2!",
-        _template_dir="examples/templates/templates",
     )
 
 
@@ -41,12 +40,11 @@ def users_list():
         {"id": 3, "name": "Charlie", "email": "charlie@example.com", "active": True},
     ]
 
-    return render_template(
+    return app.render_template(
         "users.html",
         title="Users List",
         users=users,
         total_users=len(users),
-        _template_dir="examples/templates/templates",
     )
 
 
@@ -77,15 +75,15 @@ def user_detail(user_id):
 
     user = users.get(user_id)
     if not user:
-        return render_template("404.html", title="User Not Found"), 404
+        return app.render_template("404.html", title="User Not Found"), 404
 
-    return render_template("user_detail.html", title=f'User: {user["name"]}', user=user)
+    return app.render_template("user_detail.html", title=f'User: {user["name"]}', user=user)
 
 
 @app.route("/form")
 def contact_form():
     """Contact form page"""
-    return render_template("form.html", title="Contact Form")
+    return app.render_template("form.html", title="Contact Form")
 
 
 @app.route("/form", methods=["POST"])
@@ -96,7 +94,7 @@ def handle_form():
     message = request.form.get("message", "")
 
     # In a real app, you'd save this to a database
-    return render_template(
+    return app.render_template(
         "form_success.html",
         title="Form Submitted",
         name=name,
@@ -121,7 +119,7 @@ def dashboard():
         {"user": "Charlie", "action": "Updated profile", "time": "10 minutes ago"},
     ]
 
-    return render_template(
+    return app.render_template(
         "dashboard.html",
         title="Dashboard",
         stats=stats,
@@ -159,7 +157,7 @@ def blog():
         },
     ]
 
-    return render_template("blog.html", title="Blog", posts=posts)
+    return app.render_template("blog.html", title="Blog", posts=posts)
 
 
 @app.route("/blog/<int:post_id>")
@@ -202,9 +200,9 @@ def index():
 
     post = posts.get(post_id)
     if not post:
-        return render_template("404.html", title="Post Not Found"), 404
+        return app.render_template("404.html", title="Post Not Found"), 404
 
-    return render_template("blog_post.html", title=post["title"], post=post)
+    return app.render_template("blog_post.html", title=post["title"], post=post)
 
 
 if __name__ == "__main__":
