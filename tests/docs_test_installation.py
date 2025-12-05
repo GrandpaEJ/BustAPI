@@ -110,7 +110,7 @@ def test_development_features():
         app = BustAPI()
 
         # Test debug mode
-        app.run.__code__  # Just check that run method exists
+        assert hasattr(app, "run")  # Check that run method exists
 
         # Test configuration
         app.config["DEBUG"] = True

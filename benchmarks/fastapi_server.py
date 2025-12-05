@@ -1,9 +1,9 @@
-from fastapi import FastAPI
 import uvicorn
+from fastapi import FastAPI
+from fastapi.responses import PlainTextResponse
 
 app = FastAPI()
 
-from fastapi.responses import PlainTextResponse
 
 # 1. Plain Text
 @app.get("/", response_class=PlainTextResponse)

@@ -18,9 +18,8 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 
 import jwt
-from pydantic import BaseModel, validator
-
 from bustapi import BustAPI, request
+from pydantic import BaseModel, validator
 
 # Configuration
 SECRET_KEY = "your-secret-key-change-in-production"

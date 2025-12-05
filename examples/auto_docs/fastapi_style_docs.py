@@ -14,9 +14,8 @@ similar to FastAPI's OpenAPI/Swagger integration:
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel
-
 from bustapi import BustAPI
+from pydantic import BaseModel
 
 # Create app with documentation enabled
 app = BustAPI(

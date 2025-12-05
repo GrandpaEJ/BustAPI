@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-import subprocess
-import time
-import sys
+import json
 import os
 import re
 import signal
-import json
+import subprocess
+import sys
+import time
 
 # Configuration
 DURATION = "15s"
@@ -45,8 +45,8 @@ def wait_for_port(host, port, timeout=10):
     while time.time() - start < timeout:
         try:
             subprocess.check_call(
-                ["curl", "-s", f"http://{host}:{port}/"], 
-                stdout=subprocess.DEVNULL, 
+                ["curl", "-s", f"http://{host}:{port}/"],
+                stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
             return True
@@ -57,64 +57,64 @@ def wait_for_port(host, port, timeout=10):
 def parse_wrk_output(output):
     rps = 0.0
     latency = "N/A"
-    
+
     # Parse Requests/sec
     rps_match = re.search(r"Requests/sec:\s+([\d\.]+)", output)
     if rps_match:
         rps = float(rps_match.group(1))
-        
+
     # Parse Latency (Avg)
     lat_match = re.search(r"Latency\s+([\d\.]+)(\w+)", output)
     if lat_match:
         latency = f"{lat_match.group(1)}{lat_match.group(2)}"
-        
+
     return rps, latency
 
 def run_benchmark():
     results = {}
-    
+
     print(f"🚀 Starting Benchmark (Duration: {DURATION}, Threads: {THREADS}, Connections: {CONNECTIONS})")
     print("=" * 60)
 
     for server in SERVERS:
         name = server["name"]
         print(f"\nTesting {name}...")
-        
+
         # Start server
         process = subprocess.Popen(server["command"], preexec_fn=os.setsid)
-        
+
         try:
             # Wait for startup
             if not wait_for_port(server["host"], server["port"]):
                 print(f"❌ Failed to start {name}")
                 continue
-                
+
             print(f"✅ {name} started on port {server['port']}")
-            
+
             server_results = []
-            
+
             for endpoint in ENDPOINTS:
                 url = f"http://{server['host']}:{server['port']}{endpoint['path']}"
                 print(f"   Running wrk on {endpoint['name']} ({url})...")
-                
+
                 cmd = WRK_CMD + [url]
                 result = subprocess.run(cmd, capture_output=True, text=True)
-                
+
                 if result.returncode != 0:
                     print(f"   ❌ wrk failed: {result.stderr}")
                     continue
-                    
+
                 rps, latency = parse_wrk_output(result.stdout)
                 print(f"   👉 RPS: {rps:,.2f} | Latency: {latency}")
-                
+
                 server_results.append({
                     "endpoint": endpoint["name"],
                     "rps": rps,
                     "latency": latency
                 })
-            
+
             results[name] = server_results
-            
+
         finally:
             # Kill server group
             os.killpg(os.getpgid(process.pid), signal.SIGTERM)
@@ -128,14 +128,14 @@ def generate_markdown(results):
     md = "# 🚀 Web Framework Benchmark Results\n\n"
     md += f"**Date:** {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
     md += f"**Config:** {DURATION} duration, {THREADS} threads, {CONNECTIONS} connections\n\n"
-    
+
     # Summary Table
     md += "## 📊 Summary (Requests/sec)\n\n"
     md += "| Endpoint | Flask | FastAPI | BustAPI |\n"
     md += "|----------|-------|---------|---------|\n"
-    
+
     endpoints = [e["name"] for e in ENDPOINTS]
-    
+
     for ep in endpoints:
         row = f"| **{ep}** |"
         for name in ["Flask", "FastAPI", "BustAPI"]:
@@ -145,18 +145,18 @@ def generate_markdown(results):
             else:
                 row += " N/A |"
         md += row + "\n"
-        
+
     md += "\n## 🏆 Relative Performance (vs Flask)\n\n"
-    
+
     # Calculate multipliers
     for ep in endpoints:
         flask_res = next((r for r in results.get("Flask", []) if r["endpoint"] == ep), None)
         if not flask_res or flask_res["rps"] == 0:
             continue
-            
+
         md += f"### {ep}\n"
         base_rps = flask_res["rps"]
-        
+
         for name in ["FastAPI", "BustAPI"]:
             res = next((r for r in results.get(name, []) if r["endpoint"] == ep), None)
             if res:
@@ -169,10 +169,10 @@ def generate_markdown(results):
 if __name__ == "__main__":
     results = run_benchmark()
     md_output = generate_markdown(results)
-    
+
     with open("benchmarks/README.md", "w") as f:
         f.write(md_output)
-        
+
     print("\n" + "=" * 60)
     print("💾 Results saved to benchmarks/README.md")
     print(md_output)

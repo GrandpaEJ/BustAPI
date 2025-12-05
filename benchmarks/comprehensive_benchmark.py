@@ -274,7 +274,7 @@ class BenchmarkRunner:
         # Performance results
         if "python_benchmark" in results:
             perf = results["python_benchmark"]
-            print(f"\n🐍 Python Benchmark Results:")
+            print("\n🐍 Python Benchmark Results:")
             print(f"   📈 Requests/sec: {perf['rps']:.2f}")
             print(f"   📊 Total requests: {perf['total_requests']}")
             print(f"   ⏱️ Average response time: {perf['avg_response_time_ms']:.2f}ms")
@@ -282,7 +282,7 @@ class BenchmarkRunner:
 
         if "wrk_benchmark" in results:
             wrk = results["wrk_benchmark"]
-            print(f"\n⚡ wrk Benchmark Results:")
+            print("\n⚡ wrk Benchmark Results:")
             print(f"   📈 Requests/sec: {wrk.get('rps', 'N/A')}")
             print(f"   📊 Total requests: {wrk.get('total_requests', 'N/A')}")
             print(f"   ⏱️ Average latency: {wrk.get('latency_avg', 'N/A')}")
@@ -290,7 +290,7 @@ class BenchmarkRunner:
         # Memory results
         if "memory_test" in results and "error" not in results["memory_test"]:
             mem = results["memory_test"]
-            print(f"\n💾 Memory Usage:")
+            print("\n💾 Memory Usage:")
             print(f"   📊 Average: {mem['avg_memory_mb']:.2f} MB")
             print(f"   📈 Peak: {mem['max_memory_mb']:.2f} MB")
 

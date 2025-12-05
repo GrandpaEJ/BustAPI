@@ -151,7 +151,7 @@ class FrameworkComparison:
         valid_frameworks = {k: v for k, v in frameworks.items() if "error" not in v}
 
         if len(valid_frameworks) > 1:
-            print(f"\n🏆 PERFORMANCE RANKING:")
+            print("\n🏆 PERFORMANCE RANKING:")
             sorted_frameworks = sorted(
                 valid_frameworks.items(), key=lambda x: x[1]["rps"], reverse=True
             )
@@ -168,7 +168,7 @@ class FrameworkComparison:
 
             # Calculate improvements
             best_rps = sorted_frameworks[0][1]["rps"]
-            print(f"\n📈 PERFORMANCE IMPROVEMENTS:")
+            print("\n📈 PERFORMANCE IMPROVEMENTS:")
 
             for framework, result in sorted_frameworks[1:]:
                 improvement = ((best_rps - result["rps"]) / result["rps"]) * 100
