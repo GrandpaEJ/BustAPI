@@ -24,7 +24,7 @@ from http import HTTPStatus
 
 __version__ = "0.2.0"
 __author__ = "BustAPI"
-__email__ = "grandpaabir@gmail.com"
+__email__ = ""
 
 from . import logging
 
