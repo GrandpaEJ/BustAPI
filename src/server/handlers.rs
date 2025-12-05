@@ -1,6 +1,6 @@
 //! Actix-web HTTP Server implementation for maximum performance
 
-use actix_web::{web, App, HttpServer, HttpRequest, HttpResponse};
+use actix_web::{web, HttpRequest, HttpResponse};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -113,7 +113,7 @@ pub async fn handle_request(
 ) -> HttpResponse {
     let method = req.method().as_str();
     let path = req.path();
-    
+
     // Get handler from routes
     let routes = state.routes.read().await;
     if let Some(handler) = routes.get_handler(method, path) {
@@ -124,25 +124,4 @@ pub async fn handle_request(
             .content_type("application/json")
             .body(r#"{"error": "Not Found"}"#)
     }
-}
-
-/// Start the Actix-web server
-pub async fn start_server(
-    config: ServerConfig,
-    state: Arc<AppState>,
-) -> std::io::Result<()> {
-    let addr = format!("{}:{}", config.host, config.port);
-    
-    tracing::info!("🚀 BustAPI server starting on http://{}", addr);
-    tracing::info!("   Workers: {}", config.workers);
-    
-    HttpServer::new(move || {
-        App::new()
-            .app_data(web::Data::new(state.clone()))
-            .default_service(web::route().to(handle_request))
-    })
-    .workers(config.workers)
-    .bind(&addr)?
-    .run()
-    .await
 }
