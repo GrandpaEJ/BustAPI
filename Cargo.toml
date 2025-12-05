@@ -1,6 +1,6 @@
 [package]
 name = "bustapi_core"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 
 [lib]
@@ -33,6 +33,12 @@ tracing-subscriber = "0.3"
 anyhow = "1.0"
 thiserror = "1.0"
 num_cpus = "1.0"
+
+# For router
+async-trait = "0.1"
+hyper = { version = "1.0", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
+http-body-util = "0.1"
 
 [build-dependencies]
 pyo3-build-config = "0.23"
