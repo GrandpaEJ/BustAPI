@@ -20,7 +20,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
-
+.venv*
 # PyInstaller
 *.manifest
 *.spec
