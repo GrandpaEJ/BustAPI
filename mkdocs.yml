@@ -1,0 +1,41 @@
+site_name: BustAPI
+site_description: High-performance Flask-compatible web framework with async support
+site_author: GrandpaEJ
+site_url: 
+repo_url: https://github.com/GrandpaEJ/bustapi
+repo_name: bustapi/bustapi
+
+copyright: Copyright &copy; 2025 GrandpaEJ
+
+theme:
+  name: material
+  palette:
+    primary: blue
+    accent: blue
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_root_heading: true
+            show_object_full_path: false
+            show_category_heading: true
+            show_labels: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Quickstart: quickstart.md
+  - API Reference: api-reference.md
+  - Deployment: deployment.md
