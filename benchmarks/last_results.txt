@@ -1,3 +1,7 @@
-{'target': 'bustapi', 'success': 10049, 'errors': 0, 'elapsed': 15.312463521957397, 'rps': 656.2627878649427, 'concurrency': 50}
-{'target': 'flask', 'success': 10049, 'errors': 0, 'elapsed': 16.13737177848816, 'rps': 622.7160245137171, 'concurrency': 50}
-{'target': 'fastapi', 'success': 10049, 'errors': 0, 'elapsed': 15.74439549446106, 'rps': 638.2588651012531, 'concurrency': 50}
+BustAPI v0.2.0 Benchmark Results
+Timestamp: 1764946537
+Backend: Actix-web + PyO3 0.23
+Python: 3.13 (free-threading mode)
+----------------------------------------
+{'name': 'Root (Python Handler)', 'success': 6850, 'errors': 0, 'rps': 682.05, 'avg_latency_ms': 35.4, 'duration': 10.04}
+{'name': 'JSON (Python Handler)', 'success': 5000, 'errors': 0, 'rps': 497.82, 'avg_latency_ms': 49.13, 'duration': 10.04}
