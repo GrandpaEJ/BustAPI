@@ -1,6 +1,21 @@
 # 🚀 BustAPI
 
-**High-Performance Python Web Framework Powered by Rust**
+<p align="center">
+  <img src="https://github.com/GrandpaEJ/BustAPI/releases/download/v0.1.5/BustAPI.png" alt="BustAPI Logo" width="200">
+</p>
+
+<p align="center">
+  <strong>High-Performance Python Web Framework Powered by Rust</strong>
+</p>
+
+<p align="center">
+  <a href="https://pypi.org/project/bustapi/"><img src="https://img.shields.io/pypi/v/bustapi" alt="PyPI"></a>
+  <a href="https://pypi.org/project/bustapi/"><img src="https://img.shields.io/pypi/pyversions/bustapi" alt="Python Versions"></a>
+  <a href="https://github.com/GrandpaEJ/BustAPI/actions"><img src="https://img.shields.io/github/actions/workflow/status/GrandpaEJ/BustAPI/ci.yml" alt="CI"></a>
+  <a href="https://github.com/GrandpaEJ/BustAPI/blob/main/LICENSE"><img src="https://img.shields.io/github/license/GrandpaEJ/BustAPI" alt="License"></a>
+  <a href="https://github.com/GrandpaEJ/BustAPI"><img src="https://img.shields.io/github/stars/GrandpaEJ/BustAPI" alt="Stars"></a>
+  <img src="https://img.shields.io/badge/rust-1.70+-orange" alt="Rust">
+</p>
 
 BustAPI is a modern, fast Python web framework that combines the simplicity of Flask with the performance of Rust. Built with PyO3 and Tokio, it delivers **native Rust performance** while maintaining Python's ease of use.
 
