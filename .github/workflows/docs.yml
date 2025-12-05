@@ -2,14 +2,14 @@ name: Deploy Documentation
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
-    paths:
-      - 'docs/**'
-      - 'python/**'
-      - 'src/**'
-      - 'mkdocs.yml'
-      - 'pyproject.toml'
+  # push:
+  #   branches: [ main ]
+  #   paths:
+  #     - 'docs/**'
+  #     - 'python/**'
+  #     - 'src/**'
+  #     - 'mkdocs.yml'
+  #     - 'pyproject.toml'
 
 permissions:
   contents: read
@@ -45,8 +45,8 @@ jobs:
 
       - name: Build Rust extension
         run: |
-          pip install maturin
-          maturin develop
+          uv pip install maturin
+          uv run maturin develop
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
