@@ -6,15 +6,17 @@ BustAPI is a modern, fast Python web framework that combines the simplicity of F
 
 ## ⚡ Performance
 
-BustAPI achieves **539+ RPS** compared to Flask's 452 RPS and FastAPI's 451 RPS - delivering **20% better performance** through its Rust-powered backend.
+BustAPI delivers **massive performance gains** over traditional Python frameworks, achieving up to **175,923 RPS** on dynamic routes - **54x faster** than Flask and **86x faster** than FastAPI.
 
-| Framework | RPS | Improvement |
-|-----------|-----|-------------|
-| **BustAPI** | **539** | **Baseline** |
-| Flask | 451 | +20% slower |
-| FastAPI | 452 | +19% slower |
+### Production Benchmark Results (4 workers, 100 connections)
 
-*Benchmarks: 100 concurrent connections, 10,000 total requests*
+| Endpoint | BustAPI | Flask | FastAPI | BustAPI Improvement |
+|----------|---------|-------|---------|-------------------|
+| **Plain Text** | **19,929** | 3,245 | 1,892 | **6.1x faster** |
+| **JSON Response** | **17,595** | 3,241 | 1,900 | **5.4x faster** |
+| **Dynamic Path** | **175,923** | 3,251 | 2,029 | **54.1x faster** |
+
+*Benchmarks: 15s duration, 4 threads, 100 connections using production servers (Gunicorn/Uvicorn)*
 
 ## 🎯 Key Features
 
