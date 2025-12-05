@@ -1,28 +1,27 @@
-//! BustAPI Core - Rust backend for high-performance Flask-compatible web framework
+//! BustAPI Core - Rust backend with Actix-web for high-performance web framework
 //!
-//! This library provides the core HTTP server functionality built with Tokio and Hyper,
+//! This library provides the core HTTP server functionality built with Actix-web,
 //! exposed to Python through PyO3 bindings.
+//! 
+//! Optimized for Python 3.13 free-threaded mode (no GIL bottleneck!)
 
 use pyo3::prelude::*;
 
 mod bindings;
 mod request;
 mod response;
-mod router;
 mod server;
 
 pub use request::RequestData;
 pub use response::ResponseData;
-pub use router::{RouteHandler, Router};
-pub use server::BustServer;
 
 /// Python module definition for bustapi_core
-#[pymodule]
-fn bustapi_core(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add("__version__", "0.1.0")?;
+/// gil_used = false enables true parallelism with Python 3.13t!
+#[pymodule(gil_used = false)]
+fn bustapi_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add("__version__", "0.2.0")?;
     m.add_class::<bindings::PyBustApp>()?;
     m.add_class::<bindings::PyRequest>()?;
-    m.add_class::<bindings::PyResponse>()?;
 
     // Add helper functions
     m.add_function(wrap_pyfunction!(create_app, m)?)?;
@@ -40,7 +39,6 @@ fn create_app() -> PyResult<bindings::PyBustApp> {
 mod tests {
     #[test]
     fn test_module_creation() {
-        // Basic test to ensure module compiles
         assert_eq!(2 + 2, 4);
     }
 }
