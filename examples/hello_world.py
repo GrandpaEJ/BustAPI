@@ -82,15 +82,6 @@ def not_found(error):
 
 if __name__ == "__main__":
     print("🚀 Starting BustAPI Hello World server...")
-    print("📝 Available endpoints:")
-    print("   GET  /               - Hello world")
-    print("   GET  /greet/<name>   - Personalized greeting")
-    print("   GET  /async          - Async endpoint")
-    print("   GET  /json           - JSON endpoint info")
-    print("   POST /json           - Send JSON data")
-    print("   POST /form           - Form data endpoint")
-    print("   GET  /headers        - View request headers")
-    print()
 
     try:
         app.run(host="127.0.0.1", port=5090, debug=True)
