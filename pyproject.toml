@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "bustapi"
-version = "0.1.5"
+version = "0.2.0"
 description = "High-performance Flask-compatible web framework with async support"
 authors = [
     {name = "BustAPI Team", email = "hello@bustapi.dev"}
@@ -23,6 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10", 
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Rust",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Software Development :: Libraries :: Application Frameworks"
