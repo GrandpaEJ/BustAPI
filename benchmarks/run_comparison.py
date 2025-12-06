@@ -16,29 +16,52 @@ WRK_CMD = ["wrk", "-t", THREADS, "-c", CONNECTIONS, "-d", DURATION]
 SERVERS = [
     {
         "name": "Flask",
-        "command": [sys.executable, "-m", "gunicorn", "--bind", "127.0.0.1:8000", "--workers", "4", "benchmarks.flask_server:app"],
+        "command": [
+            sys.executable,
+            "-m",
+            "gunicorn",
+            "--bind",
+            "127.0.0.1:8000",
+            "--workers",
+            "4",
+            "benchmarks.flask_server:app",
+        ],
         "port": 8000,
-        "host": "127.0.0.1"
+        "host": "127.0.0.1",
     },
     {
         "name": "FastAPI",
-        "command": [sys.executable, "-m", "uvicorn", "benchmarks.fastapi_server:app", "--host", "127.0.0.1", "--port", "8001", "--workers", "4", "--log-level", "warning"],
+        "command": [
+            sys.executable,
+            "-m",
+            "uvicorn",
+            "benchmarks.fastapi_server:app",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "8001",
+            "--workers",
+            "4",
+            "--log-level",
+            "warning",
+        ],
         "port": 8001,
-        "host": "127.0.0.1"
+        "host": "127.0.0.1",
     },
     {
         "name": "BustAPI",
         "command": [sys.executable, "benchmarks/benchmark_server.py"],
         "port": 5090,
-        "host": "127.0.0.1"
-    }
+        "host": "127.0.0.1",
+    },
 ]
 
 ENDPOINTS = [
     {"path": "/", "name": "Plain Text"},
     {"path": "/json", "name": "JSON"},
-    {"path": "/user/123", "name": "Dynamic Path"}
+    {"path": "/user/123", "name": "Dynamic Path"},
 ]
+
 
 def wait_for_port(host, port, timeout=10):
     start = time.time()
@@ -47,12 +70,13 @@ def wait_for_port(host, port, timeout=10):
             subprocess.check_call(
                 ["curl", "-s", f"http://{host}:{port}/"],
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
+                stderr=subprocess.DEVNULL,
             )
             return True
         except subprocess.CalledProcessError:
             time.sleep(0.5)
     return False
+
 
 def parse_wrk_output(output):
     rps = 0.0
@@ -70,10 +94,13 @@ def parse_wrk_output(output):
 
     return rps, latency
 
+
 def run_benchmark():
     results = {}
 
-    print(f"🚀 Starting Benchmark (Duration: {DURATION}, Threads: {THREADS}, Connections: {CONNECTIONS})")
+    print(
+        f"🚀 Starting Benchmark (Duration: {DURATION}, Threads: {THREADS}, Connections: {CONNECTIONS})"
+    )
     print("=" * 60)
 
     for server in SERVERS:
@@ -107,11 +134,9 @@ def run_benchmark():
                 rps, latency = parse_wrk_output(result.stdout)
                 print(f"   👉 RPS: {rps:,.2f} | Latency: {latency}")
 
-                server_results.append({
-                    "endpoint": endpoint["name"],
-                    "rps": rps,
-                    "latency": latency
-                })
+                server_results.append(
+                    {"endpoint": endpoint["name"], "rps": rps, "latency": latency}
+                )
 
             results[name] = server_results
 
@@ -120,9 +145,10 @@ def run_benchmark():
             os.killpg(os.getpgid(process.pid), signal.SIGTERM)
             process.wait()
             print(f"🛑 {name} stopped")
-            time.sleep(2) # Cooldown
+            time.sleep(2)  # Cooldown
 
     return results
+
 
 def generate_markdown(results):
     md = "# 🚀 Web Framework Benchmark Results\n\n"
@@ -150,7 +176,9 @@ def generate_markdown(results):
 
     # Calculate multipliers
     for ep in endpoints:
-        flask_res = next((r for r in results.get("Flask", []) if r["endpoint"] == ep), None)
+        flask_res = next(
+            (r for r in results.get("Flask", []) if r["endpoint"] == ep), None
+        )
         if not flask_res or flask_res["rps"] == 0:
             continue
 
@@ -161,10 +189,13 @@ def generate_markdown(results):
             res = next((r for r in results.get(name, []) if r["endpoint"] == ep), None)
             if res:
                 multiplier = res["rps"] / base_rps
-                md += f"- **{name}**: {multiplier:.1f}x faster ({res['rps']:,.2f} RPS)\n"
+                md += (
+                    f"- **{name}**: {multiplier:.1f}x faster ({res['rps']:,.2f} RPS)\n"
+                )
         md += "\n"
 
     return md
+
 
 if __name__ == "__main__":
     results = run_benchmark()

@@ -62,15 +62,17 @@ def run_benchmark(url: str, name: str, duration: int = 10, concurrent: int = 100
 
     actual_duration = time.time() - start_time
     rps = total_success / actual_duration if actual_duration > 0 else 0
-    avg_latency = sum(response_times) / len(response_times) * 1000 if response_times else 0
+    avg_latency = (
+        sum(response_times) / len(response_times) * 1000 if response_times else 0
+    )
 
     result = {
-        'name': name,
-        'success': total_success,
-        'errors': total_errors,
-        'rps': round(rps, 2),
-        'avg_latency_ms': round(avg_latency, 2),
-        'duration': round(actual_duration, 2)
+        "name": name,
+        "success": total_success,
+        "errors": total_errors,
+        "rps": round(rps, 2),
+        "avg_latency_ms": round(avg_latency, 2),
+        "duration": round(actual_duration, 2),
     }
 
     print(f"   ✅ Success: {total_success}, Errors: {total_errors}")
@@ -102,20 +104,18 @@ def main():
     print("\n" + "-" * 60)
 
     # Test root endpoint (Python handler)
-    results.append(run_benchmark(
-        f"{base_url}/",
-        "Root (Python Handler)",
-        duration=10,
-        concurrent=100
-    ))
+    results.append(
+        run_benchmark(
+            f"{base_url}/", "Root (Python Handler)", duration=10, concurrent=100
+        )
+    )
 
     # Test JSON endpoint (Python handler)
-    results.append(run_benchmark(
-        f"{base_url}/json",
-        "JSON (Python Handler)",
-        duration=10,
-        concurrent=100
-    ))
+    results.append(
+        run_benchmark(
+            f"{base_url}/json", "JSON (Python Handler)", duration=10, concurrent=100
+        )
+    )
 
     # Summary
     print("\n" + "=" * 60)
@@ -124,7 +124,9 @@ def main():
 
     for r in results:
         print(f"\n{r['name']}:")
-        print(f"   RPS: {r['rps']} | Latency: {r['avg_latency_ms']}ms | Success: {r['success']}")
+        print(
+            f"   RPS: {r['rps']} | Latency: {r['avg_latency_ms']}ms | Success: {r['success']}"
+        )
 
     # Save results
     timestamp = int(time.time())

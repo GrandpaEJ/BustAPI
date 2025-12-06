@@ -25,7 +25,10 @@ app.static_folder = "examples/templates/static"
 def index():
     """Home page with template"""
     if request.wants_json():
-        return {"title": "BustAPI Templates", "message": "Welcome to BustAPI with Jinja2!"}
+        return {
+            "title": "BustAPI Templates",
+            "message": "Welcome to BustAPI with Jinja2!",
+        }
 
     return app.render_template(
         "index.html",
@@ -88,7 +91,9 @@ def user_detail(user_id):
     if request.wants_json():
         return user
 
-    return app.render_template("user_detail.html", title=f'User: {user["name"]}', user=user)
+    return app.render_template(
+        "user_detail.html", title=f'User: {user["name"]}', user=user
+    )
 
 
 @app.route("/form")
@@ -240,7 +245,17 @@ def content_demo():
         return {
             "type": "json",
             "message": "This is JSON content",
-            "supported_types": ["text", "html", "xml", "json", "image", "audio", "video", "font", "application"]
+            "supported_types": [
+                "text",
+                "html",
+                "xml",
+                "json",
+                "image",
+                "audio",
+                "video",
+                "font",
+                "application",
+            ],
         }
     elif request.wants_xml():
         xml_content = """<?xml version="1.0" encoding="UTF-8"?>
@@ -260,10 +275,14 @@ def content_demo():
     </supported_types>
 </response>"""
         from bustapi.response import xmlify
+
         return xmlify(xml_content)
     elif request.wants_text():
         from bustapi.response import textify
-        return textify("This is plain text content. Supported content types: text, html, xml, json, image, audio, video, font, application")
+
+        return textify(
+            "This is plain text content. Supported content types: text, html, xml, json, image, audio, video, font, application"
+        )
     elif request.wants_html():
         html_content = """<!DOCTYPE html>
 <html>
@@ -286,13 +305,24 @@ def content_demo():
 </body>
 </html>"""
         from bustapi.response import htmlify
+
         return htmlify(html_content)
     else:
         # Default to JSON
         return {
             "type": "default_json",
             "message": "Default JSON response - specify Accept header for different content types",
-            "supported_types": ["text", "html", "xml", "json", "image", "audio", "video", "font", "application"]
+            "supported_types": [
+                "text",
+                "html",
+                "xml",
+                "json",
+                "image",
+                "audio",
+                "video",
+                "font",
+                "application",
+            ],
         }
 
 

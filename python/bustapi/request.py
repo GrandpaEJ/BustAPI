@@ -276,7 +276,9 @@ class Request:
 
     def wants_xml(self) -> bool:
         """Check if client prefers XML response."""
-        return self.accepts_mime_type("application/xml") or self.accepts_mime_type("text/xml")
+        return self.accepts_mime_type("application/xml") or self.accepts_mime_type(
+            "text/xml"
+        )
 
     def wants_image(self) -> bool:
         """Check if client prefers image response."""
@@ -292,7 +294,9 @@ class Request:
 
     def wants_font(self) -> bool:
         """Check if client prefers font response."""
-        return self.accepts_mime_type("font/*") or self.accepts_mime_type("application/font-*")
+        return self.accepts_mime_type("font/*") or self.accepts_mime_type(
+            "application/font-*"
+        )
 
     def wants_application(self) -> bool:
         """Check if client prefers application response."""

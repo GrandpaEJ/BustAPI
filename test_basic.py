@@ -3,10 +3,12 @@
 Basic test to verify BustAPI functionality
 """
 
+
 def test_import():
     """Test that we can import BustAPI"""
     try:
         from bustapi import BustAPI, jsonify, request
+
         print("[OK] Import successful")
         return True
     except ImportError as e:
@@ -18,6 +20,7 @@ def test_app_creation():
     """Test that we can create a BustAPI app"""
     try:
         from bustapi import BustAPI
+
         app = BustAPI()
         print("[OK] App creation successful")
         return True
@@ -30,15 +33,16 @@ def test_route_decoration():
     """Test that we can add routes"""
     try:
         from bustapi import BustAPI
+
         app = BustAPI()
 
-        @app.route('/')
+        @app.route("/")
         def hello():
-            return {'message': 'Hello, World!'}
+            return {"message": "Hello, World!"}
 
-        @app.get('/test')
+        @app.get("/test")
         def test():
-            return 'Test endpoint'
+            return "Test endpoint"
 
         print("[OK] Route decoration successful")
         return True
@@ -51,11 +55,12 @@ def test_flask_compatibility():
     """Test Flask compatibility layer"""
     try:
         from bustapi import Flask  # Flask alias
+
         app = Flask(__name__)
 
-        @app.route('/compat')
+        @app.route("/compat")
         def compat():
-            return {'flask_compatible': True}
+            return {"flask_compatible": True}
 
         print("[OK] Flask compatibility successful")
         return True
@@ -95,6 +100,6 @@ def main():
         return False
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     success = main()
     exit(0 if success else 1)
