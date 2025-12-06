@@ -9,7 +9,7 @@ import logging
 import os
 import time
 
-from bustapi import BustAPI
+from bustapi import BustAPI, request
 
 # Configure logging
 logging.basicConfig(
@@ -45,23 +45,13 @@ class Config:
 config = Config()
 
 # Create BustAPI application
-app = BustAPI(
-    title=config.API_TITLE,
-    version=config.API_VERSION,
-    description=config.API_DESCRIPTION,
-    # Disable docs in production for security
-    docs_url="/docs" if config.DEBUG else None,
-    redoc_url="/redoc" if config.DEBUG else None,
-    openapi_url="/openapi.json" if config.DEBUG else None,
-)
+app = BustAPI(import_name=__name__)
 
 
-# Security middleware
-@app.middleware("http")
-async def add_security_headers(request, call_next):
+# Security headers (after request)
+@app.after_request
+def add_security_headers(response):
     """Add security headers to all responses."""
-    response = await call_next(request)
-
     # Security headers
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
@@ -77,28 +67,26 @@ async def add_security_headers(request, call_next):
     return response
 
 
-# Request logging middleware
-@app.middleware("http")
-async def log_requests(request, call_next):
-    """Log all requests for monitoring."""
-    start_time = time.time()
+# Request timing (before request)
+@app.before_request
+def start_timer():
+    """Start request timer."""
+    request.start_time = time.time()
 
-    # Process request
-    response = await call_next(request)
 
-    # Calculate processing time
-    process_time = time.time() - start_time
-
-    # Log request
-    logger.info(
-        f"{request.method} {request.url.path} - "
-        f"Status: {response.status_code} - "
-        f"Time: {process_time:.3f}s"
-    )
-
-    # Add timing header
-    response.headers["X-Process-Time"] = str(process_time)
-
+# Request logging (after request)
+@app.after_request
+def log_request(response):
+    """Log request details and timing."""
+    if hasattr(request, "start_time"):
+        process_time = time.time() - request.start_time
+        response.headers["X-Process-Time"] = str(process_time)
+        
+        logger.info(
+            f"{request.method} {request.path} - "
+            f"Status: {response.status_code} - "
+            f"Time: {process_time:.3f}s"
+        )
     return response
 
 
@@ -232,7 +220,6 @@ def root():
             "ready": "/ready",
             "live": "/live",
             "metrics": "/metrics",
-            "docs": "/docs" if config.DEBUG else None,
         },
     }
 
