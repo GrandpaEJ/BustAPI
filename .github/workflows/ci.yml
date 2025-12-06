@@ -82,18 +82,17 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Create venv
+        run: uv venv .venv
+
+      - name: Install maturin
         shell: bash
         run: |
-          uv venv .venv
           VENV_PY=./.venv/bin/python
           if [ "$RUNNER_OS" == "Windows" ]; then
             VENV_PY=./.venv/Scripts/python.exe
           fi
-          echo "VENV_PY=$VENV_PY" >> $GITHUB_ENV
-
-      - name: Install maturin
-        run: |
           uv pip install maturin --python $VENV_PY
+          echo "VENV_PY=$VENV_PY" >> $GITHUB_ENV
 
       - name: Build wheels
         run: |
