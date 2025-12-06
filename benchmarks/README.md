@@ -1,51 +1,27 @@
 # 🚀 Web Framework Benchmark Results
 
-This benchmark compares the performance of BustAPI (a high-performance Flask-compatible web framework) against Flask and FastAPI using the `wrk` HTTP benchmarking tool.
-
-## Benchmark Configuration
-- **Tool:** wrk (https://github.com/wg/wrk)
-- **Duration:** 15 seconds per endpoint
-- **Threads:** 4
-- **Connections:** 100
-- **Date:** 2025-12-05 21:45:18
-- **System:** Linux 6.14, Python 3.13.10
-
-## Server Configurations
-- **Flask:** Gunicorn with 4 sync workers
-- **FastAPI:** Uvicorn with 4 workers
-- **BustAPI:** Built-in multi-threaded server
-
-## Framework Versions
-- **Flask:** 3.1.2
-- **Gunicorn:** 23.0.0
-- **FastAPI:** 0.123.9
-- **Uvicorn:** 0.38.0
-- **BustAPI:** 0.2.0
-
-## Test Endpoints
-- **Plain Text:** Simple string response
-- **JSON:** JSON object response
-- **Dynamic Path:** URL parameter parsing and response
+**Date:** 2025-12-06 16:41:52
+**Config:** 15s duration, 4 threads, 100 connections
 
 ## 📊 Summary (Requests/sec)
 
 | Endpoint | Flask | FastAPI | BustAPI |
 |----------|-------|---------|---------|
-| **Plain Text** | 3,244.81 | 1,892.08 | 19,929.01 |
-| **JSON** | 3,241.30 | 1,900.03 | 17,595.42 |
-| **Dynamic Path** | 3,251.00 | 2,028.98 | 175,923.13 |
+| **Plain Text** | 9,492.88 | 1,780.61 | 15,836.77 |
+| **JSON** | 6,537.78 | 2,210.73 | 14,531.13 |
+| **Dynamic Path** | 5,991.23 | 2,118.87 | 176,624.28 |
 
 ## 🏆 Relative Performance (vs Flask)
 
 ### Plain Text
-- **FastAPI**: 0.6x faster (1,892.08 RPS)
-- **BustAPI**: 6.1x faster (19,929.01 RPS)
+- **FastAPI**: 0.2x faster (1,780.61 RPS)
+- **BustAPI**: 1.7x faster (15,836.77 RPS)
 
 ### JSON
-- **FastAPI**: 0.6x faster (1,900.03 RPS)
-- **BustAPI**: 5.4x faster (17,595.42 RPS)
+- **FastAPI**: 0.3x faster (2,210.73 RPS)
+- **BustAPI**: 2.2x faster (14,531.13 RPS)
 
 ### Dynamic Path
-- **FastAPI**: 0.6x faster (2,028.98 RPS)
-- **BustAPI**: 54.1x faster (175,923.13 RPS)
+- **FastAPI**: 0.4x faster (2,118.87 RPS)
+- **BustAPI**: 29.5x faster (176,624.28 RPS)
 

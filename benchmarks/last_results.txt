@@ -1,7 +1,7 @@
 BustAPI v0.2.0 Benchmark Results
-Timestamp: 1764946537
+Timestamp: 1765016338
 Backend: Actix-web + PyO3 0.23
 Python: 3.13 (free-threading mode)
 ----------------------------------------
-{'name': 'Root (Python Handler)', 'success': 6850, 'errors': 0, 'rps': 682.05, 'avg_latency_ms': 35.4, 'duration': 10.04}
-{'name': 'JSON (Python Handler)', 'success': 5000, 'errors': 0, 'rps': 497.82, 'avg_latency_ms': 49.13, 'duration': 10.04}
+{'name': 'Root (Python Handler)', 'success': 10300, 'errors': 0, 'rps': 1026.79, 'avg_latency_ms': 22.69, 'duration': 10.03}
+{'name': 'JSON (Python Handler)', 'success': 10700, 'errors': 0, 'rps': 1065.78, 'avg_latency_ms': 22.13, 'duration': 10.04}
