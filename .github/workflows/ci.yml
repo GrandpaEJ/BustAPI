@@ -35,7 +35,7 @@ jobs:
 
       - name: Install tools
         run: |
-          uv pip install --python $VENV_PY maturin black ruff
+          uv pip install maturin black ruff --python $VENV_PY
 
       - name: Lint Rust code
         if: matrix.python-version == '3.12'
@@ -93,7 +93,7 @@ jobs:
 
       - name: Install maturin
         run: |
-          uv pip install --python $VENV_PY maturin
+          uv pip install maturin --python $VENV_PY
 
       - name: Build wheels
         run: |
