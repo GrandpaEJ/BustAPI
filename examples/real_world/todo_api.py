@@ -21,11 +21,17 @@ import jwt
 from bustapi import BustAPI, request
 from pydantic import BaseModel, validator
 
+from bustapi.docs import BustAPIDocs
+
 # Configuration
 SECRET_KEY = "your-secret-key-change-in-production"
 DATABASE = "todos.db"
 
-app = BustAPI(
+app = BustAPI()
+
+# Initialize docs
+docs = BustAPIDocs(
+    app,
     title="TODO API",
     description="A complete TODO management API with authentication",
     version="1.0.0",
