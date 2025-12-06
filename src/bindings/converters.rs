@@ -90,6 +90,7 @@ pub fn python_to_response_body(py: Python, obj: PyObject) -> String {
 }
 
 /// Convert serde_json::Value to Python object using ToPyObject trait
+#[allow(deprecated)]
 pub fn json_value_to_python(py: Python, value: &serde_json::Value) -> PyResult<PyObject> {
     use pyo3::ToPyObject;
 

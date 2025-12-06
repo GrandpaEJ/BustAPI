@@ -1,5 +1,6 @@
 #[cfg(test)]
 use crate::request::methods::*;
+#[allow(unused_imports)]
 use http::Method;
 
 #[test]

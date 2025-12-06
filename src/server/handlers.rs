@@ -9,6 +9,7 @@ use tokio::sync::RwLock;
 pub struct ServerConfig {
     pub host: String,
     pub port: u16,
+    #[allow(dead_code)]
     pub debug: bool,
     pub workers: usize,
 }
@@ -72,6 +73,7 @@ impl FastRouteHandler {
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_content_type(mut self, content_type: &str) -> Self {
         self.content_type = content_type.to_string();
         self

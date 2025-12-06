@@ -2,7 +2,6 @@
 
 use super::builders::ResponseData;
 use actix_web::http::StatusCode;
-use std::collections::HashMap;
 
 impl ResponseData {
     /// Set response status

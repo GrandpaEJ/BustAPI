@@ -2,12 +2,10 @@
 //! Optimized for Python 3.13 free-threaded mode (no GIL bottleneck)
 
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyDict, PyString, PyTuple};
-use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 
-use crate::server::{AppState, FastRouteHandler, RouteHandler, ServerConfig};
+use crate::server::{AppState, FastRouteHandler, ServerConfig};
 
 /// Python wrapper for the BustAPI application
 #[pyclass]

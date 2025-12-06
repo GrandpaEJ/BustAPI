@@ -2,8 +2,6 @@
 
 use actix_web::{web, HttpRequest, HttpResponse};
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyDict, PyString, PyTuple};
-use std::collections::HashMap;
 
 use crate::bindings::converters::*;
 use crate::bindings::request::create_py_request;
