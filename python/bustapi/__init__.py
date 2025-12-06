@@ -31,6 +31,7 @@ from . import logging
 # Import core classes and functions
 from .app import BustAPI
 from .blueprints import Blueprint
+from .docs import BustAPIDocs
 from .flask_compat import Flask
 from .helpers import abort, redirect, render_template, url_for
 from .request import Request, request
@@ -46,6 +47,7 @@ __all__ = [
     "Response",
     "Blueprint",
     "TestClient",
+    "BustAPIDocs",
     # Global objects
     "request",
     # Helper functions
