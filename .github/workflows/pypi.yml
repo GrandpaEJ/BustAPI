@@ -7,73 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Create venv and install maturin (Unix)
-        if: runner.os != 'Windows'
-        run: |
-          python -m venv .venv
-          VENV_PY=./.venv/bin/python
-          $VENV_PY -m pip install --upgrade pip
-          $VENV_PY -m pip install maturin
-          echo "VENV_PY=$VENV_PY" >> $GITHUB_ENV
-
-      - name: Create venv and install maturin (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          python -m venv .venv
-          $VENV = '.\\.venv\\Scripts\\python.exe'
-          & $VENV -m pip install --upgrade pip
-          & $VENV -m pip install maturin
-          Write-Output "VENV_PY=$VENV" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Build wheels (Unix)
-        if: runner.os != 'Windows'
-        run: |
-          $VENV_PY -m maturin build --release --out dist
-
-      - name: Build wheels (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $VENV = $env:VENV_PY
-          & $VENV -m maturin build --release --out dist
-
-      - name: Upload wheels artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheels-${{ matrix.os }}
-          path: dist/*.whl
-
-  sdist:
+  build-sdist:
     name: Build source distribution
     runs-on: ubuntu-latest
 
@@ -81,33 +15,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+
       - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+        run: uv python install 3.11
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Create venv and install maturin (sdist)
-        run: |
-          python -m venv .venv
-          VENV_PY=./.venv/bin/python
-          $VENV_PY -m pip install --upgrade pip
-          $VENV_PY -m pip install maturin
-          echo "VENV_PY=$VENV_PY" >> $GITHUB_ENV
+      - name: Create venv
+        run: uv venv .venv
 
-      - name: Build sdist (Unix)
-        if: runner.os != 'Windows'
-        run: |
-          $VENV_PY -m maturin sdist --out dist
+      - name: Install maturin
+        run: uv pip install maturin --python ./.venv/bin/python
 
-      - name: Build sdist (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $VENV = $env:VENV_PY
-          & $VENV -m maturin sdist --out dist
+      - name: Build sdist
+        run: ./.venv/bin/python -m maturin sdist --out dist
 
       - name: Upload sdist artifact
         uses: actions/upload-artifact@v4
@@ -117,7 +41,7 @@ jobs:
 
   publish:
     name: Publish to PyPI
-    needs: [build-wheels, sdist]
+    needs: build-sdist
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -126,23 +50,28 @@ jobs:
       contents: read
 
     steps:
-      - name: Download all artifacts
+      - name: Download CI wheels
         uses: actions/download-artifact@v4
         with:
+          workflow: ci.yml
+          path: dist
+
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
           path: dist
 
       - name: Flatten downloaded artifacts
         run: |
-          echo "Flattening artifacts into dist/ (move files from nested artifact folders)"
-          # move any files from subdirectories into dist/
+          echo "Flattening artifacts into dist/"
           find dist -mindepth 2 -type f -exec mv -t dist {} + || true
-          # remove any now-empty directories created by download-artifact
           find dist -type d -empty -delete || true
 
       - name: Display collected files
         run: |
           echo "Collected files:"
-          find dist -type f -maxdepth 2 -print
+          find dist -type f -print
 
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -151,6 +80,7 @@ jobs:
           password: ${{ secrets.PYPI_API_TOKEN }}
           packages-dir: dist
           skip-existing: true
+
       - name: Verify dist contents
         run: |
           echo "Checking dist/ files before publish"
