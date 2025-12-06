@@ -55,7 +55,6 @@ docs = [
 
 [project.urls]
 Homepage = "https://github.com/GrandpaEJ/bustapi"
-Documentation = ""
 Repository = "https://github.com/GrandpaEJ/bustapi.git"
 Issues = "https://github.com/GrandpaEJ/bustapi/issues"
 
