@@ -165,13 +165,11 @@ class BustAPI:
             if inspect.iscoroutinefunction(view_func):
                 # Async handler executed synchronously via asyncio.run
                 # inside wrapper
-                print(f"DEBUG: Registering Rust route: {method} {rule}")
                 self._rust_app.add_route(
                     method, rule, self._wrap_async_handler(view_func, rule)
                 )
             else:
                 # Sync handler
-                print(f"DEBUG: Registering Rust route: {method} {rule}")
                 self._rust_app.add_route(
                     method, rule, self._wrap_sync_handler(view_func, rule)
                 )
