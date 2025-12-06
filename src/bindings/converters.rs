@@ -28,7 +28,9 @@ pub fn convert_py_result_to_response(py: Python, result: PyObject) -> HttpRespon
                 if let (Ok(body), Ok(status), Ok(hdrs)) = (
                     tuple.get_item(0),
                     tuple.get_item(1).and_then(|s| s.extract::<u16>()),
-                    tuple.get_item(2).and_then(|h| h.extract::<HashMap<String, String>>()),
+                    tuple
+                        .get_item(2)
+                        .and_then(|h| h.extract::<HashMap<String, String>>()),
                 ) {
                     let response_body = python_to_response_body(py, body.into());
                     let status_code = actix_web::http::StatusCode::from_u16(status)
@@ -45,9 +47,7 @@ pub fn convert_py_result_to_response(py: Python, result: PyObject) -> HttpRespon
                         response.insert_header((k.as_str(), v.as_str()));
                     }
 
-                    return response
-                        .content_type(content_type)
-                        .body(response_body);
+                    return response.content_type(content_type).body(response_body);
                 }
             }
             _ => {}
@@ -64,9 +64,7 @@ pub fn convert_py_result_to_response(py: Python, result: PyObject) -> HttpRespon
         "application/json"
     };
 
-    HttpResponse::Ok()
-        .content_type(content_type)
-        .body(body)
+    HttpResponse::Ok().content_type(content_type).body(body)
 }
 
 /// Convert Python object to response body bytes

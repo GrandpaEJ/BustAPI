@@ -75,12 +75,19 @@ impl crate::server::RouteHandler for PyAsyncRouteHandler {
                             // Check if coroutine
                             let asyncio = py.import("asyncio");
                             if let Ok(asyncio) = asyncio {
-                                if let Ok(is_coro) = asyncio.call_method1("iscoroutine", (&result,)) {
+                                if let Ok(is_coro) = asyncio.call_method1("iscoroutine", (&result,))
+                                {
                                     if is_coro.extract::<bool>().unwrap_or(false) {
                                         // Run coroutine
-                                        if let Ok(loop_obj) = asyncio.call_method0("get_event_loop") {
-                                            if let Ok(awaited) = loop_obj.call_method1("run_until_complete", (&result,)) {
-                                                return convert_py_result_to_response(py, awaited.into());
+                                        if let Ok(loop_obj) = asyncio.call_method0("get_event_loop")
+                                        {
+                                            if let Ok(awaited) = loop_obj
+                                                .call_method1("run_until_complete", (&result,))
+                                            {
+                                                return convert_py_result_to_response(
+                                                    py,
+                                                    awaited.into(),
+                                                );
                                             }
                                         }
                                     }

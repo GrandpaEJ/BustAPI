@@ -2,7 +2,7 @@
 //!
 //! This library provides the core HTTP server functionality built with Actix-web,
 //! exposed to Python through PyO3 bindings.
-//! 
+//!
 //! Optimized for Python 3.13 free-threaded mode (no GIL bottleneck!)
 
 use pyo3::prelude::*;

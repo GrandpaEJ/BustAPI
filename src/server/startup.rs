@@ -5,10 +5,7 @@ use actix_web::{web, App, HttpServer};
 use std::sync::Arc;
 
 /// Start the Actix-web server
-pub async fn start_server(
-    config: ServerConfig,
-    state: Arc<AppState>,
-) -> std::io::Result<()> {
+pub async fn start_server(config: ServerConfig, state: Arc<AppState>) -> std::io::Result<()> {
     let addr = format!("{}:{}", config.host, config.port);
 
     tracing::info!("🚀 BustAPI server starting on http://{}", addr);

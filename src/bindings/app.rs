@@ -77,12 +77,7 @@ impl PyBustApp {
     }
 
     /// Add a fast Rust-only route (maximum performance, no Python)
-    pub fn add_fast_route(
-        &self,
-        method: &str,
-        path: &str,
-        response_body: String,
-    ) -> PyResult<()> {
+    pub fn add_fast_route(&self, method: &str, path: &str, response_body: String) -> PyResult<()> {
         let fast_handler = FastRouteHandler::new(response_body);
 
         let state = self.state.clone();
@@ -108,9 +103,8 @@ impl PyBustApp {
         // Release the GIL while running the server
         Python::with_gil(|py| {
             py.allow_threads(|| {
-                self.runtime.block_on(async {
-                    crate::server::start_server(config, state).await
-                })
+                self.runtime
+                    .block_on(async { crate::server::start_server(config, state).await })
             })
         })
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Server error: {}", e)))

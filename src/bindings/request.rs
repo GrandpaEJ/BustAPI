@@ -61,7 +61,11 @@ impl PyRequest {
 }
 
 /// Create PyRequest from Actix HttpRequest
-pub fn create_py_request(py: Python, req: &HttpRequest, body: &actix_web::web::Bytes) -> PyResult<Py<PyRequest>> {
+pub fn create_py_request(
+    py: Python,
+    req: &HttpRequest,
+    body: &actix_web::web::Bytes,
+) -> PyResult<Py<PyRequest>> {
     let mut headers = HashMap::new();
     for (key, value) in req.headers() {
         if let Ok(v) = value.to_str() {
