@@ -15,10 +15,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -27,13 +28,12 @@ jobs:
 
       - name: Create venv
         run: |
-          python -m venv .venv
+          uv venv .venv
           echo "VENV_PY=./.venv/bin/python" >> $GITHUB_ENV
 
       - name: Install tools
         run: |
-          $VENV_PY -m pip install --upgrade pip
-          $VENV_PY -m pip install maturin black ruff
+          uv pip install --python $VENV_PY maturin black ruff
 
       - name: Lint Rust code
         if: matrix.python-version == '3.12'
@@ -68,17 +68,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+
       - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
+        run: uv python install 3.11
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Create venv
         run: |
-          python -m venv .venv
+          uv venv .venv
           VENV_PY=./.venv/bin/python
           if [ "$RUNNER_OS" == "Windows" ]; then
             VENV_PY=./.venv/Scripts/python.exe
@@ -87,8 +88,7 @@ jobs:
 
       - name: Install maturin
         run: |
-          $VENV_PY -m pip install --upgrade pip
-          $VENV_PY -m pip install maturin
+          uv pip install --python $VENV_PY maturin
 
       - name: Build wheels
         run: |
