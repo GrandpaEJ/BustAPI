@@ -1,4 +1,4 @@
-# 🚀 BustAPI - High-Performance Python Web Framework
+# 🚀 BustAPI - High-Performance Python Web Framework [EXPERIMENTAL]
 
 <p align="center">
   <img src="https://github.com/GrandpaEJ/BustAPI/releases/download/v0.1.5/BustAPI.png" alt="BustAPI - Fast Python Web Framework" width="200">
