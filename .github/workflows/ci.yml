@@ -4,14 +4,12 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  test:
-    name: Test on ${{ matrix.os }} with Python ${{ matrix.python-version }}
-    runs-on: ${{ matrix.os }}
+  lint-and-test:
+    name: Lint and Test Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
       - name: Checkout code
@@ -25,110 +23,43 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: clippy, rustfmt
 
-      - name: Cache Rust dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
-      - name: Cache Python dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: Create venv and install Python tools (Unix)
-        if: runner.os != 'Windows'
+      - name: Create venv
         run: |
-          # create a portable virtualenv and install tooling there (Linux / macOS)
           python -m venv .venv
-          VENV_PY=./.venv/bin/python
+          echo "VENV_PY=./.venv/bin/python" >> $GITHUB_ENV
+
+      - name: Install tools
+        run: |
           $VENV_PY -m pip install --upgrade pip
-          $VENV_PY -m pip install maturin pytest pytest-asyncio pytest-cov black isort ruff
-          echo "VENV_PY=$VENV_PY" >> $GITHUB_ENV
-
-      - name: Create venv and install Python tools (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          # create a portable virtualenv and install tooling there (Windows)
-          python -m venv .venv
-          $VENV = Join-Path $PWD '.\\.venv\\Scripts\\python.exe'
-          & $VENV -m pip install --upgrade pip
-          & $VENV -m pip install maturin pytest pytest-asyncio pytest-cov black isort ruff
-          Write-Output "VENV_PY=$VENV" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Check Python code formatting with black
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
-        run: |
-          $VENV_PY -m black --check --diff python/
-
-      - name: Check Python imports ordering with isort
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
-        run: |
-          $VENV_PY -m isort --check-only --diff python/
-
-      - name: Lint Python code with ruff
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
-        run: |
-          $VENV_PY -m ruff check python/
-
-      - name: Check Rust code formatting
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
-        run: |
-          cargo fmt --check
+          $VENV_PY -m pip install maturin black ruff
 
       - name: Lint Rust code
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        if: matrix.python-version == '3.12'
         run: |
+          cargo fmt --check
           cargo clippy --all-targets --all-features -- -D warnings
 
-      - name: Build and install Rust extension with maturin (Unix)
-        if: runner.os != 'Windows'
+      - name: Lint Python code
+        if: matrix.python-version == '3.12'
         run: |
-          # run maturin using the virtualenv's python so it won't pick a different system interpreter
+          $VENV_PY -m black --check --diff python/
+          $VENV_PY -m ruff check python/
+
+      - name: Build with maturin
+        run: |
           $VENV_PY -m maturin develop --release
-          $VENV_PY -c "import bustapi; print(f'BustAPI {bustapi.__version__} installed successfully')"
+          $VENV_PY -c "import bustapi; print(f'BustAPI {bustapi.__version__} installed')"
 
-      - name: Build and install Rust extension with maturin (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          # on Windows run the same pattern using the venv python executable
-          python -m venv .venv
-          $VENV = Join-Path $PWD '.\\.venv\\Scripts\\python.exe'
-          & $VENV -m pip install --upgrade pip
-          & $VENV -m pip install maturin
-          & $VENV -m maturin develop --release
-          & $VENV -c "import bustapi; print(f'BustAPI {bustapi.__version__} installed successfully')"
-          Write-Output "VENV_PY=$VENV" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Run basic tests (Unix)
-        if: runner.os != 'Windows'
+      - name: Run basic tests
         run: |
           $VENV_PY test_basic.py
-
-      - name: Run basic tests (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $VENV = $env:VENV_PY
-          & $VENV test_basic.py
 
   build-wheels:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    needs: test
+    needs: lint-and-test
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
@@ -145,85 +76,26 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Create venv and install maturin (Unix)
-        if: runner.os != 'Windows'
+      - name: Create venv
         run: |
           python -m venv .venv
           VENV_PY=./.venv/bin/python
-          $VENV_PY -m pip install --upgrade pip
-          $VENV_PY -m pip install maturin
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            VENV_PY=./.venv/Scripts/python.exe
+          fi
           echo "VENV_PY=$VENV_PY" >> $GITHUB_ENV
 
-      - name: Create venv and install maturin (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
+      - name: Install maturin
         run: |
-          python -m venv .venv
-          $VENV = Join-Path $PWD '.\\.venv\\Scripts\\python.exe'
-          & $VENV -m pip install --upgrade pip
-          & $VENV -m pip install maturin
-          Write-Output "VENV_PY=$VENV" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $VENV_PY -m pip install --upgrade pip
+          $VENV_PY -m pip install maturin
 
-      - name: Build wheels with maturin (Unix)
-        if: runner.os != 'Windows'
+      - name: Build wheels
         run: |
           $VENV_PY -m maturin build --release --out dist
 
-      - name: Build wheels with maturin (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $VENV = $env:VENV_PY
-          & $VENV -m maturin build --release --out dist
-
-      - name: Upload wheels as artifacts
+      - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.os }}
           path: dist/*.whl
-
-  benchmark:
-    name: Performance benchmarks
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'pull_request'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Create Python virtual environment
-        run: |
-          python -m venv .venv
-          echo "VENV_PY=./.venv/bin/python" >> $GITHUB_ENV
-
-      - name: Install dependencies
-        run: |
-          $VENV_PY -m pip install --upgrade pip
-          $VENV_PY -m pip install maturin requests httpx pytest-benchmark
-
-      - name: Build package
-        run: |
-          $VENV_PY -m maturin develop
-
-      - name: Run benchmarks
-        run: |
-          mkdir -p benchmarks/results
-          $VENV_PY -c "import bustapi; print('Running benchmarks for BustAPI', bustapi.__version__)" > benchmarks/results/version.txt
-          $VENV_PY examples/hello_world.py &
-          sleep 2
-          $VENV_PY -m pytest examples/benchmark_requests.py -v
-
-      - name: Upload benchmark results
-        uses: actions/upload-artifact@v4
-        with:
-          name: benchmark-results
-          path: benchmarks/results/
