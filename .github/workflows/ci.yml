@@ -82,6 +82,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Create venv
+        shell: bash
         run: |
           uv venv .venv
           VENV_PY=./.venv/bin/python
