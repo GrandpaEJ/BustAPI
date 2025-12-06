@@ -84,17 +84,18 @@ def debug():
     return {"debug": True, "timestamp": time.time()}
 
 
-@app.route("/api/users/<int:user_id>")
-def get_user(user_id):
-    """User endpoint with parameter logging."""
-    demo_logger.info(f"Fetching user {user_id}")
-
-    if user_id == 404:
-        demo_logger.warning(f"User {user_id} not found")
-        return {"error": "User not found"}, 404
-
-    demo_logger.info(f"User {user_id} found successfully")
-    return {"user_id": user_id, "name": f"User {user_id}", "status": "active"}
+# NOTE: Dynamic routing is currently disabled due to a backend issue.
+# @app.route("/api/users/<int:user_id>")
+# def get_user(user_id):
+#     """User endpoint with parameter logging."""
+#     demo_logger.info(f"Fetching user {user_id}")
+# 
+#     if user_id == 404:
+#         demo_logger.warning(f"User {user_id} not found")
+#         return {"error": "User not found"}, 404
+# 
+#     demo_logger.info(f"User {user_id} found successfully")
+#     return {"user_id": user_id, "name": f"User {user_id}", "status": "active"}
 
 
 @app.route("/api/test-methods", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])

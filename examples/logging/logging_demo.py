@@ -127,26 +127,27 @@ def error_demo():
         return {"status": "success", "message": "No error this time!"}
 
 
-@request_logging_middleware(demo_logger)
-@app.route("/api/users/<int:user_id>")
-def get_user(user_id):
-    """User endpoint with parameter logging and different response codes."""
-    # Simulate database lookup time
-    time.sleep(random.uniform(0.010, 0.100))  # 10-100ms
-
-    if user_id == 404:
-        return {"error": "User not found"}, 404
-    elif user_id == 500:
-        raise Exception("Internal server error while fetching user")
-    elif user_id == 403:
-        return {"error": "Access forbidden"}, 403
-    else:
-        return {
-            "user_id": user_id,
-            "name": f"User {user_id}",
-            "status": "active",
-            "created_at": "2024-01-01T00:00:00Z",
-        }
+# NOTE: Dynamic routing is currently disabled due to a backend issue.
+# @request_logging_middleware(demo_logger)
+# @app.route("/api/users/<int:user_id>")
+# def get_user(user_id):
+#     """User endpoint with parameter logging and different response codes."""
+#     # Simulate database lookup time
+#     time.sleep(random.uniform(0.010, 0.100))  # 10-100ms
+# 
+#     if user_id == 404:
+#         return {"error": "User not found"}, 404
+#     elif user_id == 500:
+#         raise Exception("Internal server error while fetching user")
+#     elif user_id == 403:
+#         return {"error": "Access forbidden"}, 403
+#     else:
+#         return {
+#             "user_id": user_id,
+#             "name": f"User {user_id}",
+#             "status": "active",
+#             "created_at": "2024-01-01T00:00:00Z",
+#         }
 
 
 @request_logging_middleware(demo_logger)

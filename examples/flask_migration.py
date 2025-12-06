@@ -29,19 +29,20 @@ def get_users():
     return jsonify({"users": users, "count": len(users)})
 
 
-@api_bp.route("/users/<int:user_id>")
-def get_user(user_id):
-    """Get a specific user by ID."""
-    # Mock user lookup
-    if user_id > 0 and user_id <= 3:
-        user = {
-            "id": user_id,
-            "name": f"User{user_id}",
-            "email": f"user{user_id}@example.com",
-        }
-        return jsonify({"user": user})
-    else:
-        return jsonify({"error": "User not found"}), 404
+# NOTE: Dynamic routing is currently disabled due to a backend issue.
+# @api_bp.route("/users/<int:user_id>")
+# def get_user(user_id):
+#     """Get a specific user by ID."""
+#     # Mock user lookup
+#     if user_id > 0 and user_id <= 3:
+#         user = {
+#             "id": user_id,
+#             "name": f"User{user_id}",
+#             "email": f"user{user_id}@example.com",
+#         }
+#         return jsonify({"user": user})
+#     else:
+#         return jsonify({"error": "User not found"}), 404
 
 
 @api_bp.route("/users", methods=["POST"])

@@ -28,57 +28,59 @@ def about():
     return {"page": "about", "description": "BustAPI routing demonstration"}
 
 
-# String parameters
-@app.route("/users/<username>")
-def show_user_profile(username):
-    """Show user profile by username"""
-    return {
-        "user": username,
-        "profile_url": f"/users/{username}",
-        "type": "string_parameter",
-    }
+# NOTE: Dynamic routing is currently disabled due to a backend issue.
+# The following routes are commented out until the issue is resolved.
 
-
-# Integer parameters
-@app.route("/posts/<int:post_id>")
-def show_post(post_id):
-    """Show post by ID"""
-    return {
-        "post_id": post_id,
-        "title": f"Post #{post_id}",
-        "type": "integer_parameter",
-    }
-
-
-# Float parameters
-@app.route("/products/<float:price>")
-def products_by_price(price):
-    """Show products by price"""
-    return {"max_price": price, "currency": "USD", "type": "float_parameter"}
-
-
-# Path parameters (accepts slashes)
-@app.route("/files/<path:filename>")
-def show_file(filename):
-    """Show file by path"""
-    return {
-        "filename": filename,
-        "full_path": f"/files/{filename}",
-        "type": "path_parameter",
-    }
-
-
-# Multiple parameters
-@app.route("/users/<username>/posts/<int:post_id>")
-def show_user_post(username, post_id):
-    """Show specific post by user"""
-    return {
-        "username": username,
-        "post_id": post_id,
-        "url": f"/users/{username}/posts/{post_id}",
-        "type": "multiple_parameters",
-    }
-
+# # String parameters
+# @app.route("/users/<username>")
+# def show_user_profile(username):
+#     """Show user profile by username"""
+#     return {
+#         "user": username,
+#         "profile_url": f"/users/{username}",
+#         "type": "string_parameter",
+#     }
+# 
+# 
+# # Integer parameters
+# @app.route("/posts/<int:post_id>")
+# def show_post(post_id):
+#     """Show post by ID"""
+#     return {
+#         "post_id": post_id,
+#         "title": f"Post #{post_id}",
+#         "type": "integer_parameter",
+#     }
+# 
+# 
+# # Float parameters
+# @app.route("/products/<float:price>")
+# def products_by_price(price):
+#     """Show products by price"""
+#     return {"max_price": price, "currency": "USD", "type": "float_parameter"}
+# 
+# 
+# # Path parameters (accepts slashes)
+# @app.route("/files/<path:filename>")
+# def show_file(filename):
+#     """Show file by path"""
+#     return {
+#         "filename": filename,
+#         "full_path": f"/files/{filename}",
+#         "type": "path_parameter",
+#     }
+# 
+# 
+# # Multiple parameters
+# @app.route("/users/<username>/posts/<int:post_id>")
+# def show_user_post(username, post_id):
+#     """Show specific post by user"""
+#     return {
+#         "username": username,
+#         "post_id": post_id,
+#         "url": f"/users/{username}/posts/{post_id}",
+#         "type": "multiple_parameters",
+#     }
 
 # Query parameters
 @app.route("/search")
@@ -123,25 +125,25 @@ def documentation():
 
 
 # Catch-all route (should be last)
-@app.route("/<path:path>")
-def catch_all(path):
-    """Catch-all route for undefined paths"""
-    return {
-        "error": "Route not found",
-        "requested_path": f"/{path}",
-        "available_routes": [
-            "/",
-            "/about",
-            "/users/<username>",
-            "/posts/<int:post_id>",
-            "/products/<float:price>",
-            "/files/<path:filename>",
-            "/users/<username>/posts/<int:post_id>",
-            "/search?q=<query>&page=<page>&per_page=<per_page>",
-            "/status",
-            "/docs/",
-        ],
-    }, 404
+# @app.route("/<path:path>")
+# def catch_all(path):
+#     """Catch-all route for undefined paths"""
+#     return {
+#         "error": "Route not found",
+#         "requested_path": f"/{path}",
+#         "available_routes": [
+#             "/",
+#             "/about",
+#             # "/users/<username>",
+#             # "/posts/<int:post_id>",
+#             # "/products/<float:price>",
+#             # "/files/<path:filename>",
+#             # "/users/<username>/posts/<int:post_id>",
+#             "/search?q=<query>&page=<page>&per_page=<per_page>",
+#             "/status",
+#             "/docs/",
+#         ],
+#     }, 404
 
 
 if __name__ == "__main__":
