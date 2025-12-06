@@ -95,6 +95,7 @@ jobs:
           echo "VENV_PY=$VENV_PY" >> $GITHUB_ENV
 
       - name: Build wheels
+        shell: bash
         run: |
           $VENV_PY -m maturin build --release --out dist
 
