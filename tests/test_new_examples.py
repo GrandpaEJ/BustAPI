@@ -1,17 +1,18 @@
-
-import subprocess
-import time
-import requests
-import unittest
 import os
 import signal
+import subprocess
 import sys
+import time
+import unittest
+
+import requests
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 PYTHON_PATH = os.path.join(PROJECT_ROOT, "python")
 
 env = os.environ.copy()
 env["PYTHONPATH"] = PYTHON_PATH
+
 
 class TestNewExamples(unittest.TestCase):
     def run_example(self, script, port):
@@ -72,7 +73,7 @@ class TestNewExamples(unittest.TestCase):
             # Init DB
             r = requests.get("http://127.0.0.1:5006/init-db")
             self.assertEqual(r.status_code, 200)
-            
+
             # List items
             r = requests.get("http://127.0.0.1:5006/items")
             self.assertEqual(r.status_code, 200)
@@ -116,6 +117,7 @@ class TestNewExamples(unittest.TestCase):
             self.assertEqual(r.json()["api_version"], "v2")
         finally:
             os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+
 
 if __name__ == "__main__":
     unittest.main()

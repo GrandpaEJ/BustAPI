@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """
 Automated Framework Comparison Benchmark
@@ -7,18 +6,19 @@ BustAPI vs Flask vs FastAPI vs Catzilla
 Requires: wrk, uv
 """
 
-import os
-import sys
-import time
 import json
-import signal
-import shutil
-import subprocess
-import threading
-import psutil
+import os
 import platform
+import shutil
+import signal
+import subprocess
+import sys
+import threading
+import time
 from dataclasses import dataclass
 from typing import Dict, List, Optional
+
+import psutil
 
 # Configuration
 PORT = 8000
@@ -36,8 +36,33 @@ SERVER_FILES = {
 
 RUN_COMMANDS = {
     "BustAPI": ["python", "benchmarks/temp_bustapi.py"],
-    "Flask": ["gunicorn", "-w", "4", "-b", f"{HOST}:{PORT}", "--access-logfile", "/dev/null", "--error-logfile", "/dev/null", "benchmarks.temp_flask:app"],
-    "FastAPI": ["python", "-m", "uvicorn", "benchmarks.temp_fastapi:app", "--host", HOST, "--port", str(PORT), "--workers", "4", "--log-level", "warning", "--no-access-log"],
+    "Flask": [
+        "gunicorn",
+        "-w",
+        "4",
+        "-b",
+        f"{HOST}:{PORT}",
+        "--access-logfile",
+        "/dev/null",
+        "--error-logfile",
+        "/dev/null",
+        "benchmarks.temp_flask:app",
+    ],
+    "FastAPI": [
+        "python",
+        "-m",
+        "uvicorn",
+        "benchmarks.temp_fastapi:app",
+        "--host",
+        HOST,
+        "--port",
+        str(PORT),
+        "--workers",
+        "4",
+        "--log-level",
+        "warning",
+        "--no-access-log",
+    ],
     "Catzilla": ["python", "benchmarks/temp_catzilla.py"],
 }
 
@@ -62,7 +87,7 @@ if __name__ == "__main__":
     app.run(host="{HOST}", port={PORT}, workers=4, debug=False)
 """
 
-CODE_FLASK = f"""
+CODE_FLASK = """
 from flask import Flask, jsonify
 app = Flask(__name__)
 
@@ -72,14 +97,14 @@ def index():
 
 @app.route("/json")
 def json_endpoint():
-    return jsonify({{"hello": "world"}})
+    return jsonify({"hello": "world"})
 
 @app.route("/user/<id>")
 def user(id):
-    return jsonify({{"user_id": int(id)}})
+    return jsonify({"user_id": int(id)})
 """
 
-CODE_FASTAPI = f"""
+CODE_FASTAPI = """
 from fastapi import FastAPI
 from fastapi.responses import PlainTextResponse, JSONResponse
 app = FastAPI()
@@ -90,11 +115,11 @@ def index():
 
 @app.get("/json")
 def json_endpoint():
-    return JSONResponse({{"hello": "world"}})
+    return JSONResponse({"hello": "world"})
 
-@app.get("/user/{{id}}")
+@app.get("/user/{id}")
 def user(id: int):
-    return JSONResponse({{"user_id": id}})
+    return JSONResponse({"user_id": id})
 """
 
 CODE_CATZILLA = f"""
@@ -117,6 +142,7 @@ if __name__ == "__main__":
     app.listen(host="{HOST}", port={PORT})
 """
 
+
 @dataclass
 class BenchmarkResult:
     framework: str
@@ -126,6 +152,7 @@ class BenchmarkResult:
     cpu_percent: float
     ram_mb: float
 
+
 class ResourceMonitor:
     def __init__(self, pid: int):
         self.process = psutil.Process(pid)
@@ -133,31 +160,32 @@ class ResourceMonitor:
         self.ram_samples = []
         self.running = False
         self.thread = None
-        
+
     def start(self):
         self.running = True
         self.thread = threading.Thread(target=self._monitor)
         self.thread.start()
-        
+
     def stop(self):
         self.running = False
         if self.thread:
             self.thread.join()
-            
+
     def _monitor(self):
         # Initial CPU call for main process
         try:
             self.process.cpu_percent()
-        except: pass
-        
-        children_cache = {} # pid -> process_obj
+        except:
+            pass
+
+        children_cache = {}  # pid -> process_obj
 
         while self.running:
             try:
                 # Main process
                 cpu = self.process.cpu_percent()
                 mem = self.process.memory_info().rss
-                
+
                 # Children
                 try:
                     current_children = self.process.children(recursive=True)
@@ -166,20 +194,22 @@ class ResourceMonitor:
 
                 # Update cache
                 current_pids = {p.pid for p in current_children}
-                
+
                 # Remove dead
                 for pid in list(children_cache.keys()):
                     if pid not in current_pids:
                         del children_cache[pid]
-                
+
                 # Add new and sum
                 for child in current_children:
                     if child.pid not in children_cache:
                         children_cache[child.pid] = child
                         # Init CPU counter
-                        try: child.cpu_percent()
-                        except: pass
-                    
+                        try:
+                            child.cpu_percent()
+                        except:
+                            pass
+
                     try:
                         c_proc = children_cache[child.pid]
                         # Verify it's still running
@@ -188,25 +218,27 @@ class ResourceMonitor:
                             mem += c_proc.memory_info().rss
                     except (psutil.NoSuchProcess, psutil.AccessDenied):
                         pass
-                
+
                 self.cpu_samples.append(cpu)
-                self.ram_samples.append(mem / 1024 / 1024) # MB
-                
+                self.ram_samples.append(mem / 1024 / 1024)  # MB
+
                 time.sleep(0.1)
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 break
 
     def get_stats(self):
-        if not self.cpu_samples: return 0.0, 0.0
+        if not self.cpu_samples:
+            return 0.0, 0.0
         avg_cpu = sum(self.cpu_samples) / len(self.cpu_samples)
         max_ram = max(self.ram_samples)
         return avg_cpu, max_ram
+
 
 def get_system_info():
     info = {}
     info["os"] = f"{platform.system()} {platform.release()}"
     info["python"] = platform.python_version()
-    
+
     # CPU Model
     try:
         if platform.system() == "Linux":
@@ -219,18 +251,24 @@ def get_system_info():
             info["cpu_model"] = platform.processor()
     except:
         info["cpu_model"] = "Unknown"
-        
+
     info["cpu_count"] = psutil.cpu_count(logical=True)
     info["ram_total_gb"] = round(psutil.virtual_memory().total / (1024**3), 1)
-    
+
     return info
+
 
 def create_server_files():
     print("📝 Creating temporary server files...")
-    with open(SERVER_FILES["BustAPI"], "w") as f: f.write(CODE_BUSTAPI)
-    with open(SERVER_FILES["Flask"], "w") as f: f.write(CODE_FLASK)
-    with open(SERVER_FILES["FastAPI"], "w") as f: f.write(CODE_FASTAPI)
-    with open(SERVER_FILES["Catzilla"], "w") as f: f.write(CODE_CATZILLA)
+    with open(SERVER_FILES["BustAPI"], "w") as f:
+        f.write(CODE_BUSTAPI)
+    with open(SERVER_FILES["Flask"], "w") as f:
+        f.write(CODE_FLASK)
+    with open(SERVER_FILES["FastAPI"], "w") as f:
+        f.write(CODE_FASTAPI)
+    with open(SERVER_FILES["Catzilla"], "w") as f:
+        f.write(CODE_CATZILLA)
+
 
 def clean_server_files():
     print("🧹 Cleaning up...")
@@ -238,21 +276,32 @@ def clean_server_files():
         if os.path.exists(f):
             os.remove(f)
 
+
 def run_wrk(endpoint: str) -> Optional[Dict]:
     url = f"http://{HOST}:{PORT}{endpoint}"
-    cmd = ["wrk", "-t", str(WRK_THREADS), "-c", str(WRK_CONNECTIONS), "-d", WRK_DURATION, "--latency", url]
-    
+    cmd = [
+        "wrk",
+        "-t",
+        str(WRK_THREADS),
+        "-c",
+        str(WRK_CONNECTIONS),
+        "-d",
+        WRK_DURATION,
+        "--latency",
+        url,
+    ]
+
     try:
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
             print(f"❌ wrk failed: {result.stderr}")
             return None
-        
+
         # Parse wrk output
         output = result.stdout
         rps = 0.0
         latency = 0.0
-        
+
         for line in output.splitlines():
             if "Requests/sec:" in line:
                 rps = float(line.split(":")[1].strip())
@@ -260,15 +309,16 @@ def run_wrk(endpoint: str) -> Optional[Dict]:
                 # This is tricky because wrk output format varies.
                 # Assuming standard format: "Latency    1.23ms ..."
                 pass
-        
+
         return {"rps": rps, "raw": output}
     except FileNotFoundError:
         print("❌ wrk not found. Please install wrk.")
         sys.exit(1)
 
+
 def benchmark_framework(name: str):
     print(f"\n🚀 Benchmarking {name}...")
-    
+
     # Start Server
     print(f"   Cleaning port {PORT}...")
     subprocess.run(f"fuser -k {PORT}/tcp", shell=True, stderr=subprocess.DEVNULL)
@@ -281,26 +331,26 @@ def benchmark_framework(name: str):
     else:
         # e.g. gunicorn
         final_cmd = ["uv", "run"] + cmd
-        
+
     print(f"   Starting: {' '.join(final_cmd)}")
-    
+
     out_file = open(f"stdout_{name}.txt", "w")
     err_file = open(f"stderr_{name}.txt", "w")
-    
+
     proc = subprocess.Popen(
         final_cmd,
         cwd=os.getcwd(),
         stdout=out_file,
         stderr=err_file,
-        preexec_fn=os.setsid 
+        preexec_fn=os.setsid,
     )
-    
-    time.sleep(3) # Give it time to warm up
-    
+
+    time.sleep(3)  # Give it time to warm up
+
     # Initialize monitor
     monitor = ResourceMonitor(proc.pid)
     monitor.start()
-    
+
     results = []
     try:
         endpoints = ["/", "/json", "/user/10"]
@@ -313,114 +363,142 @@ def benchmark_framework(name: str):
                 # We can just check stats at end, or maybe we want independent stats per endpoint?
                 # For simplicity, let's keep monitor running for the whole suite of endpoints
                 # and just report the average usage during that specific test?
-                # No, ResourceMonitor collects all history. 
+                # No, ResourceMonitor collects all history.
                 # Let's Restart monitor for each endpoint for better granularity.
                 pass
-            
+
             # RESTART MONITOR STRATEGY for per-endpoint stats
             monitor.stop()
             cpu, ram = monitor.get_stats()
             # Clear samples
             monitor.cpu_samples = []
             monitor.ram_samples = []
-            monitor.start() # Restart
-            
+            monitor.start()  # Restart
+
             if res:
                 print(f" {res['rps']:.2f} req/sec, CPU: {cpu:.1f}%, RAM: {ram:.1f}MB")
-                results.append(BenchmarkResult(name, ep, res['rps'], 0.0, cpu, ram))
+                results.append(BenchmarkResult(name, ep, res["rps"], 0.0, cpu, ram))
             else:
                 print(" Failed")
                 # Print server output for debugging
                 print(f"--- {name} stdout ---")
-                try: 
+                try:
                     print(open(f"stdout_{name}.txt").read())
-                except: pass
+                except:
+                    pass
                 print(f"--- {name} stderr ---")
-                try: 
+                try:
                     print(open(f"stderr_{name}.txt").read())
-                except: pass
+                except:
+                    pass
     finally:
         monitor.stop()
         os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
         proc.wait()
-        time.sleep(1) # Cooldown
-        
+        time.sleep(1)  # Cooldown
+
     return results
+
 
 def main():
     if not shutil.which("wrk"):
-        print("❌ Error: 'wrk' tool is required. Please install it (e.g., sudo apt install wrk).")
+        print(
+            "❌ Error: 'wrk' tool is required. Please install it (e.g., sudo apt install wrk)."
+        )
         return
 
     create_server_files()
-    
+
     all_results = []
-    
+
     try:
         frameworks = ["BustAPI", "Flask", "FastAPI", "Catzilla"]
         for fw in frameworks:
             fw_results = benchmark_framework(fw)
             all_results.extend(fw_results)
-            
+
         # Generate Markdown Report
         sys_info = get_system_info()
-        
+
         report_lines = []
         report_lines.append("# 🚀 Web Framework Benchmark Results")
         report_lines.append("")
         report_lines.append(f"**Date:** {time.strftime('%Y-%m-%d')}")
-        report_lines.append(f"**Tool:** `benchmarks/run_comparison_auto.py`")
+        report_lines.append("**Tool:** `benchmarks/run_comparison_auto.py`")
         report_lines.append("")
         report_lines.append("## 💻 Test Environment")
         report_lines.append(f"- **OS:** {sys_info['os']}")
-        report_lines.append(f"- **CPU:** {sys_info['cpu_model']} ({sys_info['cpu_count']} Cores)")
+        report_lines.append(
+            f"- **CPU:** {sys_info['cpu_model']} ({sys_info['cpu_count']} Cores)"
+        )
         report_lines.append(f"- **RAM:** {sys_info['ram_total_gb']} GB")
         report_lines.append(f"- **Python:** {sys_info['python']}")
         report_lines.append("")
-        report_lines.append(f"**Config:** {WRK_THREADS} threads, {WRK_CONNECTIONS} connections, {WRK_DURATION} duration")
+        report_lines.append(
+            f"**Config:** {WRK_THREADS} threads, {WRK_CONNECTIONS} connections, {WRK_DURATION} duration"
+        )
         report_lines.append("")
         report_lines.append("## 📊 Summary (Requests/sec)")
         report_lines.append("")
-        
+
         # Table Header
         headers = ["Endpoint", "Metric"] + frameworks
         report_lines.append("| " + " | ".join(headers) + " |")
         report_lines.append("|" + "|".join(["-" * len(h) for h in headers]) + "|")
-        
+
         # Table Rows
         endpoints = ["/", "/json", "/user/10"]
         for ep in endpoints:
             # Row 1: RPS
             row_rps = [f"**{ep}**", "Req/Sec"]
-            
+
             # Row 2: CPU
             row_cpu = ["", "CPU %"]
-            
+
             # Row 3: RAM
             row_ram = ["", "RAM (MB)"]
-            
+
             for fw in frameworks:
-                match = next((r for r in all_results if r.framework == fw and r.endpoint == ep), None)
+                match = next(
+                    (r for r in all_results if r.framework == fw and r.endpoint == ep),
+                    None,
+                )
                 if match:
                     # RPS Handling
                     val_str = f"{match.requests_sec:,.0f}"
                     # Check if winner
                     row_values = [
-                        (next((r for r in all_results if r.framework == f and r.endpoint == ep), None).requests_sec) 
-                        for f in frameworks 
-                        if next((r for r in all_results if r.framework == f and r.endpoint == ep), None)
+                        (
+                            next(
+                                (
+                                    r
+                                    for r in all_results
+                                    if r.framework == f and r.endpoint == ep
+                                ),
+                                None,
+                            ).requests_sec
+                        )
+                        for f in frameworks
+                        if next(
+                            (
+                                r
+                                for r in all_results
+                                if r.framework == f and r.endpoint == ep
+                            ),
+                            None,
+                        )
                     ]
                     if match.requests_sec == max(row_values):
                         val_str = f"**{val_str}**"
                     row_rps.append(val_str)
-                    
+
                     row_cpu.append(f"{match.cpu_percent:.1f}%")
                     row_ram.append(f"{match.ram_mb:.1f}")
                 else:
                     row_rps.append("N/A")
                     row_cpu.append("N/A")
                     row_ram.append("N/A")
-            
+
             report_lines.append("| " + " | ".join(row_rps) + " |")
             report_lines.append("| " + " | ".join(row_cpu) + " |")
             report_lines.append("| " + " | ".join(row_ram) + " |")
@@ -435,19 +513,22 @@ def main():
         report_lines.append("fuser -k 8000/tcp")
         report_lines.append("")
         report_lines.append("# Run automated benchmark")
-        report_lines.append("uv run --extra benchmarks benchmarks/run_comparison_auto.py")
+        report_lines.append(
+            "uv run --extra benchmarks benchmarks/run_comparison_auto.py"
+        )
         report_lines.append("```")
-        
+
         report_content = "\n".join(report_lines)
         print("\n\n" + report_content)
-        
+
         # Write to README.md
         with open("benchmarks/README.md", "w") as f:
             f.write(report_content)
         print("\n✅ Updated benchmarks/README.md")
-            
+
     finally:
         clean_server_files()
+
 
 if __name__ == "__main__":
     main()

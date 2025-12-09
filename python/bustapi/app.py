@@ -162,7 +162,9 @@ class BustAPI:
 
         # Register with Rust backend
         for method in methods:
-            print(f"DEBUG: Registering {rule} view_func={view_func} is_coro={inspect.iscoroutinefunction(view_func)}")
+            print(
+                f"DEBUG: Registering {rule} view_func={view_func} is_coro={inspect.iscoroutinefunction(view_func)}"
+            )
             if inspect.iscoroutinefunction(view_func):
                 # Async handler executed synchronously via asyncio.run
                 # inside wrapper
@@ -627,14 +629,14 @@ class BustAPI:
         # Handle reload
         if reload:
             import os
-            import sys
             import subprocess
+            import sys
 
             # If we are already in the reloader subprocess, continue to run
             if os.environ.get("BUSTAPI_RELOADER_RUN") == "true":
                 pass
             else:
-                print(f"🔄 BustAPI reloader active")
+                print("🔄 BustAPI reloader active")
                 # Simple poller/restart logic is complex to implement robustly inline.
                 # For now, we recommend using an external watcher or implement basic subprocess restart.
                 # A robust reloader typically needs a separate thread/watcher.
@@ -647,16 +649,19 @@ class BustAPI:
         if workers is None:
             # Default to 1 worker for debug/dev, or CPU count for prod key
             import multiprocessing
+
             workers = 1 if debug else multiprocessing.cpu_count()
 
         # Log startup with colorful output
         if self.logger:
-            self.logger.log_startup(f"Starting BustAPI Application")
+            self.logger.log_startup("Starting BustAPI Application")
             self.logger.info(f"Listening on http://{host}:{port}")
             self.logger.info(f"Workers: {workers}")
             self.logger.info(f"Debug mode: {'ON' if debug else 'OFF'}")
         else:
-            print(f"🚀 BustAPI server running on http://{host}:{port} with {workers} workers")
+            print(
+                f"🚀 BustAPI server running on http://{host}:{port} with {workers} workers"
+            )
 
         try:
             self._rust_app.run(host, port, workers, debug)

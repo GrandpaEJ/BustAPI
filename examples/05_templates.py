@@ -1,8 +1,8 @@
-
 from bustapi import BustAPI, render_template
 
 # Initialize app with explicit template folder (optional if 'templates')
 app = BustAPI(template_folder="examples/templates")
+
 
 @app.route("/")
 def home():
@@ -11,8 +11,9 @@ def home():
         "index.html",
         title="BustAPI Templates",
         user="Rustacean",
-        items=["Fast", "Safe", "Easy"]
+        items=["Fast", "Safe", "Easy"],
     )
+
 
 if __name__ == "__main__":
     print("Running templates example on http://127.0.0.1:5004")

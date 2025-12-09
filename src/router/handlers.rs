@@ -21,8 +21,8 @@ pub struct Route {
 
 /// Router for managing routes and dispatching requests
 pub struct Router {
-    routes: HashMap<(Method, String), Arc<dyn RouteHandler>>,
-    middleware: Vec<Arc<dyn super::middleware::Middleware>>,
+    pub(crate) routes: HashMap<(Method, String), Arc<dyn RouteHandler>>,
+    pub(crate) middleware: Vec<Arc<dyn super::middleware::Middleware>>,
 }
 
 impl Router {
