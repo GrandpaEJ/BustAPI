@@ -35,7 +35,7 @@ jobs:
 
       - name: Install tools
         run: |
-          uv pip install maturin black ruff --python $VENV_PY
+          uv pip install maturin black ruff requests --python $VENV_PY
 
       - name: Lint Rust code
         if: matrix.python-version == '3.12'
