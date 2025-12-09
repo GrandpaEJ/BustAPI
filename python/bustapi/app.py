@@ -436,6 +436,7 @@ class BustAPI:
                 request = Request._from_rust_request(rust_request)
 
                 # Set request context
+                request.app = self
                 _request_ctx.set(request)
 
                 # Run before request handlers
@@ -492,6 +493,7 @@ class BustAPI:
                 request = Request._from_rust_request(rust_request)
 
                 # Set request context
+                request.app = self
                 _request_ctx.set(request)
 
                 # Run before request handlers

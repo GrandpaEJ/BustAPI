@@ -241,7 +241,13 @@ def _get_current_object():
     Raises:
         RuntimeError: If no application context
     """
-    # TODO: Implement application context
+    # Try to get from request context
+    from .request import _request_ctx
+
+    req = _request_ctx.get(None)
+    if req and hasattr(req, "app"):
+        return req.app
+
     raise RuntimeError("Working outside of application context")
 
 
