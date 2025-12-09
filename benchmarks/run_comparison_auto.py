@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import threading
 import psutil
+import platform
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
@@ -201,6 +202,29 @@ class ResourceMonitor:
         max_ram = max(self.ram_samples)
         return avg_cpu, max_ram
 
+def get_system_info():
+    info = {}
+    info["os"] = f"{platform.system()} {platform.release()}"
+    info["python"] = platform.python_version()
+    
+    # CPU Model
+    try:
+        if platform.system() == "Linux":
+            with open("/proc/cpuinfo") as f:
+                for line in f:
+                    if "model name" in line:
+                        info["cpu_model"] = line.split(":")[1].strip()
+                        break
+        else:
+            info["cpu_model"] = platform.processor()
+    except:
+        info["cpu_model"] = "Unknown"
+        
+    info["cpu_count"] = psutil.cpu_count(logical=True)
+    info["ram_total_gb"] = round(psutil.virtual_memory().total / (1024**3), 1)
+    
+    return info
+
 def create_server_files():
     print("📝 Creating temporary server files...")
     with open(SERVER_FILES["BustAPI"], "w") as f: f.write(CODE_BUSTAPI)
@@ -339,11 +363,20 @@ def main():
             all_results.extend(fw_results)
             
         # Generate Markdown Report
+        sys_info = get_system_info()
+        
         report_lines = []
         report_lines.append("# 🚀 Web Framework Benchmark Results")
         report_lines.append("")
         report_lines.append(f"**Date:** {time.strftime('%Y-%m-%d')}")
         report_lines.append(f"**Tool:** `benchmarks/run_comparison_auto.py`")
+        report_lines.append("")
+        report_lines.append("## 💻 Test Environment")
+        report_lines.append(f"- **OS:** {sys_info['os']}")
+        report_lines.append(f"- **CPU:** {sys_info['cpu_model']} ({sys_info['cpu_count']} Cores)")
+        report_lines.append(f"- **RAM:** {sys_info['ram_total_gb']} GB")
+        report_lines.append(f"- **Python:** {sys_info['python']}")
+        report_lines.append("")
         report_lines.append(f"**Config:** {WRK_THREADS} threads, {WRK_CONNECTIONS} connections, {WRK_DURATION} duration")
         report_lines.append("")
         report_lines.append("## 📊 Summary (Requests/sec)")
