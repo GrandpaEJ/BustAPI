@@ -144,26 +144,47 @@ class ResourceMonitor:
             self.thread.join()
             
     def _monitor(self):
-        # Initial CPU call is often 0.0 or irrelevant, so call it once before loop
+        # Initial CPU call for main process
         try:
             self.process.cpu_percent()
         except: pass
         
+        children_cache = {} # pid -> process_obj
+
         while self.running:
             try:
-                # Capture children too? For gunicorn, yes!
-                # But simple approach: main process + children sum
-                
                 # Main process
                 cpu = self.process.cpu_percent()
                 mem = self.process.memory_info().rss
                 
                 # Children
-                children = self.process.children(recursive=True)
-                for child in children:
+                try:
+                    current_children = self.process.children(recursive=True)
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    current_children = []
+
+                # Update cache
+                current_pids = {p.pid for p in current_children}
+                
+                # Remove dead
+                for pid in list(children_cache.keys()):
+                    if pid not in current_pids:
+                        del children_cache[pid]
+                
+                # Add new and sum
+                for child in current_children:
+                    if child.pid not in children_cache:
+                        children_cache[child.pid] = child
+                        # Init CPU counter
+                        try: child.cpu_percent()
+                        except: pass
+                    
                     try:
-                        cpu += child.cpu_percent()
-                        mem += child.memory_info().rss
+                        c_proc = children_cache[child.pid]
+                        # Verify it's still running
+                        if c_proc.is_running():
+                            cpu += c_proc.cpu_percent()
+                            mem += c_proc.memory_info().rss
                     except (psutil.NoSuchProcess, psutil.AccessDenied):
                         pass
                 
