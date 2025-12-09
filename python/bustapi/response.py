@@ -6,7 +6,24 @@ import json
 from http import HTTPStatus
 from typing import Any, Dict, Iterable, Optional, Union
 
-from werkzeug.datastructures import Headers
+
+class Headers(dict):
+    """Minimal stub for werkzeug.datastructures.Headers"""
+
+    def __init__(self, headers=None):
+        super().__init__()
+        if headers:
+            self.update(headers)
+
+    def getlist(self, key):
+        val = self.get(key)
+        if val is None:
+            return []
+        return [val] if not isinstance(val, list) else val
+
+    def setlist(self, key, values):
+        self[key] = values
+
 
 ResponseType = Union[str, bytes, dict, list, tuple, "Response"]
 

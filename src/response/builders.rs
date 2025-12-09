@@ -1,6 +1,6 @@
 //! HTTP Response data structures and utilities
 
-use actix_web::http::StatusCode;
+use http::StatusCode;
 use std::collections::HashMap;
 
 /// HTTP response data structure

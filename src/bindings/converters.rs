@@ -1,12 +1,15 @@
 //! Conversion utilities between Python and Rust types
 
-use actix_web::HttpResponse;
+
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDict, PyString, PyTuple};
 use std::collections::HashMap;
 
-/// Convert Python result to HttpResponse
-pub fn convert_py_result_to_response(py: Python, result: PyObject) -> HttpResponse {
+/// Convert Python result to ResponseData
+pub fn convert_py_result_to_response(py: Python, result: PyObject) -> crate::response::ResponseData {
+    use crate::response::ResponseData;
+    use http::StatusCode;
+
     // Check if tuple (body, status) or (body, status, headers)
     if let Ok(tuple) = result.downcast_bound::<PyTuple>(py) {
         match tuple.len() {
@@ -16,12 +19,10 @@ pub fn convert_py_result_to_response(py: Python, result: PyObject) -> HttpRespon
                     tuple.get_item(1).and_then(|s| s.extract::<u16>()),
                 ) {
                     let response_body = python_to_response_body(py, body.into());
-                    return HttpResponse::build(
-                        actix_web::http::StatusCode::from_u16(status)
-                            .unwrap_or(actix_web::http::StatusCode::OK),
-                    )
-                    .content_type("application/json")
-                    .body(response_body);
+                    let mut resp = ResponseData::with_body(response_body.into_bytes());
+                    resp.set_status(StatusCode::from_u16(status).unwrap_or(StatusCode::OK));
+                    resp.set_header("Content-Type", "application/json");
+                    return resp;
                 }
             }
             3 => {
@@ -33,21 +34,22 @@ pub fn convert_py_result_to_response(py: Python, result: PyObject) -> HttpRespon
                         .and_then(|h| h.extract::<HashMap<String, String>>()),
                 ) {
                     let response_body = python_to_response_body(py, body.into());
-                    let status_code = actix_web::http::StatusCode::from_u16(status)
-                        .unwrap_or(actix_web::http::StatusCode::OK);
+                    let status_code = StatusCode::from_u16(status).unwrap_or(StatusCode::OK);
 
-                    let mut response = HttpResponse::build(status_code);
-                    let mut content_type = "application/json";
+                    let mut resp = ResponseData::with_status(status_code);
+                    let mut content_type = "application/json".to_string();
 
                     // Set headers
                     for (k, v) in &hdrs {
                         if k.to_lowercase() == "content-type" {
-                            content_type = v;
+                            content_type = v.clone();
                         }
-                        response.insert_header((k.as_str(), v.as_str()));
+                        resp.set_header(k, v);
                     }
-
-                    return response.content_type(content_type).body(response_body);
+                    
+                    resp.set_header("Content-Type", content_type);
+                    resp.set_body(response_body.into_bytes());
+                    return resp;
                 }
             }
             _ => {}
@@ -58,13 +60,14 @@ pub fn convert_py_result_to_response(py: Python, result: PyObject) -> HttpRespon
     let body = python_to_response_body(py, result);
 
     // Check if body looks like HTML
-    let content_type = if body.trim().starts_with("<") && body.contains("</") {
-        "text/html; charset=utf-8"
+    if body.trim().starts_with("<") && body.contains("</") {
+        ResponseData::html(body)
     } else {
-        "application/json"
-    };
-
-    HttpResponse::Ok().content_type(content_type).body(body)
+        // Assume JSON default
+        let mut resp = ResponseData::with_body(body.into_bytes());
+        resp.set_header("Content-Type", "application/json");
+        resp
+    }
 }
 
 /// Convert Python object to response body bytes

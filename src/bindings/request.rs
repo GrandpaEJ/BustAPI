@@ -1,6 +1,6 @@
 //! Python wrapper for HTTP requests
 
-use actix_web::HttpRequest;
+
 use pyo3::prelude::*;
 use std::collections::HashMap;
 
@@ -13,6 +13,7 @@ pub struct PyRequest {
     path: String,
     query_string: String,
     headers: HashMap<String, String>,
+    args: HashMap<String, String>,
     body: Vec<u8>,
 }
 
@@ -38,6 +39,11 @@ impl PyRequest {
         self.headers.clone()
     }
 
+    #[getter]
+    pub fn args(&self) -> HashMap<String, String> {
+        self.args.clone()
+    }
+
     pub fn get_data(&self) -> &[u8] {
         &self.body
     }
@@ -58,27 +64,42 @@ impl PyRequest {
             }
         }
     }
-}
 
-/// Create PyRequest from Actix HttpRequest
-pub fn create_py_request(
-    py: Python,
-    req: &HttpRequest,
-    body: &actix_web::web::Bytes,
-) -> PyResult<Py<PyRequest>> {
-    let mut headers = HashMap::new();
-    for (key, value) in req.headers() {
-        if let Ok(v) = value.to_str() {
-            headers.insert(key.to_string(), v.to_string());
+    pub fn form(&self) -> HashMap<String, String> {
+        let content_type = self
+            .headers
+            .iter()
+            .find(|(k, _)| k.to_lowercase() == "content-type")
+            .map(|(_, v)| v.to_lowercase())
+            .unwrap_or_default();
+
+        if content_type.contains("application/x-www-form-urlencoded") {
+            String::from_utf8(self.body.clone())
+                .ok()
+                .map(|s| {
+                    url::form_urlencoded::parse(s.as_bytes())
+                        .into_owned()
+                        .collect()
+                })
+                .unwrap_or_default()
+        } else {
+            HashMap::new()
         }
     }
+}
 
+/// Create PyRequest from generic RequestData
+pub fn create_py_request(
+    py: Python,
+    req: &crate::request::RequestData,
+) -> PyResult<Py<PyRequest>> {
     let py_req = PyRequest {
-        method: req.method().to_string(),
-        path: req.path().to_string(),
-        query_string: req.query_string().to_string(),
-        headers,
-        body: body.to_vec(),
+        method: req.method.as_str().to_string(),
+        path: req.path.clone(),
+        query_string: req.query_string.clone(),
+        headers: req.headers.clone(),
+        args: req.query_params.clone(),
+        body: req.body.clone(),
     };
 
     Py::new(py, py_req)

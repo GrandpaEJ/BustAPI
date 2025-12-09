@@ -6,7 +6,19 @@ import json
 from contextvars import ContextVar
 from typing import Any, Dict, Optional, Union
 
-from werkzeug.datastructures import ImmutableMultiDict
+
+class ImmutableMultiDict(dict):
+    """Minimal stub for werkzeug.datastructures.ImmutableMultiDict"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def getlist(self, key):
+        val = self.get(key)
+        if val is None:
+            return []
+        return [val] if not isinstance(val, list) else val
+
 
 # Thread-local request context
 _request_ctx: ContextVar[Optional["Request"]] = ContextVar("request", default=None)

@@ -5,13 +5,12 @@ use pyo3::prelude::*;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 
-use crate::server::{AppState, FastRouteHandler, ServerConfig};
+use crate::server::{start_server, AppState, FastRouteHandler, ServerConfig};
 
 /// Python wrapper for the BustAPI application
 #[pyclass]
 pub struct PyBustApp {
     state: Arc<AppState>,
-    config: ServerConfig,
     runtime: Runtime,
 }
 
@@ -36,7 +35,6 @@ impl PyBustApp {
 
         Ok(Self {
             state: Arc::new(AppState::new()),
-            config: ServerConfig::default(),
             runtime,
         })
     }
@@ -47,12 +45,13 @@ impl PyBustApp {
 
         // Use blocking task to add route
         let state = self.state.clone();
-        let method = method.to_string();
+        let method_enum = std::str::FromStr::from_str(method)
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid HTTP method"))?;
         let path = path.to_string();
 
         self.runtime.block_on(async {
             let mut routes = state.routes.write().await;
-            routes.add_route(&method, &path, py_handler);
+            routes.add_route(method_enum, path, py_handler);
         });
 
         Ok(())
@@ -63,12 +62,13 @@ impl PyBustApp {
         let py_handler = crate::bindings::handlers::PyAsyncRouteHandler::new(handler);
 
         let state = self.state.clone();
-        let method = method.to_string();
+        let method_enum = std::str::FromStr::from_str(method)
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid HTTP method"))?;
         let path = path.to_string();
 
         self.runtime.block_on(async {
             let mut routes = state.routes.write().await;
-            routes.add_route(&method, &path, py_handler);
+            routes.add_route(method_enum, path, py_handler);
         });
 
         Ok(())
@@ -79,32 +79,47 @@ impl PyBustApp {
         let fast_handler = FastRouteHandler::new(response_body);
 
         let state = self.state.clone();
-        let method = method.to_string();
+        let method_enum = std::str::FromStr::from_str(method)
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid HTTP method"))?;
         let path = path.to_string();
 
         self.runtime.block_on(async {
             let mut routes = state.routes.write().await;
-            routes.add_route(&method, &path, fast_handler);
+            routes.add_route(method_enum, path, fast_handler);
         });
 
         Ok(())
     }
 
     /// Run the server
-    pub fn run(&mut self, host: &str, port: u16) -> PyResult<()> {
-        self.config.host = host.to_string();
-        self.config.port = port;
-
-        let config = self.config.clone();
+    pub fn run(&self, host: String, port: u16, workers: usize, debug: bool) -> PyResult<()> {
         let state = self.state.clone();
+        let config = ServerConfig {
+            host,
+            port,
+            debug,
+            workers,
+        };
 
-        // Release the GIL while running the server
+        // Initialize logging if debug is on and not already initialized
+        if debug {
+            let _ = tracing_subscriber::fmt()
+                .with_max_level(tracing::Level::DEBUG)
+                .try_init();
+        } else {
+             let _ = tracing_subscriber::fmt()
+                .with_max_level(tracing::Level::INFO)
+                .try_init();
+        }
+
+        // In Python 3.13 free-threaded, we can release GIL and run full parallel!
         Python::with_gil(|py| {
             py.allow_threads(|| {
-                self.runtime
-                    .block_on(async { crate::server::start_server(config, state).await })
+                let sys = actix_rt::System::new();
+                sys.block_on(start_server(config, state.into())).unwrap();
             })
-        })
-        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Server error: {}", e)))
+        });
+
+        Ok(())
     }
 }

@@ -4,6 +4,9 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use crate::request::RequestData;
+use crate::router::{Router, RouteHandler};
+
 /// Configuration for the BustAPI server
 #[derive(Debug, Clone)]
 pub struct ServerConfig {
@@ -22,40 +25,6 @@ impl Default for ServerConfig {
             debug: false,
             workers: num_cpus::get(),
         }
-    }
-}
-
-/// Route handler trait for polymorphic handlers
-pub trait RouteHandler: Send + Sync + 'static {
-    fn handle(&self, req: &HttpRequest, body: web::Bytes) -> HttpResponse;
-}
-
-/// Storage for routes
-pub struct RouteStorage {
-    routes: std::collections::HashMap<(String, String), Arc<dyn RouteHandler>>,
-}
-
-impl RouteStorage {
-    pub fn new() -> Self {
-        Self {
-            routes: std::collections::HashMap::new(),
-        }
-    }
-
-    pub fn add_route<H: RouteHandler>(&mut self, method: &str, path: &str, handler: H) {
-        let key = (method.to_uppercase(), path.to_string());
-        self.routes.insert(key, Arc::new(handler));
-    }
-
-    pub fn get_handler(&self, method: &str, path: &str) -> Option<Arc<dyn RouteHandler>> {
-        let key = (method.to_uppercase(), path.to_string());
-        self.routes.get(&key).cloned()
-    }
-}
-
-impl Default for RouteStorage {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -81,22 +50,22 @@ impl FastRouteHandler {
 }
 
 impl RouteHandler for FastRouteHandler {
-    fn handle(&self, _req: &HttpRequest, _body: web::Bytes) -> HttpResponse {
-        HttpResponse::Ok()
-            .content_type(self.content_type.clone())
-            .body(self.response_body.clone())
+    fn handle(&self, _req: RequestData) -> crate::response::ResponseData {
+        let mut resp = crate::response::ResponseData::with_body(self.response_body.as_bytes().to_vec());
+        resp.set_header("Content-Type", &self.content_type);
+        resp
     }
 }
 
 /// Shared application state
 pub struct AppState {
-    pub routes: RwLock<RouteStorage>,
+    pub routes: RwLock<Router>,
 }
 
 impl AppState {
     pub fn new() -> Self {
         Self {
-            routes: RwLock::new(RouteStorage::new()),
+            routes: RwLock::new(Router::new()),
         }
     }
 }
@@ -113,17 +82,43 @@ pub async fn handle_request(
     body: web::Bytes,
     state: web::Data<Arc<AppState>>,
 ) -> HttpResponse {
-    let method = req.method().as_str();
-    let path = req.path();
-
-    // Get handler from routes
-    let routes = state.routes.read().await;
-    if let Some(handler) = routes.get_handler(method, path) {
-        drop(routes); // Release lock before handling
-        handler.handle(&req, body)
-    } else {
-        HttpResponse::NotFound()
-            .content_type("application/json")
-            .body(r#"{"error": "Not Found"}"#)
+    // 1. Convert Actix Request to generic RequestData
+    let mut headers = std::collections::HashMap::new();
+    for (key, value) in req.headers() {
+        if let Ok(v) = value.to_str() {
+            headers.insert(key.to_string(), v.to_string());
+        }
     }
+    
+    // Parse query params slightly redundantly but accurately
+    let query_params = if !req.query_string().is_empty() {
+         url::form_urlencoded::parse(req.query_string().as_bytes())
+                .into_owned()
+                .collect()
+    } else {
+        std::collections::HashMap::new()
+    };
+
+    let request_data = RequestData {
+        method: req.method().clone(),
+        path: req.path().to_string(),
+        query_string: req.query_string().to_string(),
+        headers,
+        body: body.to_vec(),
+        query_params,
+    };
+
+    // 2. Dispatch to Router
+    let routes = state.routes.read().await;
+    let response_data = routes.process_request(request_data);
+    drop(routes);
+
+    // 3. Convert ResponseData to Actix Response
+    let mut builder = HttpResponse::build(response_data.status);
+    
+    for (k, v) in response_data.headers {
+        builder.insert_header((k.as_str(), v.as_str()));
+    }
+
+    builder.body(response_data.body)
 }

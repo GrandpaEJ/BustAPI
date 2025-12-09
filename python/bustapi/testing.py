@@ -6,7 +6,7 @@ import json
 from typing import Any, Dict, Optional, Union
 from urllib.parse import urlencode
 
-from werkzeug.datastructures import Headers
+from .response import Headers
 
 
 class TestResponse:

@@ -154,7 +154,7 @@ class BustAPIDocs:
                 continue
 
             path_item = {}
-            
+
             # Convert Flask rule to OpenAPI path
             # e.g., /user/<name> -> /user/{name}
             openapi_path = rule.replace("<", "{").replace(">", "}")
@@ -165,7 +165,15 @@ class BustAPIDocs:
 
             for method in methods:
                 method_lower = method.lower()
-                if method_lower not in ["get", "post", "put", "delete", "patch", "options", "head"]:
+                if method_lower not in [
+                    "get",
+                    "post",
+                    "put",
+                    "delete",
+                    "patch",
+                    "options",
+                    "head",
+                ]:
                     continue
 
                 operation = {
@@ -178,7 +186,7 @@ class BustAPIDocs:
                         }
                     },
                 }
-                
+
                 # Basic parameter extraction from rule
                 # This is a simplified implementation. A full one would parse the rule
                 # and type hints to generate detailed parameters.
@@ -186,14 +194,17 @@ class BustAPIDocs:
                     parameters = []
                     # Extract param names from rule (simplified)
                     import re
+
                     param_names = re.findall(r"\{([^}]+)\}", openapi_path)
                     for name in param_names:
-                        parameters.append({
-                            "name": name,
-                            "in": "path",
-                            "required": True,
-                            "schema": {"type": "string"}
-                        })
+                        parameters.append(
+                            {
+                                "name": name,
+                                "in": "path",
+                                "required": True,
+                                "schema": {"type": "string"},
+                            }
+                        )
                     operation["parameters"] = parameters
 
                 path_item[method_lower] = operation

@@ -22,7 +22,7 @@ import platform
 import sys
 from http import HTTPStatus
 
-__version__ = "0.2.0"
+__version__ = "0.2.2"
 __author__ = "BustAPI"
 __email__ = ""
 
@@ -32,7 +32,6 @@ from . import logging
 from .app import BustAPI
 from .blueprints import Blueprint
 from .docs import BustAPIDocs
-from .flask_compat import Flask
 from .helpers import abort, redirect, render_template, url_for
 from .request import Request, request
 from .response import Response, jsonify, make_response
@@ -59,8 +58,6 @@ __all__ = [
     "render_template",
     # Logging
     "logging",
-    # Flask compatibility
-    "Flask",
     # HTTP status codes
     "HTTPStatus",
     # Version info

@@ -10,6 +10,7 @@ use pyo3::prelude::*;
 mod bindings;
 mod request;
 mod response;
+mod router;
 mod server;
 
 pub use request::RequestData;

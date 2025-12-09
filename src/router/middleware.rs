@@ -3,7 +3,6 @@
 use crate::request::RequestData;
 use crate::response::ResponseData;
 use http::Method;
-use std::collections::HashMap;
 
 /// Middleware trait for request/response processing
 pub trait Middleware: Send + Sync {
