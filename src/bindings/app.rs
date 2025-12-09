@@ -107,7 +107,7 @@ impl PyBustApp {
                 .with_max_level(tracing::Level::DEBUG)
                 .try_init();
         } else {
-             let _ = tracing_subscriber::fmt()
+            let _ = tracing_subscriber::fmt()
                 .with_max_level(tracing::Level::INFO)
                 .try_init();
         }

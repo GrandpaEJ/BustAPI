@@ -1,6 +1,6 @@
-pub mod middleware;
-pub mod matching;
 pub mod handlers;
+pub mod matching;
+pub mod middleware;
 pub mod tests;
 
-pub use handlers::{Router, RouteHandler};
+pub use handlers::{RouteHandler, Router};

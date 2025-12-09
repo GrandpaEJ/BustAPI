@@ -1,6 +1,5 @@
 //! Python wrapper for HTTP requests
 
-
 use pyo3::prelude::*;
 use std::collections::HashMap;
 
@@ -89,10 +88,7 @@ impl PyRequest {
 }
 
 /// Create PyRequest from generic RequestData
-pub fn create_py_request(
-    py: Python,
-    req: &crate::request::RequestData,
-) -> PyResult<Py<PyRequest>> {
+pub fn create_py_request(py: Python, req: &crate::request::RequestData) -> PyResult<Py<PyRequest>> {
     let py_req = PyRequest {
         method: req.method.as_str().to_string(),
         path: req.path.clone(),

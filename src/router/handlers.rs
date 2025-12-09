@@ -73,8 +73,8 @@ impl Router {
         // Process middleware (request phase)
         let mut req_data = request_data;
         for middleware in &self.middleware {
-             // Middleware process_request returns properties referencing req_data if we are not careful.
-             // But here process_request takes &mut RequestData and returns Result<(), ResponseData>
+            // Middleware process_request returns properties referencing req_data if we are not careful.
+            // But here process_request takes &mut RequestData and returns Result<(), ResponseData>
             if let Err(response) = middleware.process_request(&mut req_data) {
                 return response;
             }

@@ -1,12 +1,14 @@
 //! Conversion utilities between Python and Rust types
 
-
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDict, PyString, PyTuple};
 use std::collections::HashMap;
 
 /// Convert Python result to ResponseData
-pub fn convert_py_result_to_response(py: Python, result: PyObject) -> crate::response::ResponseData {
+pub fn convert_py_result_to_response(
+    py: Python,
+    result: PyObject,
+) -> crate::response::ResponseData {
     use crate::response::ResponseData;
     use http::StatusCode;
 
@@ -46,7 +48,7 @@ pub fn convert_py_result_to_response(py: Python, result: PyObject) -> crate::res
                         }
                         resp.set_header(k, v);
                     }
-                    
+
                     resp.set_header("Content-Type", content_type);
                     resp.set_body(response_body.into_bytes());
                     return resp;

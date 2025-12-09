@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::request::RequestData;
-use crate::router::{Router, RouteHandler};
+use crate::router::{RouteHandler, Router};
 
 /// Configuration for the BustAPI server
 #[derive(Debug, Clone)]
@@ -51,7 +51,8 @@ impl FastRouteHandler {
 
 impl RouteHandler for FastRouteHandler {
     fn handle(&self, _req: RequestData) -> crate::response::ResponseData {
-        let mut resp = crate::response::ResponseData::with_body(self.response_body.as_bytes().to_vec());
+        let mut resp =
+            crate::response::ResponseData::with_body(self.response_body.as_bytes().to_vec());
         resp.set_header("Content-Type", &self.content_type);
         resp
     }
@@ -89,12 +90,12 @@ pub async fn handle_request(
             headers.insert(key.to_string(), v.to_string());
         }
     }
-    
+
     // Parse query params slightly redundantly but accurately
     let query_params = if !req.query_string().is_empty() {
-         url::form_urlencoded::parse(req.query_string().as_bytes())
-                .into_owned()
-                .collect()
+        url::form_urlencoded::parse(req.query_string().as_bytes())
+            .into_owned()
+            .collect()
     } else {
         std::collections::HashMap::new()
     };
@@ -115,7 +116,7 @@ pub async fn handle_request(
 
     // 3. Convert ResponseData to Actix Response
     let mut builder = HttpResponse::build(response_data.status);
-    
+
     for (k, v) in response_data.headers {
         builder.insert_header((k.as_str(), v.as_str()));
     }
