@@ -116,7 +116,7 @@ impl PyBustApp {
         Python::with_gil(|py| {
             py.allow_threads(|| {
                 let sys = actix_rt::System::new();
-                sys.block_on(start_server(config, state.into())).unwrap();
+                sys.block_on(start_server(config, state)).unwrap();
             })
         });
 

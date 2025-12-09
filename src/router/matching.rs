@@ -15,7 +15,7 @@ pub fn find_pattern_match(
     let req_parts: Vec<&str> = req.path.trim_matches('/').split('/').collect();
 
     for ((method, pattern), handler) in routes.iter() {
-        if method != &req.method {
+        if method != req.method {
             continue;
         }
 

@@ -95,7 +95,7 @@ impl RouteHandler for PyAsyncRouteHandler {
 
                                         if is_coro_bool {
                                             // Run coroutine
-                                            if let Ok(loop_obj) =
+                                            if let Ok(_loop_obj) =
                                                 asyncio.call_method0("NewEventLoop")
                                             { // Try new loop? No get_event_loop
                                                  // ...
