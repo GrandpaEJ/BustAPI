@@ -25,13 +25,13 @@ BustAPI delivers **massive performance gains** over traditional Python web frame
 
 ### Production Benchmark Results (4 workers, 100 connections)
 
-| Endpoint | BustAPI | Flask | FastAPI | BustAPI Improvement |
-|----------|---------|-------|---------|-------------------|
-| **Plain Text** | **19,929** | 3,245 | 1,892 | **6.1x faster** |
-| **JSON Response** | **17,595** | 3,241 | 1,900 | **5.4x faster** |
-| **Dynamic Path** | **175,923** | 3,251 | 2,029 | **54.1x faster** |
+| Endpoint          | BustAPI     | Flask | FastAPI | BustAPI Improvement |
+| ----------------- | ----------- | ----- | ------- | ------------------- |
+| **Plain Text**    | **19,929**  | 3,245 | 1,892   | **6.1x faster**     |
+| **JSON Response** | **17,595**  | 3,241 | 1,900   | **5.4x faster**     |
+| **Dynamic Path**  | **175,923** | 3,251 | 2,029   | **54.1x faster**    |
 
-*Benchmarks: 15s duration, 4 threads, 100 connections using production servers (Gunicorn/Uvicorn)*
+_Benchmarks: 15s duration, 4 threads, 100 connections using production servers (Gunicorn/Uvicorn)_
 
 ## ❓ What is BustAPI?
 
@@ -42,23 +42,27 @@ Built as a drop-in replacement for Flask, BustAPI offers the same familiar API b
 ## 🚀 Why Choose BustAPI?
 
 ### Performance That Matters
+
 - **50x+ Faster**: Handle thousands of concurrent requests with minimal latency
 - **Production Ready**: Multi-worker support with built-in production server
 - **Memory Efficient**: Rust's memory management eliminates Python's GC overhead
 
 ### Developer Experience
+
 - **Flask Compatible**: Migrate existing Flask apps with zero code changes
 - **Python Native**: Use familiar Python syntax and libraries
 - **Async Support**: Built-in async/await for concurrent operations
 - **Auto Documentation**: Generate OpenAPI specs automatically
 
 ### Enterprise Features
+
 - **Type Safety**: Full type hints and validation
 - **Extension Ecosystem**: Compatible with Flask extensions
 - **Template Support**: Jinja2 rendering for dynamic content
 - **Testing Tools**: Built-in test client for comprehensive testing
 
 ### Perfect For
+
 - **APIs & Microservices**: High-throughput REST APIs
 - **Web Applications**: Fast, scalable web apps
 - **Real-time Applications**: Low-latency real-time features
@@ -113,6 +117,7 @@ Visit `http://127.0.0.1:8000` to see your app in action!
 from bustapi import BustAPI
 
 app = BustAPI(
+    docs=True,
     title="My API",
     description="A high-performance API built with BustAPI",
     version="1.0.0",
@@ -177,7 +182,7 @@ app = BustAPI()
 
 @app.route('/')
 def index():
-    return render_template('index.html', 
+    return render_template('index.html',
                          title='BustAPI App',
                          message='Welcome to BustAPI!')
 
@@ -198,19 +203,19 @@ app = BustAPI()
 def handle_data():
     # JSON data
     json_data = request.get_json()
-    
+
     # Form data
     form_data = request.form
-    
+
     # Query parameters
     args = request.args
-    
+
     # Headers
     headers = request.headers
-    
+
     # Files
     files = request.files
-    
+
     return {
         'json': json_data,
         'form': dict(form_data),
@@ -219,113 +224,22 @@ def handle_data():
     }
 ```
 
-## 🔄 Flask Migration
-
-BustAPI is designed as a drop-in replacement for Flask:
-
-```python
-# Flask code
-from flask import Flask, jsonify, request
-
-app = Flask(__name__)
-
-@app.route('/api/users', methods=['GET', 'POST'])
-def users():
-    if request.method == 'GET':
-        return jsonify({'users': []})
-    return jsonify({'message': 'User created'}), 201
-
-# BustAPI equivalent (same code!)
-from bustapi import BustAPI, jsonify, request
-
-app = BustAPI()
-
-@app.route('/api/users', methods=['GET', 'POST'])
-def users():
-    if request.method == 'GET':
-        return jsonify({'users': []})
-    return jsonify({'message': 'User created'}), 201
-```
-
-## 📚 Documentation & Examples
-
-- **[📖 Full Documentation](docs/)** - Complete guides and API reference
-- **[🎯 Examples](examples/)** - Working examples for all features
-- **[🚀 Quick Start Guide](docs/quickstart.md)** - Get started in minutes
-- **[🔧 API Reference](docs/api-reference.md)** - Complete API documentation
-
-## 🏗️ Production Deployment
-
-### Using Gunicorn
-
-```bash
-pip install gunicorn
-gunicorn -w 4 -b 0.0.0.0:8000 app:app
-```
-
-### Using Uvicorn
-
-```bash
-pip install uvicorn
-uvicorn app:app --host 0.0.0.0 --port 8000 --workers 4
-```
-
-### Docker
-
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-COPY . .
-EXPOSE 8000
-
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "app:app"]
-```
-
-## 🧪 Testing
-
-BustAPI includes a built-in test client compatible with Flask's testing patterns:
-
-```python
-from bustapi.testing import TestClient
-
-def test_app():
-    client = TestClient(app)
-
-    response = client.get('/')
-    assert response.status_code == 200
-    assert response.json() == {'message': 'Hello, World!'}
-
-    response = client.post('/users', json={'name': 'Alice'})
-    assert response.status_code == 201
-```
-
 ## 💻 Platform Support
 
 BustAPI is designed for maximum compatibility across platforms and deployment scenarios:
 
 ### Operating Systems
+
 - **Linux**: Full support (Ubuntu, CentOS, Alpine, etc.)
 - **macOS**: Full support (Intel and Apple Silicon)
 - **Windows**: Full support via WSL or native builds
-- **Docker**: Official Docker images available
 
 ### Python Versions
-- **Python 3.8+**: Fully supported
-- **Python 3.9+**: Recommended for best performance
+
 - **Python 3.10+**: Latest features and optimizations
 
-### Deployment Options
-- **Bare Metal**: Direct server deployment
-- **Docker**: Containerized applications
-- **Kubernetes**: Orchestrated deployments
-- **Serverless**: AWS Lambda, Google Cloud Functions
-- **Edge Computing**: Lightweight edge deployments
-
 ### Architecture Support
+
 - **x86_64**: Full performance optimization
 - **ARM64**: Native Apple Silicon and AWS Graviton support
 - **Multi-core**: Automatic worker scaling
@@ -342,6 +256,7 @@ BustAPI is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 - Built with [PyO3](https://pyo3.rs/) for Python-Rust integration
 - Powered by [Tokio](https://tokio.rs/) for async runtime
+- Powered by [Actix-Web](https://actix.rs/) for high-performance web server
 - Inspired by [Flask](https://flask.palletsprojects.com/) and [FastAPI](https://fastapi.tiangolo.com/)
 
 ---

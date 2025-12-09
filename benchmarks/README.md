@@ -1,23 +1,24 @@
 # 🚀 Web Framework Benchmark Results
 
-**Date:** 2025-12-06 16:41:52
+**Date:** 2025-12-09 20:11:26
 **Config:** 15s duration, 4 threads, 100 connections
 
 ## 📊 Summary (Requests/sec)
 
-| Endpoint       | Flask    | FastAPI  | BustAPI   |
-| -------------- | -------- | -------- | --------- |
-| **Plain Text** | 9,492.88 | 1,780.61 | 15,836.77 |
-| **JSON**       | 6,537.78 | 2,210.73 | 14,531.13 |
+| Endpoint | Flask | FastAPI | BustAPI |
+|----------|-------|---------|---------|
+| **Plain Text** | 10,720.70 | N/A | 18,704.24 |
+| **JSON** | 8,932.19 | N/A | 17,254.74 |
+| **Dynamic Path** | 8,088.44 | N/A | 165,276.50 |
 
 ## 🏆 Relative Performance (vs Flask)
 
 ### Plain Text
-
-- **FastAPI**: 0.2x faster (1,780.61 RPS)
-- **BustAPI**: 1.7x faster (15,836.77 RPS)
+- **BustAPI**: 1.7x faster (18,704.24 RPS)
 
 ### JSON
+- **BustAPI**: 1.9x faster (17,254.74 RPS)
 
-- **FastAPI**: 0.3x faster (2,210.73 RPS)
-- **BustAPI**: 2.2x faster (14,531.13 RPS)
+### Dynamic Path
+- **BustAPI**: 20.4x faster (165,276.50 RPS)
+

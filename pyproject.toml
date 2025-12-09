@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "bustapi"
-version = "0.2.1"
+version = "0.2.2"
 description = "High-performance Flask-compatible web framework with async support"
 authors = [
     {name = "GrandpaEJ", email = ""}
@@ -12,7 +12,7 @@ authors = [
 license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.8"
-keywords = ["web", "framework", "async", "performance", "flask"]
+keywords = ["web", "framework", "async", "performance"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -30,7 +30,6 @@ classifiers = [
 ]
 
 dependencies = [
-    "werkzeug>=2.0.0",
     "jinja2>=3.1",
     "colorama>=0.4.6",
 ]
