@@ -5,9 +5,9 @@ from catzilla import (
 
 # Initialize Catzilla
 app = Catzilla(
-    production=False,      # Enable development features
+    production=True,      # Enable development features
     show_banner=True,      # Show startup banner
-    log_requests=True      # Log requests in development
+    # log_requests=True      # Log requests in development
 )
 
 # Basic sync route
@@ -21,6 +21,16 @@ def home(request: Request) -> Response:
         "handler_type": "sync"
     })
 
+# Route with path parameters and validation
+@app.get("/users/{user_id}")
+def get_user(request, user_id: int = Path(..., description="User ID", ge=1)) -> Response:
+    """Get user by ID with path parameter validation"""
+    return JSONResponse({
+        "user_id": user_id,
+        "message": f"Retrieved user {user_id}",
+        "handler_type": "sync"
+    })
+    
 # Health check
 @app.get("/health")
 def health_check(request: Request) -> Response:

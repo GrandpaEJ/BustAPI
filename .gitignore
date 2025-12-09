@@ -28,7 +28,7 @@ MANIFEST
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
-
+*.txt
 # Unit test / coverage reports
 htmlcov/
 .tox/
@@ -148,3 +148,8 @@ ex.py.toml
 .ruff_*
 wheel/
 venv/
+
+# Benchmarks
+benchmarks/temp_*.py
+stdout_*.txt
+stderr_*.txt
