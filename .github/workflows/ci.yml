@@ -46,8 +46,8 @@ jobs:
       - name: Lint Python code
         if: matrix.python-version == '3.12'
         run: |
-          $VENV_PY -m black --check --diff python/
-          $VENV_PY -m ruff check python/
+          $VENV_PY -m black --check --diff .
+          $VENV_PY -m ruff check .
 
       - name: Build with maturin
         run: |
@@ -56,7 +56,7 @@ jobs:
 
       - name: Run basic tests
         run: |
-          $VENV_PY test_basic.py
+          $VENV_PY -m unittest discover tests
 
   build-wheels:
     name: Build wheels on ${{ matrix.os }}
