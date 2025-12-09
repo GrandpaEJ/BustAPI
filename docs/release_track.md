@@ -4,12 +4,12 @@
 
 BustAPI follows semver.
 
-| Version    | Status    | Release Date | Highlights                                         |
-| :--------- | :-------- | :----------- | :------------------------------------------------- |
-| **v0.2.2** | 🟢 Stable | 2024-12-10   | Comprehensive Examples, Auto-Benchmarks, Full Docs |
-| **v0.2.0** | 🟡 Beta   | 2024-12-05   | Migration to Actix-web, Free-threading Support     |
-| **v0.1.5** | ⚪ Alpha  | 2024-11-XX   | Jinja2, OpenAPI, CI/CD Basics                      |
-| **v0.1.0** | ⚪ Alpha  | 2024-11-XX   | Initial Proof of Concept                           |
+| Version    | Status   | Release Date | Highlights                                         |
+| :--------- | :------- | :----------- | :------------------------------------------------- |
+| **v0.2.2** | 🟡 Beta  | 2024-12-10   | Comprehensive Examples, Auto-Benchmarks, Full Docs |
+| **v0.2.0** | 🟡 Beta  | 2024-12-05   | Migration to Actix-web, Free-threading Support     |
+| **v0.1.5** | ⚪ Alpha | 2024-11-XX   | Jinja2, OpenAPI, CI/CD Basics                      |
+| **v0.1.0** | ⚪ Alpha | 2024-11-XX   | Initial Proof of Concept                           |
 
 ## Roadmap
 

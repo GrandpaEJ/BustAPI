@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented here.
 
-## [0.2.2] - 2024-12-10
+## [0.2.2] - 2025-12-10
 
 ### Added
 
@@ -17,7 +17,7 @@ All notable changes to this project will be documented here.
 - Resolved CI build failures related to missing test files and dependencies.
 - Fixed `ruff` import sorting errors and `clippy` warnings.
 
-## [0.2.0] - 2024-12-05
+## [0.2.0] - 2025-12-05
 
 ### Changed
 
@@ -32,13 +32,13 @@ All notable changes to this project will be documented here.
 - Python 3.13 free-threaded mode support (no GIL bottleneck!)
 - Expected 30k-100k+ RPS with dynamic Python handlers
 
-## [0.1.5]
+## [0.1.5] - 2025-11-05
 
 - Added Jinja2 templating helper and `render_template` API
 - Added minimal OpenAPI JSON generator and `/openapi.json` endpoint
 - CI: Make workflows platform-aware for virtualenv and maturin invocations
 - CI: Flatten downloaded artifacts before PyPI publish
 
-## [0.1.0]
+## [0.1.0] - 2025-10-05
 
 - Initial release
