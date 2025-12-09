@@ -2,30 +2,21 @@
 
 **Date:** 2025-12-09
 **Tool:** `benchmarks/run_comparison_auto.py`
-**Config:** 4 threads, 100 connections, 5s duration, **NO LOGGING**
+**Config:** 4 threads, 100 connections, 5s duration
 
 ## 📊 Summary (Requests/sec)
 
-| Endpoint                    | BustAPI    | Catzilla | Flask | FastAPI |
-| --------------------------- | ---------- | -------- | ----- | ------- |
-| **Plain Text (`/`)**        | **18,408** | 9,666    | 3,633 | 2,211   |
-| **JSON (`/json`)**          | **13,109** | 10,277   | 3,570 | 2,164   |
-| **Path Param (`/user/10`)** | **13,641** | 6,572    | 3,659 | 2,083   |
-
-## 🏆 Performance Highlights
-
-### BustAPI vs Catzilla
-
-- **BustAPI** is **1.3x - 2x faster** than Catzilla.
-- Catzilla shows strong performance on JSON (~10k RPS).
-
-### BustAPI vs Flask
-
-- **BustAPI** is **~4x - 5x faster** than Flask.
-
-### Side Note: FastAPI
-
-- FastAPI results (~2k RPS) seem lower than expected for this framework, suggesting potential environment overheads or configuration limits in this specific test setup.
+| Endpoint     | Metric   | BustAPI    | Flask | FastAPI | Catzilla |
+| ------------ | -------- | ---------- | ----- | ------- | -------- |
+| **/**        | Req/Sec  | **16,666** | 4,050 | 2,149   | 8,261    |
+|              | RAM (MB) | 53.7       | 181.0 | 257.9   | 425.4    |
+|              |          | ---        | ---   | ---     | ---      |
+| **/json**    | Req/Sec  | **12,864** | 5,986 | 2,153   | 8,792    |
+|              | RAM (MB) | 53.9       | 181.2 | 259.4   | 817.7    |
+|              |          | ---        | ---   | ---     | ---      |
+| **/user/10** | Req/Sec  | **11,852** | 5,114 | 2,045   | 7,808    |
+|              | RAM (MB) | 53.9       | 181.1 | 260.1   | 1170.9   |
+|              |          | ---        | ---   | ---     | ---      |
 
 ## 🏃 How to Run
 

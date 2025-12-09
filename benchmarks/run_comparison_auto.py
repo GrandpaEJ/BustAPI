@@ -14,6 +14,8 @@ import json
 import signal
 import shutil
 import subprocess
+import threading
+import psutil
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
@@ -120,6 +122,63 @@ class BenchmarkResult:
     endpoint: str
     requests_sec: float
     latency_ms: float
+    cpu_percent: float
+    ram_mb: float
+
+class ResourceMonitor:
+    def __init__(self, pid: int):
+        self.process = psutil.Process(pid)
+        self.cpu_samples = []
+        self.ram_samples = []
+        self.running = False
+        self.thread = None
+        
+    def start(self):
+        self.running = True
+        self.thread = threading.Thread(target=self._monitor)
+        self.thread.start()
+        
+    def stop(self):
+        self.running = False
+        if self.thread:
+            self.thread.join()
+            
+    def _monitor(self):
+        # Initial CPU call is often 0.0 or irrelevant, so call it once before loop
+        try:
+            self.process.cpu_percent()
+        except: pass
+        
+        while self.running:
+            try:
+                # Capture children too? For gunicorn, yes!
+                # But simple approach: main process + children sum
+                
+                # Main process
+                cpu = self.process.cpu_percent()
+                mem = self.process.memory_info().rss
+                
+                # Children
+                children = self.process.children(recursive=True)
+                for child in children:
+                    try:
+                        cpu += child.cpu_percent()
+                        mem += child.memory_info().rss
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+                
+                self.cpu_samples.append(cpu)
+                self.ram_samples.append(mem / 1024 / 1024) # MB
+                
+                time.sleep(0.1)
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                break
+
+    def get_stats(self):
+        if not self.cpu_samples: return 0.0, 0.0
+        avg_cpu = sum(self.cpu_samples) / len(self.cpu_samples)
+        max_ram = max(self.ram_samples)
+        return avg_cpu, max_ram
 
 def create_server_files():
     print("📝 Creating temporary server files...")
@@ -166,6 +225,10 @@ def benchmark_framework(name: str):
     print(f"\n🚀 Benchmarking {name}...")
     
     # Start Server
+    print(f"   Cleaning port {PORT}...")
+    subprocess.run(f"fuser -k {PORT}/tcp", shell=True, stderr=subprocess.DEVNULL)
+    time.sleep(1)
+
     cmd = RUN_COMMANDS[name]
     # Use uv run to ensure dependencies are found
     if cmd[0] == "python":
@@ -187,8 +250,11 @@ def benchmark_framework(name: str):
         preexec_fn=os.setsid 
     )
     
-    # Wait for startup
     time.sleep(3) # Give it time to warm up
+    
+    # Initialize monitor
+    monitor = ResourceMonitor(proc.pid)
+    monitor.start()
     
     results = []
     try:
@@ -197,8 +263,26 @@ def benchmark_framework(name: str):
             print(f"   Measuring {ep}...", end="", flush=True)
             res = run_wrk(ep)
             if res:
-                print(f" {res['rps']:.2f} req/sec")
-                results.append(BenchmarkResult(name, ep, res["rps"], 0.0))
+                # Get current stats (snapshot-ish)
+                # Actually, monitor is running continuously.
+                # We can just check stats at end, or maybe we want independent stats per endpoint?
+                # For simplicity, let's keep monitor running for the whole suite of endpoints
+                # and just report the average usage during that specific test?
+                # No, ResourceMonitor collects all history. 
+                # Let's Restart monitor for each endpoint for better granularity.
+                pass
+            
+            # RESTART MONITOR STRATEGY for per-endpoint stats
+            monitor.stop()
+            cpu, ram = monitor.get_stats()
+            # Clear samples
+            monitor.cpu_samples = []
+            monitor.ram_samples = []
+            monitor.start() # Restart
+            
+            if res:
+                print(f" {res['rps']:.2f} req/sec, CPU: {cpu:.1f}%, RAM: {ram:.1f}MB")
+                results.append(BenchmarkResult(name, ep, res['rps'], 0.0, cpu, ram))
             else:
                 print(" Failed")
                 # Print server output for debugging
@@ -211,6 +295,7 @@ def benchmark_framework(name: str):
                     print(open(f"stderr_{name}.txt").read())
                 except: pass
     finally:
+        monitor.stop()
         os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
         proc.wait()
         time.sleep(1) # Cooldown
@@ -232,20 +317,80 @@ def main():
             fw_results = benchmark_framework(fw)
             all_results.extend(fw_results)
             
-        # Print Report
-        print("\n" + "="*60)
-        print(f"{'Framework':<15} | {'Endpoint':<10} | {'Req/Sec':<15}")
-        print("-" * 60)
+        # Generate Markdown Report
+        report_lines = []
+        report_lines.append("# 🚀 Web Framework Benchmark Results")
+        report_lines.append("")
+        report_lines.append(f"**Date:** {time.strftime('%Y-%m-%d')}")
+        report_lines.append(f"**Tool:** `benchmarks/run_comparison_auto.py`")
+        report_lines.append(f"**Config:** {WRK_THREADS} threads, {WRK_CONNECTIONS} connections, {WRK_DURATION} duration")
+        report_lines.append("")
+        report_lines.append("## 📊 Summary (Requests/sec)")
+        report_lines.append("")
         
-        # Sort by endpoint then RPS
+        # Table Header
+        headers = ["Endpoint", "Metric"] + frameworks
+        report_lines.append("| " + " | ".join(headers) + " |")
+        report_lines.append("|" + "|".join(["-" * len(h) for h in headers]) + "|")
+        
+        # Table Rows
         endpoints = ["/", "/json", "/user/10"]
         for ep in endpoints:
-            ep_results = [r for r in all_results if r.endpoint == ep]
-            ep_results.sort(key=lambda x: x.requests_sec, reverse=True)
+            # Row 1: RPS
+            row_rps = [f"**{ep}**", "Req/Sec"]
             
-            for r in ep_results:
-                print(f"{r.framework:<15} | {r.endpoint:<10} | {r.requests_sec:,.2f}")
-            print("-" * 60)
+            # Row 2: CPU
+            row_cpu = ["", "CPU %"]
+            
+            # Row 3: RAM
+            row_ram = ["", "RAM (MB)"]
+            
+            for fw in frameworks:
+                match = next((r for r in all_results if r.framework == fw and r.endpoint == ep), None)
+                if match:
+                    # RPS Handling
+                    val_str = f"{match.requests_sec:,.0f}"
+                    # Check if winner
+                    row_values = [
+                        (next((r for r in all_results if r.framework == f and r.endpoint == ep), None).requests_sec) 
+                        for f in frameworks 
+                        if next((r for r in all_results if r.framework == f and r.endpoint == ep), None)
+                    ]
+                    if match.requests_sec == max(row_values):
+                        val_str = f"**{val_str}**"
+                    row_rps.append(val_str)
+                    
+                    row_cpu.append(f"{match.cpu_percent:.1f}%")
+                    row_ram.append(f"{match.ram_mb:.1f}")
+                else:
+                    row_rps.append("N/A")
+                    row_cpu.append("N/A")
+                    row_ram.append("N/A")
+            
+            report_lines.append("| " + " | ".join(row_rps) + " |")
+            report_lines.append("| " + " | ".join(row_cpu) + " |")
+            report_lines.append("| " + " | ".join(row_ram) + " |")
+            # Separate sections
+            report_lines.append(f"| | | {' | '.join(['---'] * len(frameworks))} |")
+
+        report_lines.append("")
+        report_lines.append("## 🏃 How to Run")
+        report_lines.append("")
+        report_lines.append("```bash")
+        report_lines.append("# Clean ports")
+        report_lines.append("fuser -k 8000/tcp")
+        report_lines.append("")
+        report_lines.append("# Run automated benchmark")
+        report_lines.append("uv run --extra benchmarks benchmarks/run_comparison_auto.py")
+        report_lines.append("```")
+        
+        report_content = "\n".join(report_lines)
+        print("\n\n" + report_content)
+        
+        # Write to README.md
+        with open("benchmarks/README.md", "w") as f:
+            f.write(report_content)
+        print("\n✅ Updated benchmarks/README.md")
             
     finally:
         clean_server_files()
