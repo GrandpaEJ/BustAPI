@@ -10,8 +10,18 @@ copyright: Copyright &copy; 2025 GrandpaEJ
 theme:
   name: material
   palette:
-    primary: blue
-    accent: blue
+    - scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
   features:
     - navigation.tabs
     - navigation.sections
