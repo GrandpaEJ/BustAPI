@@ -573,9 +573,8 @@ class BustAPI:
             ):
                 return self._make_response(handler(exception))
             elif isinstance(exc_class_or_code, int):
-                # For HTTP status code handlers, need to check if it matches
-                # This is a simplified implementation
-                pass
+                if hasattr(exception, "code") and exception.code == exc_class_or_code:
+                    return self._make_response(handler(exception))
 
         # Default error response
         if hasattr(exception, "code"):

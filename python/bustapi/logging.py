@@ -54,35 +54,19 @@ class ColoredFormatter(logging.Formatter):
         if not self.use_colors:
             return self._format_plain(record)
 
-        # Get color for log level
-        level_color = self.COLORS.get(record.levelname, "")
+        # Basic timestamp
+        timestamp = time.strftime("%H:%M:%S", time.localtime(record.created))
+        timestamp_colored = f"{Fore.WHITE}{timestamp}{Style.RESET_ALL}"
 
-        # Format timestamp
-        timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(record.created))
-        timestamp_colored = f"{Fore.BLUE}{timestamp}{Style.RESET_ALL}"
-
-        # Format log level
-        level_colored = f"{level_color}{record.levelname:8}{Style.RESET_ALL}"
-
-        # Format logger name
-        logger_name = record.name
-        if logger_name.startswith("bustapi"):
-            logger_name_colored = f"{Fore.MAGENTA}{logger_name}{Style.RESET_ALL}"
-        else:
-            logger_name_colored = f"{Fore.CYAN}{logger_name}{Style.RESET_ALL}"
-
-        # Format message
-        message = record.getMessage()
-
-        # Special formatting for HTTP requests
+        # If it's a request log (has specific fields)
         if hasattr(record, "method") and hasattr(record, "path"):
             method = record.method
             path = record.path
-            status_code = getattr(record, "status_code", "200")
-            duration_formatted = getattr(record, "duration_formatted", "N/A")
+            status_code = getattr(record, "status_code", 200)
+            duration_formatted = getattr(record, "duration_formatted", "      ")
             error = getattr(record, "error", None)
 
-            # Color method
+            # Colors
             method_colors = {
                 "GET": Fore.BLUE,
                 "POST": Fore.GREEN,
@@ -92,57 +76,46 @@ class ColoredFormatter(logging.Formatter):
                 "HEAD": Fore.MAGENTA,
                 "OPTIONS": Fore.WHITE,
             }
-            method_colored = f"{method_colors.get(method, '')}{method}{Style.RESET_ALL}"
+            method_colored = f"{method_colors.get(method, '')}{method:<7}{Style.RESET_ALL}"
 
-            # Color status code
-            status_first_digit = str(status_code)[0] if status_code else "2"
-            status_color = self.STATUS_COLORS.get(status_first_digit, Fore.WHITE)
-            status_colored = f"{status_color}{status_code}{Style.RESET_ALL}"
+            # Status Code
+            status_str = str(status_code)
+            if status_code >= 500:
+                status_color = Fore.RED
+            elif status_code >= 400:
+                status_color = Fore.YELLOW
+            elif status_code >= 300:
+                status_color = Fore.CYAN
+            elif status_code >= 200:
+                status_color = Fore.GREEN
+            else:
+                status_color = Fore.WHITE
+            status_colored = f"{status_color}{status_str:<7}{Style.RESET_ALL}"
 
-            # Color path
-            path_colored = f"{Fore.WHITE}{path}{Style.RESET_ALL}"
-
-            # Color duration based on time
-            duration_color = Fore.GREEN  # Default fast
-            if hasattr(record, "duration") and record.duration:
-                duration = record.duration
-                if duration >= 1.0:
-                    duration_color = Fore.RED  # >= 1s = Red (slow)
-                elif duration >= 0.5:
-                    duration_color = Fore.YELLOW  # >= 500ms = Yellow (medium)
-                elif duration >= 0.1:
-                    duration_color = Fore.CYAN  # >= 100ms = Cyan (ok)
-                else:
-                    duration_color = Fore.GREEN  # < 100ms = Green (fast)
-
-            duration_colored = f"{duration_color}{duration_formatted}{Style.RESET_ALL}"
-
-            # Build message
-            message = f"{method_colored} {path_colored} - {status_colored} - {duration_colored}"
-
-            # Add error if present
+            # Duration (Latency)
+            # Duration logic for color is already good, just need reference to formatted string
+            # Fiber style: 12.345ms
+            
+            # Format: TIME | STATUS | LATENCY | METHOD | PATH
+            log_line = (
+                f"{timestamp_colored} | "
+                f"{status_colored} | "
+                f"{Fore.WHITE}{duration_formatted:<10}{Style.RESET_ALL} | "
+                f"{method_colored} | "
+                f"{Fore.WHITE}{path}{Style.RESET_ALL}"
+            )
+            
             if error:
-                error_colored = f"{Fore.RED}ERROR: {error}{Style.RESET_ALL}"
-                message += f" - {error_colored}"
+                log_line += f" | {Fore.RED}{error}{Style.RESET_ALL}"
+                
+            return log_line
 
-        # Special formatting for startup messages
-        elif "starting" in message.lower() or "listening" in message.lower():
-            message = f"{Fore.GREEN}{Style.BRIGHT}{message}{Style.RESET_ALL}"
-
-        # Special formatting for error messages
-        elif record.levelname in ["ERROR", "CRITICAL"]:
-            message = f"{Fore.RED}{message}{Style.RESET_ALL}"
-
-        # Build final log line
-        log_line = (
-            f"{timestamp_colored} {level_colored} {logger_name_colored:20} {message}"
-        )
-
-        # Add exception info if present
-        if record.exc_info:
-            log_line += f"\n{self.formatException(record.exc_info)}"
-
-        return log_line
+        # Standard logs (not HTTP requests)
+        level_color = self.COLORS.get(record.levelname, "")
+        level_colored = f"{level_color}{record.levelname:<8}{Style.RESET_ALL}"
+        logger_name = f"{Fore.CYAN}{record.name}{Style.RESET_ALL}"
+        
+        return f"{timestamp_colored} | {level_colored} | {logger_name} | {record.getMessage()}"
 
     def _format_plain(self, record: logging.LogRecord) -> str:
         """Plain formatting without colors."""
@@ -233,17 +206,16 @@ class BustAPILogger:
             log_level = "info"
 
         # Log with appropriate level
+        # Log with appropriate level
         getattr(self, log_level)(
             message,
-            extra={
-                "method": method,
-                "path": path,
-                "status_code": status_code,
-                "duration": duration,
-                "duration_formatted": duration_str,
-                "error": error,
-                **kwargs,
-            },
+            method=method,
+            path=path,
+            status_code=status_code,
+            duration=duration,
+            duration_formatted=duration_str,
+            error=error,
+            **kwargs,
         )
 
     def _format_duration(self, duration: float) -> str:
