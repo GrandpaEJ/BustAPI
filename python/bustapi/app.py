@@ -817,8 +817,7 @@ class BustAPI:
                  else:
                     print(f"🔄 BustAPI reloader active (using {server})")
                     # Set env var so subprocess knows it is being watched
-                    env = os.environ.copy()
-                    env["BUSTAPI_RELOADER_RUN"] = "true"
+                    os.environ["BUSTAPI_RELOADER_RUN"] = "true"
                     
                     # We need to re-run the same command but as a subprocess managed by watchfiles
                     # This is tricky because `app.run` is often called at end of script.
@@ -827,13 +826,13 @@ class BustAPI:
                     
                     # Simplest is to restart the current script.
                     # args: python script.py
-                    cmd = [sys.executable] + sys.argv
+                    import shlex
+                    cmd = shlex.join([sys.executable] + sys.argv)
                     
                     run_process(
                          ".", 
                          target=cmd,
                          target_type="command",
-                         env=env
                     )
                     return
 
