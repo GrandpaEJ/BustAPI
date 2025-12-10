@@ -33,8 +33,10 @@ from .app import BustAPI
 from .blueprints import Blueprint
 from .docs import BustAPIDocs
 from .helpers import abort, redirect, render_template, url_for
+from .rate_limit import RateLimit
 from .request import Request, request
 from .response import Response, jsonify, make_response
+from .security import Security
 
 # Import testing utilities
 from .testing import TestClient
@@ -53,6 +55,8 @@ __all__ = [
     "jsonify",
     "make_response",
     "abort",
+    "Security",
+    "RateLimit",
     "redirect",
     "url_for",
     "render_template",
