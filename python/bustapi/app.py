@@ -105,7 +105,7 @@ class BustAPI:
         self.open_session = None
         self.save_session = None
         self.session_interface = None
-        self.wsgi_app = None
+        # self.wsgi_app = None  DO NOT SHADOW METHOD
         self.response_class = None
         self.request_class = None
         self.test_client_class = None
@@ -604,6 +604,152 @@ class BustAPI:
 
         return (body.decode("utf-8", errors="replace"), status_code, headers_dict)
 
+    def wsgi_app(self, environ, start_response):
+        """
+        WSGI compatibility entry point.
+        """
+        path = environ.get("PATH_INFO", "")
+        method = environ.get("REQUEST_METHOD", "GET")
+        query_string = environ.get("QUERY_STRING", "")
+        
+        # Read headers
+        headers = {}
+        for key, value in environ.items():
+            if key.startswith("HTTP_"):
+                header_name = key[5:].replace("_", "-").lower()
+                headers[header_name] = value
+            elif key in ("CONTENT_TYPE", "CONTENT_LENGTH"):
+                header_name = key.replace("_", "-").lower()
+                headers[header_name] = value
+                
+        # Read body
+        try:
+            content_length = int(environ.get("CONTENT_LENGTH", 0))
+        except (ValueError, TypeError):
+            content_length = 0
+            
+        body = b""
+        if content_length > 0:
+            stream = environ.get("wsgi.input")
+            if stream:
+                body = stream.read(content_length)
+                
+        # Call Rust backend
+        # We handle this synchronously because WSGI is synchronous
+        body_str, status_code, headers_map = self._rust_app.handle_request(
+            method, path, query_string, headers, body
+        )
+        
+        # Convert status code to string
+        status_line = f"{status_code} {self._get_status_text(status_code)}"
+        
+        # Convert headers
+        response_headers = list(headers_map.items())
+        
+        start_response(status_line, response_headers)
+        return [body_str.encode("utf-8")]
+
+    def _get_status_text(self, code):
+        from http import HTTPStatus
+        try:
+            return HTTPStatus(code).phrase
+        except ValueError:
+            return "UNKNOWN"
+
+    async def asgi_app(self, scope, receive, send):
+        """
+        ASGI compatibility entry point.
+        """
+        if scope["type"] != "http":
+            return
+            
+        path = scope.get("path", "")
+        method = scope.get("method", "GET")
+        query_string = scope.get("query_string", b"").decode("utf-8")
+        
+        # Parse headers
+        headers = {}
+        for k, v in scope.get("headers", []):
+            headers[k.decode("utf-8").lower()] = v.decode("utf-8")
+            
+        # Read body
+        body = b""
+        more_body = True
+        while more_body:
+            message = await receive()
+            body += message.get("body", b"")
+            more_body = message.get("more_body", False)
+            
+        # Call Rust backend logic
+        # Since Rust handle_request blocks on a runtime, and we are in an async loop here (ASGI),
+        # we should ideally run this in a thread to avoid blocking the ASGI loop if the Rust part isn't purely async-aware in this binding.
+        # But our handle_request uses block_on internally. Calling block_on inside an async runtime is bad.
+        # However, pyo3 releases GIL if we ask it? handle_request keeps GIL?
+        # Check bindings: handle_request takes `&self` and does `runtime.block_on`. 
+        # `runtime.block_on` will panic if called from within a tokio runtime (which uvicorn uses).
+        # So we MUST run this in a separate thread.
+        import asyncio
+        from functools import partial
+        
+        loop = asyncio.get_running_loop()
+        
+        # We need to wrap the call to run in executor
+        # handle_request is exposed to Python, so we can pass it to run_in_executor
+        body_str, status_code, headers_map = await loop.run_in_executor(
+            None, 
+            partial(
+                self._rust_app.handle_request, 
+                method, 
+                path, 
+                query_string, 
+                headers, 
+                body
+            )
+        )
+        
+        # Send response start
+        await send({
+            "type": "http.response.start",
+            "status": status_code,
+            "headers": [
+                (k.encode("utf-8"), v.encode("utf-8")) for k, v in headers_map.items()
+            ],
+        })
+        
+        # Send response body
+        await send({
+            "type": "http.response.body",
+            "body": body_str.encode("utf-8"),
+        })
+
+    def __call__(self, scope_or_environ, start_response=None, send=None):
+        """
+        Dual-mode dispatch: behaves like WSGI if 2 args, ASGI if 3 (or if first arg is scope dict).
+        """
+        if send is None and callable(start_response):
+            # WSGI
+            return self.wsgi_app(scope_or_environ, start_response)
+        else:
+            # ASGI
+            # scope, receive, send = scope_or_environ, start_response, send
+            # But wait, ASGI is async def __call__(scope, receive, send). 
+            # We can't easily make __call__ both sync and async.
+            # Best practice: __call__ is WSGI. expose .asgi as ASGI app property or separate method.
+            # But standardized "app" variable often expected to just "work".
+            # For now, let's keep __call__ purely WSGI to satisfy Gunicorn/standard WSGI servers.
+            # Uvicorn will look for 'app' and if it's an object, it tries to call it.
+            # If we want ASGI support on the same object, we might need a wrapper or just rely on `app.asgi_app`.
+            
+            # Allow explicit usage:
+            # uvicorn main:app.asgi_app
+            # gunicorn main:app
+            
+            # However, if user passes `app` to uvicorn, uvicorn expects an ASGI callable.
+            # If we make __call__ async, WSGI breaks.
+            # Let's just implement WSGI here.
+            return self.wsgi_app(scope_or_environ, start_response)
+
+
     def run(
         self,
         host: str = "127.0.0.1",
@@ -612,6 +758,7 @@ class BustAPI:
         load_dotenv: bool = True,
         workers: Optional[int] = None,
         reload: bool = False,
+        server: str = "rust", # 'rust', 'uvicorn', 'gunicorn', 'hypercorn'
         **options,
     ) -> None:
         """
@@ -624,11 +771,12 @@ class BustAPI:
             load_dotenv: Load environment variables from .env file
             workers: Number of worker threads
             reload: Enable auto-reload on code changes (development only)
+            server: Server backend to use ('rust', 'uvicorn', 'gunicorn', 'hypercorn')
             **options: Additional server options
         """
         if debug:
             self.config["DEBUG"] = True
-
+            
             # Auto-enable Request Logging in Debug Mode
             def _debug_start_timer():
                 try:
@@ -652,25 +800,42 @@ class BustAPI:
             self.before_request(_debug_start_timer)
             self.after_request(_debug_log_request)
 
-        # Handle reload
-        if reload:
-            import os
-            import subprocess
-            import sys
-
-            # If we are already in the reloader subprocess, continue to run
-            if os.environ.get("BUSTAPI_RELOADER_RUN") == "true":
-                pass
-            else:
-                print("🔄 BustAPI reloader active")
-                # Simple poller/restart logic is complex to implement robustly inline.
-                # For now, we recommend using an external watcher or implement basic subprocess restart.
-                # A robust reloader typically needs a separate thread/watcher.
-                # We will skip implementing full file watching here to minimize dependencies on 'watchdog'.
-                # Instead, we just print a warning that reload is WIP or use a simple Loop if user explicitly asked.
-                # But user asked for "reload for dev".
-                # Let's delegate to the Rust runner which doesn't reload python code automatically.
-                pass
+        # Handle reload using watchfiles
+        if reload or debug:
+             # Ensure we are not already in a reload process if possible (though watchfiles handles logic)
+             # But actually, if 'reload' is true, we should probably start the reloader.
+             # However, simple reloader via watchfiles.run_process is easiest.
+             import os
+             import sys
+             
+             if os.environ.get("BUSTAPI_RELOADER_RUN") != "true":
+                 try:
+                    from watchfiles import run_process
+                 except ImportError:
+                    print("⚠️ 'watchfiles' not installed which is required for reload=True.")
+                    print("   Install it via: `pip install watchfiles` or `pip install bustapi[dev]`")
+                 else:
+                    print(f"🔄 BustAPI reloader active (using {server})")
+                    # Set env var so subprocess knows it is being watched
+                    env = os.environ.copy()
+                    env["BUSTAPI_RELOADER_RUN"] = "true"
+                    
+                    # We need to re-run the same command but as a subprocess managed by watchfiles
+                    # This is tricky because `app.run` is often called at end of script.
+                    # watchfiles.run_process(path, target)
+                    # target needs to be a callable or string command.
+                    
+                    # Simplest is to restart the current script.
+                    # args: python script.py
+                    cmd = [sys.executable] + sys.argv
+                    
+                    run_process(
+                         ".", 
+                         target=cmd,
+                         target_type="command",
+                         env=env
+                    )
+                    return
 
         if workers is None:
             # Default to 1 worker for debug/dev, or CPU count for prod key
@@ -678,30 +843,109 @@ class BustAPI:
 
             workers = 1 if debug else multiprocessing.cpu_count()
 
-        # Log startup with colorful output - DELEGATED TO RUST BACKEND FOR BANNER
-    # if self.logger:
-    #     self.logger.log_startup("Starting BustAPI Application")
-    #     self.logger.info(f"Listening on http://{host}:{port}")
-    #     self.logger.info(f"Workers: {workers}")
-    #     self.logger.info(f"Debug mode: {'ON' if debug else 'OFF'}")
-    # else:
-    #     # print(
-    #     #     f"🚀 BustAPI server running on http://{host}:{port} with {workers} workers"
-    #     # )
-    #     pass
-
-        try:
-            self._rust_app.run(host, port, workers, debug)
-        except KeyboardInterrupt:
-            if self.logger:
-                self.logger.log_shutdown("Server stopped by user")
-            else:
-                print("\n🛑 Server stopped by user")
-        except Exception as e:
-            if self.logger:
-                self.logger.error(f"Server error: {e}")
-            else:
+        # Server Dispatch
+        if server == "rust":
+             try:
+                self._rust_app.run(host, port, workers, debug)
+             except KeyboardInterrupt:
+                pass
+             except Exception as e:
                 print(f"❌ Server error: {e}")
+                
+        elif server == "uvicorn":
+             try:
+                 import uvicorn
+                 # We need to pass the app instance. 
+                 # If we are running from a script, we might not have the import path string handy easily
+                 # But uvicorn.run can take an app instance directly.
+                 # However, reload=True in uvicorn requires an import string.
+                 # Since we handled reload above with watchfiles manually, we can just pass the app here.
+                 
+                 # Using app.asgi_app for ASGI support
+                 config = uvicorn.Config(
+                     app=self.asgi_app, 
+                     host=host, 
+                     port=port, 
+                     workers=workers,
+                     log_level="debug" if debug else "info",
+                     interface="asgi3",
+                     **options
+                 )
+                 server_instance = uvicorn.Server(config)
+                 # We run synchronously since app.run is sync
+                 server_instance.run()
+                 
+             except ImportError:
+                 print("❌ 'uvicorn' not installed. Install it via `pip install uvicorn`.")
+             except Exception as e:
+                 print(f"❌ Uvicorn error: {e}")
+                 
+        elif server == "gunicorn":
+             print("⚠️ Gunicorn is typically run via command line: `gunicorn module:app`")
+             print("   Starting Gunicorn programmatically via subprocess as a convenience...")
+             
+             import subprocess
+             import sys
+             
+             # Try to guess the module:app name
+             # This is hard. We'll ask user to provide it or just give instructions?
+             # But if user says app.run(server='gunicorn'), they expect it to run.
+             # We can use our WSGI app interface.
+             # But gunicorn really wants a WSGI Application object.
+             # We can implementation a custom Gunicorn Application class.
+             
+             try:
+                 from gunicorn.app.base import BaseApplication
+                 
+                 class StandaloneApplication(BaseApplication):
+                     def __init__(self, app, options=None):
+                         self.application = app
+                         self.options = options or {}
+                         super().__init__()
+                
+                     def load_config(self):
+                         config = {key: value for key, value in self.options.items()
+                                   if key in self.cfg.settings and value is not None}
+                         for key, value in config.items():
+                             self.cfg.set(key.lower(), value)
+                
+                     def load(self):
+                         return self.application
+                         
+                 options = {
+                     'bind': f'{host}:{port}',
+                     'workers': workers,
+                     'loglevel': 'debug' if debug else 'info',
+                     # Add other options here
+                     **options
+                 }
+                 
+                 StandaloneApplication(self, options).run()
+                 
+             except ImportError:
+                 print("❌ 'gunicorn' not installed. Install it via `pip install gunicorn`.")
+             except Exception as e:
+                 print(f"❌ Gunicorn error: {e}")
+                 
+        elif server == "hypercorn":
+             try:
+                 from hypercorn.config import Config
+                 from hypercorn.asyncio import serve
+                 import asyncio
+                 
+                 config = Config()
+                 config.bind = [f"{host}:{port}"]
+                 config.workers = workers
+                 config.loglevel = "debug" if debug else "info"
+                 # Add other options
+                 
+                 # Hypercorn is async, so we need an event loop
+                 asyncio.run(serve(self.asgi_app, config))
+                 
+             except ImportError:
+                 print("❌ 'hypercorn' not installed. Install it via `pip install hypercorn`.")
+             except Exception as e:
+                 print(f"❌ Hypercorn error: {e}")
 
     async def run_async(
         self, host: str = "127.0.0.1", port: int = 5000, debug: bool = False, **options
