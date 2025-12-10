@@ -55,6 +55,9 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                     response = mw_response
                 else:
                     args, kwargs = app._extract_path_params(rule, request.path)
+                    # Extract and merge query parameters
+                    query_kwargs = app._extract_query_params(rule, request)
+                    kwargs.update(query_kwargs)
                     result = handler(**kwargs)
                     response = app._make_response(result if not isinstance(result, tuple) else result[0]) 
                     if isinstance(result, tuple) and len(result) > 1:
@@ -76,6 +79,9 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                      result = handler()
                 else:
                      args, kwargs = app._extract_path_params(rule, request.path)
+                     # Extract and merge query parameters
+                     query_kwargs = app._extract_query_params(rule, request)
+                     kwargs.update(query_kwargs)
                      result = handler(**kwargs)
 
                 # OPTIMIZATION: Bypass Response object creation for common types
@@ -169,6 +175,9 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
                 else:
                     # Extract path params
                     args, kwargs = app._extract_path_params(rule, request.path)
+                    # Extract and merge query parameters
+                    query_kwargs = app._extract_query_params(rule, request)
+                    kwargs.update(query_kwargs)
                     result = await handler(**kwargs)
 
                     if isinstance(result, tuple):
@@ -181,6 +190,9 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
                      result = await handler()
                 else:
                      args, kwargs = app._extract_path_params(rule, request.path)
+                     # Extract and merge query parameters
+                     query_kwargs = app._extract_query_params(rule, request)
+                     kwargs.update(query_kwargs)
                      result = await handler(**kwargs)
 
                 # OPTIMIZATION: Bypass Response object creation for common types
