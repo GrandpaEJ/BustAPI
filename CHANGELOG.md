@@ -17,6 +17,10 @@ All notable changes to this project will be documented here.
 
 - **New Examples**: `10_rate_limit_demo.py` showcasing the new rate limiter and logging.
 - **Rust-based Logging**: High-performance, colorful request logging implemented in Rust.
+- **User Experience**:
+  - **Hot Reloading**: Enabled via `debug=True` or `reload=True` using `watchfiles`.
+  - **ASGI/WSGI Support**: Run BustAPI with `uvicorn`, `gunicorn`, or `hypercorn` (e.g., `app.run(server='uvicorn')`).
+  - **Benchmark Tools**: Built-in compatibility layer allows benchmarking against standard Python servers.
 
 ## [0.2.2] - 2025-12-10
 
