@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 from .http.request import Request
 from .http.response import Response
@@ -42,22 +42,26 @@ class MiddlewareManager:
     """
 
     def __init__(self):
-        self._middleware = []
+        self._middlewares: List[Middleware] = []
+
+    @property
+    def middlewares(self) -> List[Middleware]:
+        return self._middlewares
 
     def add(self, middleware: Middleware):
         """Add a middleware instance to the chain."""
-        self._middleware.append(middleware)
+        self._middlewares.append(middleware)
 
     def process_request(self, request: Request) -> Optional[Response]:
         """Run process_request on all middleware."""
-        for md in self._middleware:
-            response = md.process_request(request)
-            if response is not None:
+        for middleware in self._middlewares:
+            response = middleware.process_request(request)
+            if response:
                 return response
         return None
 
     def process_response(self, request: Request, response: Response) -> Response:
-        """Run process_response on all middleware (in reverse order)."""
-        for md in reversed(self._middleware):
-            response = md.process_response(request, response)
+        """Run process_response on all middleware (reversed order)."""
+        for middleware in reversed(self._middlewares):
+            response = middleware.process_response(request, response)
         return response
