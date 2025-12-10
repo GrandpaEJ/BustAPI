@@ -24,7 +24,7 @@ BustAPI isn't just another web framework. It's a **hybrid engine** that fuses th
 
 By running on top of **Actix-Web** (Rust) via **PyO3** bindings, BustAPI eliminates the bottlenecks typical of Python frameworks. It handles requests, routing, and concurrency in compiled Rust code, leaving Python to do what it does best: business logic.
 
-> **"It feels like Flask, but runs like a compiled binary."**
+> **"It feels like Flask/FastAPI, but runs like a compiled binary."**
 
 ## 🌌 Future-Proof Architecture
 
