@@ -14,6 +14,7 @@ mod router;
 mod server;
 mod rate_limiter;
 mod logger;
+mod static_files;
 
 pub use request::RequestData;
 pub use response::ResponseData;

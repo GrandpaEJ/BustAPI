@@ -48,7 +48,7 @@ class BustAPI:
         """
         self.import_name = import_name or self.__class__.__module__
         self.static_url_path = static_url_path
-        self.static_folder = static_folder
+        self.static_folder = static_folder or "static"
         self.template_folder = template_folder
         self.instance_relative_config = instance_relative_config
         self.root_path = root_path
@@ -127,6 +127,11 @@ class BustAPI:
             from . import bustapi_core
 
             self._rust_app = bustapi_core.PyBustApp()
+
+            # Register static file usage
+            if self.static_folder:
+                url_path = (self.static_url_path or "/static").rstrip("/") + "/"
+                self._rust_app.add_static_route(url_path, self.static_folder)
         except ImportError as e:
             raise RuntimeError(f"Failed to import Rust backend: {e}") from e
 

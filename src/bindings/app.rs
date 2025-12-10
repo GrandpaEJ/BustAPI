@@ -91,6 +91,22 @@ impl PyBustApp {
         Ok(())
     }
 
+    /// Add a secure static file route
+    pub fn add_static_route(&self, path_prefix: &str, static_folder: &str) -> PyResult<()> {
+        let handler = crate::static_files::StaticFileHandler::new(static_folder, path_prefix);
+        let path = format!("{}<path>", path_prefix); // Dynamic match for /static/<path>
+
+        let state = self.state.clone();
+        let method_enum = http::Method::GET;
+        
+        self.runtime.block_on(async {
+            let mut routes = state.routes.write().await;
+            routes.add_route(method_enum, path, handler);
+        });
+
+        Ok(())
+    }
+
     /// Run the server
     pub fn run(&self, host: String, port: u16, workers: usize, debug: bool) -> PyResult<()> {
         let state = self.state.clone();
