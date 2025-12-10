@@ -57,14 +57,23 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Installation: installation.md
-  - Quickstart: quickstart.md
-  - User Guide:
+  - Getting Started:
+      - Installation: installation.md
+      - Quickstart: quickstart.md
+  - User Guide (Beginner):
       - Routing: user-guide/routing.md
+      - Requests & Responses: user-guide/requests_responses.md
       - Templates: user-guide/templates.md
+      - Static Files: user-guide/static_files.md
+  - User Guide (Intermediate):
       - Blueprints: user-guide/blueprints.md
-      - Database: user-guide/database.md
-      - Documentation: user-guide/documentation.md
+      - Error Handling: user-guide/error_handling.md
+      - Logging: user-guide/logging.md
+  - Advanced Features:
+      - Security: advanced/security.md
+      - Async Support: advanced/async.md
+      - Middleware: advanced/middleware.md
+      - Deployment: advanced/deployment.md
   - API Reference: api-reference.md
   - Deployment: deployment.md
   - Project Info:

@@ -1,26 +1,30 @@
 # Blueprints
 
-Blueprints allow you to organize your application into modular components.
+As your application grows, you usually want to organize your code into multiple files or modules. **Blueprints** provide a way to group related routes and resources.
 
 ## Creating a Blueprint
 
-```python
-# auth.py
+```python title="routes/auth.py"
 from bustapi import Blueprint
 
-auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
+auth_bp = Blueprint("auth", url_prefix="/auth")
 
 @auth_bp.route("/login")
-def login(request):
+def login():
     return "Login Page"
+
+@auth_bp.route("/register")
+def register():
+    return "Register Page"
 ```
 
 ## Registering a Blueprint
 
-```python
-# app.py
+You register the blueprint on your main application instance.
+
+```python title="app.py"
 from bustapi import BustAPI
-from auth import auth_bp
+from routes.auth import auth_bp
 
 app = BustAPI()
 app.register_blueprint(auth_bp)
@@ -29,4 +33,19 @@ if __name__ == "__main__":
     app.run()
 ```
 
-This will make the login route accessible at `/auth/login`.
+Now your routes will be accessible at:
+
+- `/auth/login`
+- `/auth/register`
+
+## Blueprint Templates and Static Files
+
+Blueprints can define their own static and template folders.
+
+```python
+admin = Blueprint("admin", url_prefix="/admin",
+                  template_folder="admin/templates",
+                  static_folder="admin/static")
+```
+
+This allows you to create reusable modular applications.

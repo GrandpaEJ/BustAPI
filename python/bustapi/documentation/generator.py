@@ -26,7 +26,7 @@ class BustAPIDocs:
         self,
         app: Optional[BustAPI] = None,
         title: str = "BustAPI",
-        version: str = "0.1.0",
+        version: str = "0.3.0",
         description: str = "",
         docs_url: Optional[str] = "/docs",
         redoc_url: Optional[str] = "/redoc",

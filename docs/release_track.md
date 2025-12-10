@@ -13,13 +13,13 @@ BustAPI follows semver.
 
 ## Roadmap
 
-### v0.3.0 - The Ecosystem Update
+### v0.4.0 - The Ecosystem Update
 
 - [ ] **ORM Support**: Native integration with SQLAlchemy or similar.
 - [ ] **Middleware Overhaul**: Enhanced middleware system with better ordering and context.
 - [ ] **Session Management**: Built-in session support.
 
-### v0.4.0 - Performance Tuning
+### v0.5.0 - Performance Tuning
 
 - [ ] **Zero-Copy Optimizations**: Further minimize copying between Rust and Python.
 - [ ] **WebSockets**: Native WebSocket support via Actix.

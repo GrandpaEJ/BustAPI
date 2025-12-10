@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "bustapi"
-version = "0.2.2"
+version = "0.3.0"
 description = "High-performance Flask-compatible web framework with async support"
 authors = [
     {name = "GrandpaEJ", email = ""}

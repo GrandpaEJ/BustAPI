@@ -1,43 +1,67 @@
 # Routing
 
-BustAPI uses an intuitive routing system similar to Flask.
+Modern web applications use meaningful URLs to help users. BustAPI provides a decorator-based routing system similar to Flask.
 
-## Basic Routes
+## Basic Routing
+
+Use the `route()` decorator to bind a function to a URL.
 
 ```python
 @app.route("/")
-def home(request):
-    return "Hello World"
+def index():
+    return "Index Page"
+
+@app.route("/hello")
+def hello():
+    return "Hello, World"
 ```
 
-## Dynamic Routes
+## Variable Rules
 
-You can capture parts of the URL as arguments.
+You can add variable sections to a URL by marking sections with `<variable_name>`. The value is passed as a keyword argument to your function.
 
 ```python
-@app.route("/user/<name>")
-def user_profile(request, name):
-    return f"User: {name}"
+@app.route("/user/<username>")
+def show_user_profile(username):
+    # show the user profile for that user
+    return f"User {username}"
 
 @app.route("/post/<int:post_id>")
-def show_post(request, post_id: int):
-    return {"id": post_id}
+def show_post(post_id):
+    # show the post with the given id, the id is an integer
+    return f"Post {post_id}"
 ```
 
-Supported converters:
+### Supported Converters
 
-- `<str:name>` (default)
-- `<int:id>`
-- `<float:value>`
+- **`string`**: (Default) Accepts any text without a slash.
+- **`int`**: Accepts positive integers.
+- **`path`**: Accepts text strings including slashes (useful for file paths).
 
 ## HTTP Methods
 
-By default, routes only handle `GET` requests. You can specify other methods:
+By default, a route only answers to `GET` requests. You can use the `methods` argument to handle different HTTP methods.
 
 ```python
+from bustapi import request
+
 @app.route("/login", methods=["GET", "POST"])
-def login(request):
+def login():
     if request.method == "POST":
-        return "Logging in..."
-    return "Login Page"
+        return do_the_login()
+    else:
+        return show_the_login_form()
+```
+
+## URL Building
+
+You can build a URL to a specific function using `url_for()`. This is safer than hardcoding URLs.
+
+```python
+from bustapi import url_for
+
+with app.test_request_context():
+    print(url_for("index"))  # Output: /
+    print(url_for("login"))  # Output: /login
+    print(url_for("show_user_profile", username="Grandpa")) # Output: /user/Grandpa
 ```

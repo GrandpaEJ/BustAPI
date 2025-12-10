@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented here.
 
+## [0.3.0] - 2025-12-10
+
+### Major Changes
+
+- **Codebase Refactoring**: Python codebase completely refactored into modular sub-packages (`bustapi.core`, `bustapi.http`, `bustapi.routing`, `bustapi.security`, etc.) for improved maintainability.
+- **Documentation Overhaul**: Comprehensive documentation rewrite using MkDocs with "Beginner to Advanced" guides.
+- **Security Enhancements**:
+  - Rust-based Rate Limiter for high-performance request throttling.
+  - Secure static file serving (blocking hidden files and path traversal).
+  - `Security` extension for CORS and Security Headers.
+
+### Added
+
+- **New Examples**: `10_rate_limit_demo.py` showcasing the new rate limiter and logging.
+- **Rust-based Logging**: High-performance, colorful request logging implemented in Rust.
+
 ## [0.2.2] - 2025-12-10
 
 ### Added

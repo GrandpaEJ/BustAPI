@@ -1,20 +1,39 @@
 # API Reference
 
-## BustAPI Class
+## Application
 
 ::: bustapi.BustAPI
-params:
+options:
 show_root_heading: true
 show_source: true
 
-## Request Class
+## Routing
+
+::: bustapi.Blueprint
+options:
+show_root_heading: true
+show_source: true
+
+## HTTP
 
 ::: bustapi.Request
-params:
+options:
 show_root_heading: true
-
-## Response Class
+show_source: true
 
 ::: bustapi.Response
-params:
+options:
 show_root_heading: true
+show_source: true
+
+## Security
+
+::: bustapi.Security
+options:
+show_root_heading: true
+show_source: true
+
+::: bustapi.RateLimit
+options:
+show_root_heading: true
+show_source: true
