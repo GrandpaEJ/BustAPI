@@ -12,6 +12,8 @@ from .http.response import Response, make_response
 from .middleware import MiddlewareManager
 from .routing.blueprints import Blueprint
 from .sessions import SecureCookieSessionInterface
+# NOTE: itsdangerous is no longer used for session signing. 
+# We use the Rust Signer class imported in sessions.py
 
 
 from .dispatch import create_async_wrapper, create_sync_wrapper

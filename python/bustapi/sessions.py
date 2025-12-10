@@ -1,8 +1,9 @@
+import base64
 import json
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
-from itsdangerous import BadSignature, URLSafeTimedSerializer
+from .bustapi_core import Signer
 
 from .http.request import Request
 from .http.response import Response
@@ -59,42 +60,39 @@ class SessionInterface(ABC):
 
 
 class SecureCookieSessionInterface(SessionInterface):
-    """Default session interface using secure cookies."""
+    """Default session interface using secure cookies (Rust-backed signing)."""
 
     session_class = SecureCookieSession
-    salt = "cookie-session"
-    digest_method = "sha1"
-    key_derivation = "hmac"
-    serializer = URLSafeTimedSerializer
     session_cookie_name = "session"
 
-    def get_signing_serializer(self, app):
+    def open_session(self, app, request: Request) -> Optional[SessionMixin]:
         if not app.secret_key:
             return None
-        return self.serializer(
-            app.secret_key,
-            salt=self.salt,
-            serializer=json,
-            # signer_kwargs={
-            #     "key_derivation": self.key_derivation,
-            #     "digest_method": self.digest_method,
-            # },
-        )
 
-    def open_session(self, app, request: Request) -> Optional[SessionMixin]:
-        s = self.get_signing_serializer(app)
-        if s is None:
-            return None
-
+        # Value from cookie (signed string)
         val = request.cookies.get(self.session_cookie_name)
         if not val:
             return self.session_class()
 
+        signer = Signer(app.secret_key)
+        
+        # 1. Verify signature using Rust
+        payload = signer.verify(self.session_cookie_name, val)
+        if payload is None:
+            # Invalid signature
+            return self.session_class()
+
+        # 2. Decode payload (Base64 -> JSON -> Dict)
         try:
-            # max_age could be configured
-            data = s.loads(val)  # max_age=...
+            # We treat the payload as base64 encoded JSON to match standard practices
+            # But wait, our Rust signer just signs the string we give it.
+            # So we need to serialize the dict to string first.
+            # Structure: Base64(JSON(session_dict))
+            json_str = base64.urlsafe_b64decode(payload).decode("utf-8")
+            data = json.loads(json_str)
             return self.session_class(data)
-        except BadSignature:
+        except Exception:
+            # JSON/Base64 error
             return self.session_class()
 
     def save_session(self, app, session: SessionMixin, response: Response) -> None:
@@ -109,12 +107,18 @@ class SecureCookieSessionInterface(SessionInterface):
             )
             return
 
-        signer = self.get_signing_serializer(app)
-        if signer is None:
+        if not app.secret_key:
             return
 
         if session.modified:
-            val = signer.dumps(session)
+            # 1. Serialize: Dict -> JSON -> Base64
+            json_str = json.dumps(dict(session))
+            payload = base64.urlsafe_b64encode(json_str.encode("utf-8")).decode("utf-8")
+
+            # 2. Sign: Rust signer
+            signer = Signer(app.secret_key)
+            val = signer.sign(self.session_cookie_name, payload)
+
             response.set_cookie(
                 self.session_cookie_name,
                 val,

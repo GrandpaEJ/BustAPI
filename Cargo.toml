@@ -1,6 +1,6 @@
 [package]
 name = "bustapi_core"
-version = "0.3.1"
+version = "0.4.0"
 edition = "2021"
 
 [lib]
@@ -21,6 +21,8 @@ pyo3-async-runtimes = { version = "0.23", features = ["tokio-runtime"] }
 # Async runtime
 tokio = { version = "1.0", features = ["full"] }
 futures = "0.3"
+cookie = { version = "0.18", features = ["signed", "secure", "percent-encode"] }
+sha2 = "0.10"
 
 # Utilities
 serde = { version = "1.0", features = ["derive"] }

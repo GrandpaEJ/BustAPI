@@ -8,6 +8,7 @@
 use pyo3::prelude::*;
 
 mod bindings;
+mod crypto;
 mod logger;
 mod rate_limiter;
 mod request;
@@ -28,6 +29,7 @@ fn bustapi_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<bindings::PyRequest>()?;
     m.add_class::<rate_limiter::PyRateLimiter>()?;
     m.add_class::<logger::PyFastLogger>()?;
+    m.add_class::<crypto::Signer>()?;
 
     // Add helper functions
     m.add_function(wrap_pyfunction!(create_app, m)?)?;
