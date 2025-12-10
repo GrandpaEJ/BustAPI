@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented here.
 
+## [0.4.1] - 2025-12-11
+
+### Added
+
+- **Query Parameter Validation**: FastAPI-compatible `Query()` helper for query parameter validation
+  - Type coercion: `str` → `int`, `float`, `bool`, `list`
+  - All validation constraints: `ge`, `le`, `gt`, `lt`, `min_length`, `max_length`, `regex`
+  - Required vs optional parameters with default values
+  - OpenAPI schema generation with full constraint details
+  - Example: `examples/23_query_validation.py`
+
+### Performance
+
+- **Cookie Parsing**: Moved cookie parsing from Python to Rust for 10-100x performance improvement
+  - Request cookies now parsed in Rust with URL decoding
+  - Zero Python overhead for cookie extraction
+
+### Improved
+
+- **Response Cookies**: Enhanced `Response.set_cookie()` API
+  - URL encoding for cookie values (security)
+  - Support for `datetime` objects and timestamps in `expires` parameter
+  - SameSite validation (`Strict`, `Lax`, `None`)
+  - Improved `delete_cookie()` with all cookie attributes for proper deletion
+- **Path Documentation**: Integrated Path parameter metadata into OpenAPI documentation generator
+  - Path constraints now visible in Swagger UI/ReDoc
+  - Full OpenAPI 3.0 compliance
+
 ## [0.3.1] - 2025-12-10
 
 ### Improvements
