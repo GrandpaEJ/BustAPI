@@ -3,6 +3,7 @@
 use pyo3::prelude::*;
 use std::collections::HashMap;
 use std::io::Write;
+use percent_encoding;
 
 use crate::bindings::converters::*;
 
@@ -132,6 +133,29 @@ impl PyRequest {
         } else {
             HashMap::new()
         }
+    }
+
+    #[getter]
+    pub fn cookies(&self) -> HashMap<String, String> {
+        let mut cookies = HashMap::new();
+
+        if let Some(cookie_header) = self.headers.iter()
+            .find(|(k, _)| k.to_lowercase() == "cookie")
+            .map(|(_, v)| v)
+        {
+            for cookie_pair in cookie_header.split(';') {
+                let cookie_pair = cookie_pair.trim();
+                if let Some((key, value)) = cookie_pair.split_once('=') {
+                    // URL decode cookie values using percent_encoding
+                    let decoded_value = percent_encoding::percent_decode_str(value.trim())
+                        .decode_utf8()
+                        .unwrap_or_else(|_| std::borrow::Cow::Borrowed(value.trim()));
+                    cookies.insert(key.trim().to_string(), decoded_value.to_string());
+                }
+            }
+        }
+
+        cookies
     }
 }
 
