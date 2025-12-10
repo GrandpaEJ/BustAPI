@@ -9,7 +9,9 @@ from typing import Any, Callable, Dict, List, Optional, Type, Union
 from .core.logging import get_logger
 from .http.request import Request, _request_ctx
 from .http.response import Response, make_response
+from .middleware import MiddlewareManager
 from .routing.blueprints import Blueprint
+from .sessions import SecureCookieSessionInterface
 
 
 class BustAPI:
@@ -116,6 +118,10 @@ class BustAPI:
         self.url_defaults = None
         self.template_context_processors = {}
         self._template_fragment_cache = None
+
+        # Middleware and Sessions
+        self.middleware_manager = MiddlewareManager()
+        self.session_interface = SecureCookieSessionInterface()
 
         # Initialize Rust backend
         self._rust_app = None
@@ -445,29 +451,47 @@ class BustAPI:
                 request.app = self
                 _request_ctx.set(request)
 
+                # Open Session
+                session = self.session_interface.open_session(self, request)
+                request.session = session
+
                 # Run before request handlers
                 for before_func in self.before_request_funcs:
                     result = before_func()
                     if result is not None:
-                        return self._make_response(result)
+                        response = self._make_response(result)
+                        # Save session even here? Usually yes.
+                        if session:
+                            self.session_interface.save_session(self, session, response)
+                        return self._response_to_rust_format(response)
 
-                # Extract path params from rule and path
-                args, kwargs = self._extract_path_params(rule, request.path)
-
-                # Call the actual handler (Flask-style handlers take path params)
-                # Note: Async handlers are now handled directly by Rust PyAsyncRouteHandler
-                # This wrapper should only handle sync functions for better performance
-                result = handler(**kwargs)
-
-                # Handle tuple responses properly
-                if isinstance(result, tuple):
-                    response = self._make_response(*result)
+                # Middleware: Process Request
+                mw_response = self.middleware_manager.process_request(request)
+                if mw_response:
+                    response = mw_response
                 else:
-                    response = self._make_response(result)
+                    # Extract path params from rule and path
+                    args, kwargs = self._extract_path_params(rule, request.path)
+
+                    # Call the actual handler
+                    result = handler(**kwargs)
+
+                    # Handle tuple responses properly
+                    if isinstance(result, tuple):
+                        response = self._make_response(*result)
+                    else:
+                        response = self._make_response(result)
+
+                # Middleware: Process Response
+                response = self.middleware_manager.process_response(request, response)
 
                 # Run after request handlers
                 for after_func in self.after_request_funcs:
                     response = after_func(response) or response
+
+                # Save Session
+                if session is not None:
+                    self.session_interface.save_session(self, session, response)
 
                 # Convert Python Response to dict/tuple for Rust
                 return self._response_to_rust_format(response)
@@ -502,28 +526,46 @@ class BustAPI:
                 request.app = self
                 _request_ctx.set(request)
 
+                # Open Session
+                session = self.session_interface.open_session(self, request)
+                request.session = session
+
                 # Run before request handlers
                 for before_func in self.before_request_funcs:
                     result = before_func()
                     if result is not None:
-                        return self._make_response(result)
+                        response = self._make_response(result)
+                        if session:
+                            self.session_interface.save_session(self, session, response)
+                        return self._response_to_rust_format(response)
 
-                # Extract path params
-                args, kwargs = self._extract_path_params(rule, request.path)
-
-                # Call the handler (sync only - async handled by Rust)
-                # Call the handler (async)
-                result = await handler(**kwargs)
-
-                # Handle tuple responses properly
-                if isinstance(result, tuple):
-                    response = self._make_response(*result)
+                # Middleware: Process Request
+                mw_response = self.middleware_manager.process_request(request)
+                if mw_response:
+                    response = mw_response
                 else:
-                    response = self._make_response(result)
+                    # Extract path params
+                    args, kwargs = self._extract_path_params(rule, request.path)
+
+                    # Call the handler (async)
+                    result = await handler(**kwargs)
+
+                    # Handle tuple responses properly
+                    if isinstance(result, tuple):
+                        response = self._make_response(*result)
+                    else:
+                        response = self._make_response(result)
+
+                # Middleware: Process Response
+                response = self.middleware_manager.process_response(request, response)
 
                 # Run after request handlers
                 for after_func in self.after_request_funcs:
                     response = after_func(response) or response
+
+                # Save Session
+                if session is not None:
+                    self.session_interface.save_session(self, session, response)
 
                 # Convert Python Response to dict/tuple for Rust
                 return self._response_to_rust_format(response)
