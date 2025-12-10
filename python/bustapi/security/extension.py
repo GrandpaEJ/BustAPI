@@ -1,8 +1,8 @@
 import time
 from typing import Dict, List, Optional, Tuple, Union
 
-from .request import Request
-from .response import Response
+from ..http.request import Request
+from ..http.response import Response
 
 
 class RateLimit:
@@ -125,7 +125,7 @@ class Security:
             return
 
         # Need to access current request
-        from .request import request
+        from ..http.request import request
         
         # Get client IP - naive implementation
         # In production this should handle X-Forwarded-For properly
@@ -136,5 +136,5 @@ class Security:
             client_ip = "global_user" 
 
         if not self._rate_limiter.is_allowed(client_ip):
-            from .exceptions import abort
+            from ..core.exceptions import abort
             abort(429, "Too Many Requests")

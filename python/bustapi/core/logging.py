@@ -193,7 +193,7 @@ class BustAPILogger:
         # This is much faster as it avoids Python logging machinery for high-volume logs
         if self._fast_logger is None:
             try:
-                from . import bustapi_core
+                from .. import bustapi_core
                 self._fast_logger = bustapi_core.FastLogger()
             except (ImportError, AttributeError):
                 self._fast_logger = False  # Mark as unavailable
@@ -380,7 +380,7 @@ def request_logging_middleware(app_logger: Optional[BustAPILogger] = None):
         def wrapper(*args, **kwargs):
             import time
 
-            from .request import request
+            from ..http.request import request
 
             # Use provided logger or global logger
             req_logger = app_logger or logger

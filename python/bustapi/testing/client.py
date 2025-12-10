@@ -6,7 +6,7 @@ import json
 from typing import Any, Dict, Optional, Union
 from urllib.parse import urlencode
 
-from .response import Headers
+from ..http.response import Headers
 
 
 class TestResponse:
@@ -242,7 +242,7 @@ class TestClient:
         # without going through the Rust HTTP server
 
         # For now, return a mock response
-        from .response import Response
+        from ..http.response import Response
 
         return Response("Test response", status=200)
 

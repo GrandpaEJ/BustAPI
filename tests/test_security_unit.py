@@ -2,7 +2,7 @@
 import sys
 import unittest
 from bustapi import BustAPI, Security, make_response
-from bustapi.exceptions import TooManyRequests
+from bustapi.core.exceptions import TooManyRequests
 
 class TestSecurity(unittest.TestCase):
     def setUp(self):

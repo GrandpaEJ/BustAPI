@@ -26,20 +26,21 @@ __version__ = "0.2.2"
 __author__ = "BustAPI"
 __email__ = ""
 
-from . import logging
+# Import core modules
+from .core import logging
 
 # Import core classes and functions
 from .app import BustAPI
-from .blueprints import Blueprint
-from .docs import BustAPIDocs
-from .helpers import abort, redirect, render_template, url_for
-from .rate_limit import RateLimit
-from .request import Request, request
-from .response import Response, jsonify, make_response
-from .security import Security
+from .routing.blueprints import Blueprint
+from .documentation.generator import BustAPIDocs
+from .core.helpers import abort, redirect, url_for, render_template
+from .security.rate_limit import RateLimit
+from .http.request import Request, request
+from .http.response import Response, jsonify, make_response
+from .security.extension import Security
 
 # Import testing utilities
-from .testing import TestClient
+from .testing.client import TestClient
 
 __all__ = [
     # Core classes

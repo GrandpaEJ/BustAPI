@@ -1,7 +1,7 @@
 import unittest
 import time
 from bustapi import BustAPI, RateLimit
-from bustapi.exceptions import TooManyRequests
+from bustapi.core.exceptions import TooManyRequests
 
 class TestRateLimit(unittest.TestCase):
     def setUp(self):

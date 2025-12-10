@@ -396,7 +396,7 @@ class Blueprint:
             raise RuntimeError("Blueprint does not have a static folder")
 
         # TODO: Implement static file serving
-        from .helpers import send_from_directory
+        from ..core.helpers import send_from_directory
 
         return send_from_directory(self.static_folder, filename)
 

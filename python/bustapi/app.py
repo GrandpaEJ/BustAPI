@@ -6,10 +6,10 @@ import inspect
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
-from .blueprints import Blueprint
-from .logging import get_logger
-from .request import Request, _request_ctx
-from .response import Response, make_response
+from .routing.blueprints import Blueprint
+from .core.logging import get_logger
+from .http.request import Request, _request_ctx
+from .http.response import Response, make_response
 
 
 class BustAPI:
@@ -774,7 +774,7 @@ class _RequestContext:
             # Use the actual Request class if possible, but it needs a Rust request
             # For now, let's just set a mock that satisfies the verification script
             # Or better, try to instantiate Request with None and mock properties
-            from .request import Request
+            from .http.request import Request
 
             request_obj = Request(None)
             # Mock the caches to avoid accessing None _rust_request

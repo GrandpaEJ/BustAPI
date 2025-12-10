@@ -6,8 +6,8 @@ import os
 from typing import Any, Optional
 
 from .exceptions import HTTPException
-from .response import Response
-from .response import redirect as _redirect
+from ..http.response import Response
+from ..http.response import redirect as _redirect
 
 
 def abort(code: int, description: Optional[str] = None, **kwargs) -> None:
@@ -138,7 +138,7 @@ def send_file(
     Returns:
         Response object with file content
     """
-    from .response import send_file as _send_file
+    from ..http.response import send_file as _send_file
 
     return _send_file(path_or_file, mimetype, as_attachment, attachment_filename)
 
@@ -242,7 +242,7 @@ def _get_current_object():
         RuntimeError: If no application context
     """
     # Try to get from request context
-    from .request import _request_ctx
+    from ..http.request import _request_ctx
 
     req = _request_ctx.get(None)
     if req and hasattr(req, "app"):
@@ -330,7 +330,7 @@ def jsonify(*args, **kwargs) -> Response:
     Returns:
         JSON response
     """
-    from .response import jsonify as _jsonify
+    from ..http.response import jsonify as _jsonify
 
     return _jsonify(*args, **kwargs)
 
@@ -343,7 +343,7 @@ def get_json() -> Any:
     Returns:
         JSON data from request
     """
-    from .request import request
+    from ..http.request import request
 
     return request.get_json()
 

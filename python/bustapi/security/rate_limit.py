@@ -1,7 +1,7 @@
 from functools import wraps
 from typing import Optional, Tuple
 
-from .exceptions import abort
+from ..core.exceptions import abort
 
 
 class RateLimit:
@@ -18,7 +18,7 @@ class RateLimit:
     """
 
     def __init__(self, app=None):
-        from . import bustapi_core
+        from .. import bustapi_core
         self._limiter = bustapi_core.PyRateLimiter()
         if app is not None:
             self.init_app(app)
@@ -43,7 +43,7 @@ class RateLimit:
                 # Determine key
                 # Default to IP from request context if available
                 # We need to import request inside wrapper to avoid circular imports or context issues
-                from .request import request
+                from ..http.request import request
 
                 key = "global"
                 if key_func:

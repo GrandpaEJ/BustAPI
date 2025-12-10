@@ -9,8 +9,8 @@ import inspect
 import json
 from typing import Any, Dict, List, Optional
 
-from .app import BustAPI
-from .response import Response
+from ..app import BustAPI
+from ..http.response import Response
 
 
 class BustAPIDocs:

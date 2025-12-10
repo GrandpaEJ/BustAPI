@@ -346,7 +346,7 @@ def abort(code: int, description: Optional[str] = None, **kwargs):
     Raises:
         HTTPException: HTTP exception with specified code
     """
-    from .exceptions import HTTPException
+    from ..core.exceptions import HTTPException
 
     raise HTTPException(code, description=description)
 

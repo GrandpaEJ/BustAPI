@@ -59,7 +59,7 @@ class HTTPException(BustAPIException):
         if self.response is not None:
             return self.response
 
-        from .response import Response
+        from ..http.response import Response
 
         return Response(self.description, status=self.code)
 
