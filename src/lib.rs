@@ -13,6 +13,7 @@ mod response;
 mod router;
 mod server;
 mod rate_limiter;
+mod logger;
 
 pub use request::RequestData;
 pub use response::ResponseData;
@@ -25,6 +26,7 @@ fn bustapi_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<bindings::PyBustApp>()?;
     m.add_class::<bindings::PyRequest>()?;
     m.add_class::<rate_limiter::PyRateLimiter>()?;
+    m.add_class::<logger::PyFastLogger>()?;
 
     // Add helper functions
     m.add_function(wrap_pyfunction!(create_app, m)?)?;

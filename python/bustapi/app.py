@@ -162,9 +162,8 @@ class BustAPI:
 
         # Register with Rust backend
         for method in methods:
-            print(
-                f"DEBUG: Registering {rule} view_func={view_func} is_coro={inspect.iscoroutinefunction(view_func)}"
-            )
+            # Debug log suppressed for cleaner output
+            # print(f"DEBUG: Registering {rule} view_func={view_func} is_coro={inspect.iscoroutinefunction(view_func)}")
             if inspect.iscoroutinefunction(view_func):
                 # Async handler executed synchronously via asyncio.run
                 # inside wrapper
@@ -625,6 +624,29 @@ class BustAPI:
         if debug:
             self.config["DEBUG"] = True
 
+            # Auto-enable Request Logging in Debug Mode
+            def _debug_start_timer():
+                try:
+                    from bustapi import request
+                    import time
+                    request.start_time = time.time()
+                except ImportError:
+                    pass
+
+            def _debug_log_request(response):
+                try:
+                    from bustapi import request, logging
+                    import time
+                    start_time = getattr(request, "start_time", time.time())
+                    duration = time.time() - start_time
+                    logging.log_request(request.method, request.path, response.status_code, duration)
+                except ImportError:
+                    pass
+                return response
+
+            self.before_request(_debug_start_timer)
+            self.after_request(_debug_log_request)
+
         # Handle reload
         if reload:
             import os
@@ -651,16 +673,17 @@ class BustAPI:
 
             workers = 1 if debug else multiprocessing.cpu_count()
 
-        # Log startup with colorful output
-        if self.logger:
-            self.logger.log_startup("Starting BustAPI Application")
-            self.logger.info(f"Listening on http://{host}:{port}")
-            self.logger.info(f"Workers: {workers}")
-            self.logger.info(f"Debug mode: {'ON' if debug else 'OFF'}")
-        else:
-            print(
-                f"🚀 BustAPI server running on http://{host}:{port} with {workers} workers"
-            )
+        # Log startup with colorful output - DELEGATED TO RUST BACKEND FOR BANNER
+    # if self.logger:
+    #     self.logger.log_startup("Starting BustAPI Application")
+    #     self.logger.info(f"Listening on http://{host}:{port}")
+    #     self.logger.info(f"Workers: {workers}")
+    #     self.logger.info(f"Debug mode: {'ON' if debug else 'OFF'}")
+    # else:
+    #     # print(
+    #     #     f"🚀 BustAPI server running on http://{host}:{port} with {workers} workers"
+    #     # )
+    #     pass
 
         try:
             self._rust_app.run(host, port, workers, debug)

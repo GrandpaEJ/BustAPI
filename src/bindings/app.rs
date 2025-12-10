@@ -103,12 +103,14 @@ impl PyBustApp {
 
         // Initialize logging if debug is on and not already initialized
         if debug {
+            // Debug mode: Show debug logs but suppress framework noise
             let _ = tracing_subscriber::fmt()
-                .with_max_level(tracing::Level::DEBUG)
+                .with_env_filter("debug,actix_server=error,actix_web=error")
                 .try_init();
         } else {
+            // Clean mode: Suppress Actix startup noise
             let _ = tracing_subscriber::fmt()
-                .with_max_level(tracing::Level::INFO)
+                .with_env_filter("info,actix_server=error,actix_web=error")
                 .try_init();
         }
 

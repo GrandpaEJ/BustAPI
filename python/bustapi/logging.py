@@ -138,6 +138,7 @@ class BustAPILogger:
     def __init__(self, name: str = "bustapi", use_colors: bool = True):
         self.logger = logging.getLogger(name)
         self.use_colors = use_colors
+        self._fast_logger = None
         self._setup_logger()
 
     def _setup_logger(self):
@@ -187,6 +188,24 @@ class BustAPILogger:
         **kwargs,
     ):
         """Log HTTP request with colored formatting and smart time units."""
+        
+        # Try to use Rust-based FastLogger
+        # This is much faster as it avoids Python logging machinery for high-volume logs
+        if self._fast_logger is None:
+            try:
+                from . import bustapi_core
+                self._fast_logger = bustapi_core.FastLogger()
+            except (ImportError, AttributeError):
+                self._fast_logger = False  # Mark as unavailable
+        
+        if self._fast_logger:
+            # Rust logger handles formatting and color output directly
+            # Note: Rust logger currently prints to stdout directly (Fiber style)
+            duration_val = duration if duration is not None else 0.0
+            self._fast_logger.log_request(method, path, status_code, duration_val)
+            return
+
+        # Fallback to Python logging
         # Format duration with appropriate time unit
         duration_str = (
             self._format_duration(duration) if duration is not None else "N/A"
@@ -205,7 +224,6 @@ class BustAPILogger:
         else:
             log_level = "info"
 
-        # Log with appropriate level
         # Log with appropriate level
         getattr(self, log_level)(
             message,
