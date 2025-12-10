@@ -76,7 +76,9 @@ class ColoredFormatter(logging.Formatter):
                 "HEAD": Fore.MAGENTA,
                 "OPTIONS": Fore.WHITE,
             }
-            method_colored = f"{method_colors.get(method, '')}{method:<7}{Style.RESET_ALL}"
+            method_colored = (
+                f"{method_colors.get(method, '')}{method:<7}{Style.RESET_ALL}"
+            )
 
             # Status Code
             status_str = str(status_code)
@@ -95,7 +97,7 @@ class ColoredFormatter(logging.Formatter):
             # Duration (Latency)
             # Duration logic for color is already good, just need reference to formatted string
             # Fiber style: 12.345ms
-            
+
             # Format: TIME | STATUS | LATENCY | METHOD | PATH
             log_line = (
                 f"{timestamp_colored} | "
@@ -104,17 +106,17 @@ class ColoredFormatter(logging.Formatter):
                 f"{method_colored} | "
                 f"{Fore.WHITE}{path}{Style.RESET_ALL}"
             )
-            
+
             if error:
                 log_line += f" | {Fore.RED}{error}{Style.RESET_ALL}"
-                
+
             return log_line
 
         # Standard logs (not HTTP requests)
         level_color = self.COLORS.get(record.levelname, "")
         level_colored = f"{level_color}{record.levelname:<8}{Style.RESET_ALL}"
         logger_name = f"{Fore.CYAN}{record.name}{Style.RESET_ALL}"
-        
+
         return f"{timestamp_colored} | {level_colored} | {logger_name} | {record.getMessage()}"
 
     def _format_plain(self, record: logging.LogRecord) -> str:
@@ -188,16 +190,17 @@ class BustAPILogger:
         **kwargs,
     ):
         """Log HTTP request with colored formatting and smart time units."""
-        
+
         # Try to use Rust-based FastLogger
         # This is much faster as it avoids Python logging machinery for high-volume logs
         if self._fast_logger is None:
             try:
                 from .. import bustapi_core
+
                 self._fast_logger = bustapi_core.FastLogger()
             except (ImportError, AttributeError):
                 self._fast_logger = False  # Mark as unavailable
-        
+
         if self._fast_logger:
             # Rust logger handles formatting and color output directly
             # Note: Rust logger currently prints to stdout directly (Fiber style)

@@ -23,13 +23,13 @@ class RateLimit:
         now = time.time()
         if key not in self.requests:
             self.requests[key] = []
-        
+
         # Filter out old requests
         self.requests[key] = [t for t in self.requests[key] if now - t < self.period]
-        
+
         if len(self.requests[key]) >= self.limit:
             return False
-        
+
         self.requests[key].append(now)
         return True
 
@@ -44,12 +44,20 @@ class Security:
         self.app = None
         self._cors_enabled = False
         self._cors_origins = "*"
-        self._cors_methods = ["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
+        self._cors_methods = [
+            "GET",
+            "HEAD",
+            "POST",
+            "OPTIONS",
+            "PUT",
+            "PATCH",
+            "DELETE",
+        ]
         self._cors_headers = ["Content-Type", "Authorization"]
-        
+
         self._secure_headers_enabled = False
         self._hsts_enabled = False
-        
+
         self._rate_limiter: Optional[RateLimit] = None
 
         if app is not None:
@@ -59,7 +67,7 @@ class Security:
         """Initialize with application instance."""
         self.app = app
         app.extensions["security"] = self
-        
+
         # Register hooks
         app.after_request(self._apply_security_headers)
         app.before_request(self._check_rate_limit)
@@ -101,17 +109,21 @@ class Security:
                 # Naive implementation: just return * or the first one for now
                 # Real impl would check Origin request header
                 allow_origin = ", ".join(self._cors_origins)
-            
+
             response.headers["Access-Control-Allow-Origin"] = allow_origin
-            response.headers["Access-Control-Allow-Methods"] = ", ".join(self._cors_methods)
-            response.headers["Access-Control-Allow-Headers"] = ", ".join(self._cors_headers)
+            response.headers["Access-Control-Allow-Methods"] = ", ".join(
+                self._cors_methods
+            )
+            response.headers["Access-Control-Allow-Headers"] = ", ".join(
+                self._cors_headers
+            )
 
         # Secure Headers
         if self._secure_headers_enabled:
             response.headers.setdefault("X-Content-Type-Options", "nosniff")
             response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
             response.headers.setdefault("X-XSS-Protection", "1; mode=block")
-            
+
             if self._hsts_enabled:
                 response.headers.setdefault(
                     "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
@@ -126,15 +138,16 @@ class Security:
 
         # Need to access current request
         from ..http.request import request
-        
+
         # Get client IP - naive implementation
         # In production this should handle X-Forwarded-For properly
         client_ip = "unknown"
         # We don't have direct access to remote_addr on Request yet, but let's assume valid request
         if request:
             # Use a dummy key if we can't get IP yet, or maybe just "global" for now if IP is missing
-            client_ip = "global_user" 
+            client_ip = "global_user"
 
         if not self._rate_limiter.is_allowed(client_ip):
             from ..core.exceptions import abort
+
             abort(429, "Too Many Requests")

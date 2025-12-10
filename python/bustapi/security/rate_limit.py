@@ -19,6 +19,7 @@ class RateLimit:
 
     def __init__(self, app=None):
         from .. import bustapi_core
+
         self._limiter = bustapi_core.PyRateLimiter()
         if app is not None:
             self.init_app(app)
@@ -51,7 +52,9 @@ class RateLimit:
                 elif request:
                     # Naive IP check, similar to Security class
                     # Ideally we trust X-Forwarded-For if behind proxy
-                    key = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown")
+                    key = request.headers.get(
+                        "X-Forwarded-For", request.remote_addr or "unknown"
+                    )
 
                 # Combine with route endpoint or function name to make it per-route
                 route_key = f"{key}:{f.__name__}"
@@ -73,10 +76,10 @@ class RateLimit:
             parts = limit_string.split("/")
             if len(parts) != 2:
                 raise ValueError
-            
+
             count = int(parts[0])
             period_str = parts[1].lower()
-            
+
             if period_str.startswith("second") or period_str == "s":
                 period = 1
             elif period_str.startswith("minute") or period_str == "m":
@@ -87,7 +90,9 @@ class RateLimit:
                 period = 86400
             else:
                 raise ValueError("Unknown period")
-                
+
             return count, period
         except ValueError:
-            raise ValueError(f"Invalid limit string: '{limit_string}'. Expected format: 'count/period' (e.g. '5/minute')")
+            raise ValueError(
+                f"Invalid limit string: '{limit_string}'. Expected format: 'count/period' (e.g. '5/minute')"
+            ) from None

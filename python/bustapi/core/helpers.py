@@ -5,9 +5,9 @@ Helper functions for BustAPI - Flask-compatible utilities
 import os
 from typing import Any, Optional
 
-from .exceptions import HTTPException
 from ..http.response import Response
 from ..http.response import redirect as _redirect
+from .exceptions import HTTPException
 
 
 def abort(code: int, description: Optional[str] = None, **kwargs) -> None:
