@@ -37,3 +37,45 @@ WantedBy=multi-user.target
 If you are using Python 3.13 free-threaded (nogil) mode, BustAPI automatically detects it. This allows your application to use all CPU cores from a single process without the Global Interpreter Lock (GIL).
 
 This is ideal for heavy workloads where traditionally you would need to spawn multiple Gunicorn workers. With BustAPI + Python 3.13t, **one process** is often enough to saturate the machine.
+
+## Alternative Servers
+
+While the built-in Rust server is the most optimized for BustAPI, you can also run your application with standard ASGI or WSGI servers.
+
+### Uvicorn (ASGI)
+
+BustAPI provides an `asgi_app` entry point compatible with Uvicorn and other ASGI servers.
+
+```bash
+# Install uvicorn
+pip install uvicorn
+
+# Run using the CLI
+uvicorn main:app.asgi_app --interface asgi3
+```
+
+Or programmatically:
+
+```python
+if __name__ == "__main__":
+    app.run(server="uvicorn")
+```
+
+### Gunicorn (WSGI)
+
+For traditional deployments, you can use Gunicorn. BustAPI behaves as a standard WSGI application.
+
+```bash
+# Install gunicorn
+pip install gunicorn
+
+# Run using the CLI
+gunicorn main:app
+```
+
+Or programmatically:
+
+```python
+if __name__ == "__main__":
+    app.run(server="gunicorn")
+```

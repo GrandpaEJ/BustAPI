@@ -56,7 +56,7 @@ Open your browser and navigate to:
 3.  **`@app.route("/")`**: Decorator to register a function as a route handler. By default, it handles `GET` requests.
 4.  **`return "..."`**: Returning a string automatically creates a `text/html` response.
 5.  **`return {...}`**: Returning a dictionary automatically creates a `application/json` response.
-6.  **`app.run(debug=True)`**: Starts the development server. `debug=True` provides detailed error pages (and will enable auto-reload in future versions).
+6.  **`app.run(debug=True)`**: Starts the development server. `debug=True` provides detailed error pages and enables **hot reloading** (server restarts automatically on code changes).
 
 ## Next Steps
 
