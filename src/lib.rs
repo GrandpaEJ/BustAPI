@@ -24,7 +24,7 @@ pub use response::ResponseData;
 /// gil_used = false enables true parallelism with Python 3.13t!
 #[pymodule(gil_used = false)]
 fn bustapi_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add("__version__", "0.2.1")?;
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_class::<bindings::PyBustApp>()?;
     m.add_class::<bindings::PyRequest>()?;
     m.add_class::<rate_limiter::PyRateLimiter>()?;
