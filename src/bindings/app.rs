@@ -140,4 +140,49 @@ impl PyBustApp {
 
         Ok(())
     }
+    /// Handle a request directly (for ASGI/WSGI support)
+    /// Returns (body, status_code, headers)
+    pub fn handle_request(
+        &self,
+        method: &str,
+        path: &str,
+        query_string: &str,
+        headers: std::collections::HashMap<String, String>,
+        body: Vec<u8>,
+    ) -> PyResult<(String, u16, std::collections::HashMap<String, String>)> {
+        let state = self.state.clone();
+        let method_enum = std::str::FromStr::from_str(method)
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid HTTP method"))?;
+        let path_string = path.to_string();
+        let query_string = query_string.to_string();
+
+        let mut req_data = crate::request::RequestData::new(method_enum, path_string);
+        req_data.query_string = query_string;
+        req_data.headers = headers;
+        req_data.body = body;
+        // Parse query params from query string if needed
+        if !req_data.query_string.is_empty() {
+             req_data.query_params = url::form_urlencoded::parse(req_data.query_string.as_bytes())
+                .into_owned()
+                .collect();
+        }
+
+        // We needs to block on the async runtime to acquire the lock and process
+        // Since we are likely called from a sync context (WSGI) or async (ASGI via thread),
+        // we use the runtime to execute.
+        let response_data = self.runtime.block_on(async {
+            let routes = state.routes.read().await;
+            routes.process_request(req_data)
+        });
+
+        let body_str = response_data
+            .body_as_string()
+            .unwrap_or_else(|_| String::from_utf8_lossy(&response_data.body).to_string());
+        
+        Ok((
+            body_str,
+            response_data.status.as_u16(),
+            response_data.headers,
+        ))
+    }
 }
