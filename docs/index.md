@@ -1,6 +1,6 @@
 # Welcome to BustAPI
 
-**BustAPI** is a high-performance Python web framework that combines the ease of use of [Flask](https://flask.palletsprojects.com/) with the raw speed of [Rust](https://www.rust-lang.org/). Built on top of [PyO3](https://pyo3.rs/) and [Actix-web](https://actix.rs/), it offers a familiar API for Python developers while delivering performance comparable to Go/Rust frameworks.
+**BustAPI** is a high-performance Python web framework with the raw speed of [Rust](https://www.rust-lang.org/). Built on top of [PyO3](https://pyo3.rs/) and [Actix-web](https://actix.rs/).
 
 [![PyPI version](https://badge.fury.io/py/bustapi.svg)](https://badge.fury.io/py/bustapi)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -9,7 +9,6 @@
 
 ## 🚀 Key Features
 
-- **Flask-Compatible API**: Almost 1:1 API compatibility with Flask. Migrating existing apps is straightforward.
 - **Rust-Powered Engine**: The core HTTP server, router, and request handling are implemented in Rust using Actix-web, providing blazing fast performance.
 - **Async Support**: Native support for `async/await` syntax for high-concurrency workloads.
 - **True Parallelism**: Leverages Python 3.13's free-threading mode (no GIL) for true multi-core parallel execution.
