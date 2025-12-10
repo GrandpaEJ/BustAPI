@@ -67,6 +67,19 @@ docs = [
     "mkdocstrings[python]>=0.20",
 ]
 
+server = [
+    "uvicorn>=0.38.0",
+    "gunicorn>=23.0.0",
+    "hypercorn>=0.17.0",
+]
+
+full = [
+    "bustapi[server]",
+    "bustapi[dev]",
+    "bustapi[docs]",
+    "bustapi[benchmarks]",
+]
+
 [project.urls]
 Homepage = "https://github.com/GrandpaEJ/bustapi"
 Documentation = "https://grandpaej.github.io/BustAPI/"
