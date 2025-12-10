@@ -9,20 +9,36 @@ import sys
 import time
 from typing import Optional
 
-try:
-    import colorama
-    from colorama import Back, Fore, Style
+# ANSI Color Codes
+class Fore:
+    BLACK = "\033[30m"
+    RED = "\033[31m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    BLUE = "\033[34m"
+    MAGENTA = "\033[35m"
+    CYAN = "\033[36m"
+    WHITE = "\033[37m"
+    RESET = "\033[39m"
 
-    colorama.init(autoreset=True)
-    HAS_COLORAMA = True
-except ImportError:
-    # Fallback without colors
-    class _MockColor:
-        def __getattr__(self, name):
-            return ""
+class Back:
+    BLACK = "\033[40m"
+    RED = "\033[41m"
+    GREEN = "\033[42m"
+    YELLOW = "\033[43m"
+    BLUE = "\033[44m"
+    MAGENTA = "\033[45m"
+    CYAN = "\033[46m"
+    WHITE = "\033[47m"
+    RESET = "\033[49m"
 
-    Fore = Back = Style = _MockColor()
-    HAS_COLORAMA = False
+class Style:
+    DIM = "\033[2m"
+    NORMAL = "\033[22m"
+    BRIGHT = "\033[1m"
+    RESET_ALL = "\033[0m"
+
+HAS_COLORAMA = True  # Native ANSI support
 
 
 class ColoredFormatter(logging.Formatter):
