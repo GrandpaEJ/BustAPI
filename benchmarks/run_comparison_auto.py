@@ -15,6 +15,7 @@ import subprocess
 import sys
 import threading
 import time
+import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
@@ -148,7 +149,10 @@ class BenchmarkResult:
     framework: str
     endpoint: str
     requests_sec: float
-    latency_ms: float
+    transfer_sec_mb: float
+    avg_latency_ms: float
+    min_latency_ms: float
+    max_latency_ms: float
     cpu_percent: float
     ram_mb: float
 
@@ -276,17 +280,37 @@ def clean_server_files():
         if os.path.exists(f):
             os.remove(f)
 
+def parse_time(time_str):
+    """Convert time string (e.g., '10.50ms', '1s') to ms."""
+    time_str = time_str.lower()
+    if "us" in time_str:
+        return float(time_str.replace("us", "")) / 1000
+    if "ms" in time_str:
+        return float(time_str.replace("ms", ""))
+    if "s" in time_str:
+        return float(time_str.replace("s", "")) * 1000
+    return float(time_str)
+
+def parse_size(size_str):
+    """Convert size string to MB."""
+    size_str = size_str.lower()
+    if "kb" in size_str:
+        return float(size_str.replace("kb", "")) / 1024
+    if "mb" in size_str:
+        return float(size_str.replace("mb", ""))
+    if "gb" in size_str:
+        return float(size_str.replace("gb", "")) * 1024
+    if "b" in size_str:
+        return float(size_str.replace("b", "")) / 1024 / 1024
+    return float(size_str)
 
 def run_wrk(endpoint: str) -> Optional[Dict]:
     url = f"http://{HOST}:{PORT}{endpoint}"
     cmd = [
         "wrk",
-        "-t",
-        str(WRK_THREADS),
-        "-c",
-        str(WRK_CONNECTIONS),
-        "-d",
-        WRK_DURATION,
+        "-t", str(WRK_THREADS),
+        "-c", str(WRK_CONNECTIONS),
+        "-d", WRK_DURATION,
         "--latency",
         url,
     ]
@@ -299,18 +323,49 @@ def run_wrk(endpoint: str) -> Optional[Dict]:
 
         # Parse wrk output
         output = result.stdout
-        rps = 0.0
-        latency = 0.0
+        
+        # Defaults
+        data = {
+            "rps": 0.0,
+            "transfer_mb": 0.0,
+            "avg_latency": 0.0,
+            "min_latency": 0.0,
+            "max_latency": 0.0,
+            "raw": output
+        }
 
-        for line in output.splitlines():
-            if "Requests/sec:" in line:
-                rps = float(line.split(":")[1].strip())
-            if "Latency" in line and "Avg" in line:
-                # This is tricky because wrk output format varies.
-                # Assuming standard format: "Latency    1.23ms ..."
-                pass
+        # Parsing using regex for better accuracy
+        # Requests/sec:  19634.88
+        rps_match = re.search(r"Requests/sec:\s+([\d.]+)", output)
+        if rps_match:
+            data["rps"] = float(rps_match.group(1))
+            
+        # Transfer/sec:      2.42MB
+        transfer_match = re.search(r"Transfer/sec:\s+([0-9.]+)(\w+)", output)
+        if transfer_match:
+            val = float(transfer_match.group(1))
+            unit = transfer_match.group(2)
+            data["transfer_mb"] = parse_size(f"{val}{unit}")
 
-        return {"rps": rps, "raw": output}
+        # Latency   3.89ms    2.17ms  29.98ms   89.38%
+        # Columns: Avg, Stdev, Max, +/- Stdev (approx)
+        # Or detailed stats if present. 
+        # But wrk summary line is usually: 
+        # Thread Stats   Avg      Stdev     Max   +/- Stdev
+        #   Latency     3.89ms    2.17ms  29.98ms   89.38%
+        
+        latency_match = re.search(r"Latency\s+([\d\.]+\w+)\s+([\d\.]+\w+)\s+([\d\.]+\w+)", output)
+        if latency_match:
+            data["avg_latency"] = parse_time(latency_match.group(1))
+            data["max_latency"] = parse_time(latency_match.group(3))
+            # Min latency isn't directly in summary line, usually need detailed output or approximation. 
+            # wrk default doesn't show min in summary table.
+            # However some versions output: 
+            # Latency Distribution
+            # 50% 1.2ms ...
+            data["min_latency"] = 0.0 # Not reliably available in default summary
+
+        return data
     except FileNotFoundError:
         print("❌ wrk not found. Please install wrk.")
         sys.exit(1)
@@ -327,10 +382,10 @@ def benchmark_framework(name: str):
     cmd = RUN_COMMANDS[name]
     # Use uv run to ensure dependencies are found
     if cmd[0] == "python":
-        final_cmd = ["uv", "run"] + cmd
+        final_cmd = ["uv", "run", "--extra", "benchmarks"] + cmd
     else:
         # e.g. gunicorn
-        final_cmd = ["uv", "run"] + cmd
+        final_cmd = ["uv", "run", "--extra", "benchmarks"] + cmd
 
     print(f"   Starting: {' '.join(final_cmd)}")
 
@@ -357,17 +412,8 @@ def benchmark_framework(name: str):
         for ep in endpoints:
             print(f"   Measuring {ep}...", end="", flush=True)
             res = run_wrk(ep)
-            if res:
-                # Get current stats (snapshot-ish)
-                # Actually, monitor is running continuously.
-                # We can just check stats at end, or maybe we want independent stats per endpoint?
-                # For simplicity, let's keep monitor running for the whole suite of endpoints
-                # and just report the average usage during that specific test?
-                # No, ResourceMonitor collects all history.
-                # Let's Restart monitor for each endpoint for better granularity.
-                pass
-
-            # RESTART MONITOR STRATEGY for per-endpoint stats
+            
+            # Restart monitor for clean stats per endpoint
             monitor.stop()
             cpu, ram = monitor.get_stats()
             # Clear samples
@@ -376,21 +422,21 @@ def benchmark_framework(name: str):
             monitor.start()  # Restart
 
             if res:
-                print(f" {res['rps']:.2f} req/sec, CPU: {cpu:.1f}%, RAM: {ram:.1f}MB")
-                results.append(BenchmarkResult(name, ep, res["rps"], 0.0, cpu, ram))
+                print(f" {res['rps']:.2f} req/sec, Latency: {res['avg_latency']:.2f}ms")
+                results.append(BenchmarkResult(
+                    framework=name, 
+                    endpoint=ep, 
+                    requests_sec=res["rps"], 
+                    transfer_sec_mb=res["transfer_mb"],
+                    avg_latency_ms=res["avg_latency"],
+                    min_latency_ms=res["min_latency"],
+                    max_latency_ms=res["max_latency"],
+                    cpu_percent=cpu, 
+                    ram_mb=ram
+                ))
             else:
                 print(" Failed")
-                # Print server output for debugging
-                print(f"--- {name} stdout ---")
-                try:
-                    print(open(f"stdout_{name}.txt").read())
-                except:
-                    pass
-                print(f"--- {name} stderr ---")
-                try:
-                    print(open(f"stderr_{name}.txt").read())
-                except:
-                    pass
+
     finally:
         monitor.stop()
         os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
@@ -412,7 +458,8 @@ def main():
     all_results = []
 
     try:
-        frameworks = ["BustAPI", "Flask", "FastAPI", "Catzilla"]
+        frameworks = ["BustAPI", "Flask", "FastAPI", "Catzilla"] 
+        
         for fw in frameworks:
             fw_results = benchmark_framework(fw)
             all_results.extend(fw_results)
@@ -421,101 +468,70 @@ def main():
         sys_info = get_system_info()
 
         report_lines = []
-        report_lines.append("# 🚀 Web Framework Benchmark Results")
+        report_lines.append("# ⚡ Ultimate Web Framework Benchmark")
         report_lines.append("")
-        report_lines.append(f"**Date:** {time.strftime('%Y-%m-%d')}")
-        report_lines.append("**Tool:** `benchmarks/run_comparison_auto.py`")
+        report_lines.append(f"> **Date:** {time.strftime('%Y-%m-%d')} | **Tool:** `wrk`")
         report_lines.append("")
-        report_lines.append("## 💻 Test Environment")
-        report_lines.append(f"- **OS:** {sys_info['os']}")
-        report_lines.append(
-            f"- **CPU:** {sys_info['cpu_model']} ({sys_info['cpu_count']} Cores)"
-        )
-        report_lines.append(f"- **RAM:** {sys_info['ram_total_gb']} GB")
-        report_lines.append(f"- **Python:** {sys_info['python']}")
+        report_lines.append("## 🖥️ System Spec")
+        report_lines.append(f"- **OS:** `{sys_info['os']}`")
+        report_lines.append(f"- **CPU:** `{sys_info['cpu_model']}` ({sys_info['cpu_count']} Cores)")
+        report_lines.append(f"- **RAM:** `{sys_info['ram_total_gb']} GB`")
+        report_lines.append(f"- **Python:** `{sys_info['python']}`")
         report_lines.append("")
-        report_lines.append(
-            f"**Config:** {WRK_THREADS} threads, {WRK_CONNECTIONS} connections, {WRK_DURATION} duration"
-        )
+        report_lines.append("## 🏆 Throughput (Requests/sec)")
         report_lines.append("")
-        report_lines.append("## 📊 Summary (Requests/sec)")
-        report_lines.append("")
-
-        # Table Header
-        headers = ["Endpoint", "Metric"] + frameworks
+        
+        # Throughput Table
+        headers = ["Endpoint", "Metrics"] + frameworks
         report_lines.append("| " + " | ".join(headers) + " |")
-        report_lines.append("|" + "|".join(["-" * len(h) for h in headers]) + "|")
+        report_lines.append("| :--- | :--- | " + " | ".join([":---:" for _ in frameworks]) + " |")
 
-        # Table Rows
         endpoints = ["/", "/json", "/user/10"]
+        
         for ep in endpoints:
-            # Row 1: RPS
-            row_rps = [f"**{ep}**", "Req/Sec"]
-
-            # Row 2: CPU
-            row_cpu = ["", "CPU %"]
-
-            # Row 3: RAM
-            row_ram = ["", "RAM (MB)"]
-
-            for fw in frameworks:
-                match = next(
-                    (r for r in all_results if r.framework == fw and r.endpoint == ep),
-                    None,
-                )
-                if match:
-                    # RPS Handling
-                    val_str = f"{match.requests_sec:,.0f}"
-                    # Check if winner
-                    row_values = [
-                        (
-                            next(
-                                (
-                                    r
-                                    for r in all_results
-                                    if r.framework == f and r.endpoint == ep
-                                ),
-                                None,
-                            ).requests_sec
-                        )
-                        for f in frameworks
-                        if next(
-                            (
-                                r
-                                for r in all_results
-                                if r.framework == f and r.endpoint == ep
-                            ),
-                            None,
-                        )
-                    ]
-                    if match.requests_sec == max(row_values):
-                        val_str = f"**{val_str}**"
-                    row_rps.append(val_str)
-
-                    row_cpu.append(f"{match.cpu_percent:.1f}%")
-                    row_ram.append(f"{match.ram_mb:.1f}")
+            # Metric Rows
+            metrics = [
+                ("🚀 RPS", lambda r: f"**{r.requests_sec:,.0f}**"),
+                ("⏱️ Avg Latency", lambda r: f"{r.avg_latency_ms:.2f}ms"),
+                ("📉 Max Latency", lambda r: f"{r.max_latency_ms:.2f}ms"),
+                ("📦 Transfer", lambda r: f"{r.transfer_sec_mb:.2f} MB/s"),
+                ("🔥 CPU Usage", lambda r: f"{r.cpu_percent:.0f}%"),
+                ("🧠 RAM Usage", lambda r: f"{r.ram_mb:.1f} MB"),
+            ]
+            
+            first_metric = True
+            for metric_name, metric_fmt in metrics:
+                row = []
+                if first_metric:
+                    row.append(f"**`{ep}`**")
                 else:
-                    row_rps.append("N/A")
-                    row_cpu.append("N/A")
-                    row_ram.append("N/A")
-
-            report_lines.append("| " + " | ".join(row_rps) + " |")
-            report_lines.append("| " + " | ".join(row_cpu) + " |")
-            report_lines.append("| " + " | ".join(row_ram) + " |")
-            # Separate sections
-            report_lines.append(f"| | | {' | '.join(['---'] * len(frameworks))} |")
+                    row.append("")
+                
+                row.append(metric_name)
+                
+                for fw in frameworks:
+                    res = next((r for r in all_results if r.framework == fw and r.endpoint == ep), None)
+                    if res:
+                        val = metric_fmt(res)
+                        # Highlight winner for RPS
+                        if metric_name == "🚀 RPS":
+                            competitors = [r.requests_sec for r in all_results if r.endpoint == ep]
+                            if res.requests_sec == max(competitors):
+                                val = f"🥇 {val}"
+                        row.append(val)
+                    else:
+                        row.append("N/A")
+                
+                report_lines.append("| " + " | ".join(row) + " |")
+                first_metric = False
+            
+            # Divider
+            report_lines.append(f"| | | {' | '.join(['---']*len(frameworks))} |")
 
         report_lines.append("")
-        report_lines.append("## 🏃 How to Run")
-        report_lines.append("")
+        report_lines.append("## ⚙️ How to Reproduce")
         report_lines.append("```bash")
-        report_lines.append("# Clean ports")
-        report_lines.append("fuser -k 8000/tcp")
-        report_lines.append("")
-        report_lines.append("# Run automated benchmark")
-        report_lines.append(
-            "uv run --extra benchmarks benchmarks/run_comparison_auto.py"
-        )
+        report_lines.append("uv run --extra benchmarks benchmarks/run_comparison_auto.py")
         report_lines.append("```")
 
         report_content = "\n".join(report_lines)

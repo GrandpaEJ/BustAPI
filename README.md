@@ -144,9 +144,10 @@ gunicorn main:app
 
 | Framework          | Requests/Sec | Relative Speed |
 | :----------------- | :----------- | :------------- |
-| **BustAPI (v0.3)** | **19,635**   | **🚀 100%**    |
-| Catzilla           | 8,851        | 🐯 45%         |
-| Flask              | 3,526        | 🐢 18%         |
+| **BustAPI (v0.3)** | **19,126**   | **🚀 100%**    |
+| Catzilla           | 8,688        | 🐯 45%         |
+| Flask              | 2,858        | 🐢 15%         |
+| FastAPI            | 2,029        | 🐢 11%         |
 
 _(Benchmarks run on Intel i5, 8 Cores, 4 threads, 100 connections)_
 
