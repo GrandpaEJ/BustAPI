@@ -3,6 +3,14 @@
 use http::Method;
 use std::collections::HashMap;
 
+/// Represents an uploaded file
+#[derive(Debug, Clone)]
+pub struct UploadedFile {
+    pub filename: String,
+    pub content_type: String,
+    pub content: Vec<u8>,
+}
+
 /// HTTP request data structure
 #[derive(Debug, Clone)]
 pub struct RequestData {
@@ -12,6 +20,8 @@ pub struct RequestData {
     pub headers: HashMap<String, String>,
     pub body: Vec<u8>,
     pub query_params: HashMap<String, String>,
+    pub files: HashMap<String, UploadedFile>,
+    pub multipart_form: HashMap<String, String>,
 }
 
 impl RequestData {
@@ -24,6 +34,8 @@ impl RequestData {
             headers: HashMap::new(),
             body: Vec::new(),
             query_params: HashMap::new(),
+            files: HashMap::new(),
+            multipart_form: HashMap::new(),
         }
     }
 

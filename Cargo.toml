@@ -39,6 +39,7 @@ dashmap = "5.5"
 chrono = { version = "0.4", features = ["now"] }
 colored = "2.0"
 mime_guess = "2.0"
+actix-multipart = "0.7.2"
 
 
 [build-dependencies]

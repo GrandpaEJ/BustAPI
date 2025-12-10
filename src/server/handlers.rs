@@ -3,6 +3,8 @@
 use actix_web::{web, HttpRequest, HttpResponse};
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use actix_multipart::Multipart;
+use futures::{StreamExt, TryStreamExt};
 
 use crate::request::RequestData;
 use crate::router::{RouteHandler, Router};
@@ -80,7 +82,7 @@ impl Default for AppState {
 /// Main request handler - dispatches to registered route handlers
 pub async fn handle_request(
     req: HttpRequest,
-    body: web::Bytes,
+    mut payload: web::Payload,
     state: web::Data<Arc<AppState>>,
 ) -> HttpResponse {
     // 1. Convert Actix Request to generic RequestData
@@ -100,13 +102,64 @@ pub async fn handle_request(
         std::collections::HashMap::new()
     };
 
+    // 2. Handle Body (Multipart or Regular)
+    let mut files = std::collections::HashMap::new();
+    let mut multipart_form = std::collections::HashMap::new();
+    let mut body_bytes = Vec::new();
+
+    let content_type = headers
+        .get("content-type")
+        .map(|ct| ct.to_lowercase())
+        .unwrap_or_default();
+
+    if content_type.contains("multipart/form-data") {
+        let mut multipart = Multipart::new(req.headers(), payload);
+        while let Ok(Some(mut field)) = multipart.try_next().await {
+            // Note: In some versions content_disposition returns Option, compiler says it does.
+            if let Some(content_disposition) = field.content_disposition() {
+                let name = content_disposition.get_name().unwrap_or("").to_string();
+                let filename = content_disposition.get_filename().map(|f| f.to_string());
+
+                let mut field_bytes = Vec::new();
+                while let Some(chunk) = field.next().await {
+                    match chunk {
+                        Ok(data) => field_bytes.extend_from_slice(&data),
+                        Err(_) => {}, 
+                    }
+                }
+
+                if let Some(fname) = filename {
+                    files.insert(name, crate::request::UploadedFile {
+                        filename: fname,
+                        content_type: field.content_type().map(|ct| ct.to_string()).unwrap_or_default(),
+                        content: field_bytes,
+                    });
+                } else {
+                    if let Ok(s) = String::from_utf8(field_bytes) {
+                        multipart_form.insert(name, s);
+                    }
+                }
+            }
+        }
+    } else {
+        // Regular body
+        while let Some(chunk) = payload.next().await {
+            match chunk {
+                Ok(data) => body_bytes.extend_from_slice(&data),
+                Err(_) => {}, // TODO: handle error
+            }
+        }
+    }
+
     let request_data = RequestData {
         method: req.method().clone(),
         path: req.path().to_string(),
         query_string: req.query_string().to_string(),
         headers,
-        body: body.to_vec(),
+        body: body_bytes,
         query_params,
+        files,
+        multipart_form,
     };
 
     // 2. Dispatch to Router

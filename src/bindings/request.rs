@@ -2,6 +2,7 @@
 
 use pyo3::prelude::*;
 use std::collections::HashMap;
+use std::io::Write;
 
 use crate::bindings::converters::*;
 
@@ -16,6 +17,36 @@ pub struct PyRequest {
     headers: HashMap<String, String>,
     args: HashMap<String, String>,
     body: Py<PyBytes>,
+    files: HashMap<String, Py<PyUploadedFile>>,
+    multipart_form: HashMap<String, String>,
+}
+
+/// Python wrapper for uploaded files
+#[pyclass]
+#[derive(Clone)]
+pub struct PyUploadedFile {
+    filename: String,
+    content_type: String,
+    content: Vec<u8>,
+}
+
+#[pymethods]
+impl PyUploadedFile {
+    #[getter]
+    pub fn filename(&self) -> &str {
+        &self.filename
+    }
+
+    #[getter]
+    pub fn content_type(&self) -> &str {
+        &self.content_type
+    }
+
+    pub fn save(&self, path: String) -> PyResult<()> {
+        let mut file = std::fs::File::create(path)?;
+        file.write_all(&self.content)?;
+        Ok(())
+    }
 }
 
 #[pymethods]
@@ -43,6 +74,11 @@ impl PyRequest {
     #[getter]
     pub fn args(&self) -> HashMap<String, String> {
         self.args.clone()
+    }
+
+    #[getter]
+    pub fn files(&self, py: Python) -> HashMap<String, Py<PyUploadedFile>> {
+        self.files.iter().map(|(k, v)| (k.clone(), v.clone_ref(py))).collect()
     }
 
     pub fn get_data(&self, py: Python) -> Py<PyBytes> {
@@ -91,6 +127,8 @@ impl PyRequest {
                         .collect()
                 })
                 .unwrap_or_default()
+        } else if !self.multipart_form.is_empty() {
+            self.multipart_form.clone()
         } else {
             HashMap::new()
         }
@@ -101,6 +139,16 @@ impl PyRequest {
 pub fn create_py_request(py: Python, req: &crate::request::RequestData) -> PyResult<Py<PyRequest>> {
     let py_body = PyBytes::new(py, &req.body);
     
+    let mut py_files = HashMap::new();
+    for (key, file) in &req.files {
+        let py_file = Py::new(py, PyUploadedFile {
+            filename: file.filename.clone(),
+            content_type: file.content_type.clone(),
+            content: file.content.clone(),
+        })?;
+        py_files.insert(key.clone(), py_file);
+    }
+
     let py_req = PyRequest {
         method: req.method.as_str().to_string(),
         path: req.path.clone(),
@@ -108,6 +156,8 @@ pub fn create_py_request(py: Python, req: &crate::request::RequestData) -> PyRes
         headers: req.headers.clone(),
         args: req.query_params.clone(),
         body: py_body.into(),
+        files: py_files,
+        multipart_form: req.multipart_form.clone(),
     };
 
     Py::new(py, py_req)

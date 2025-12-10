@@ -115,9 +115,13 @@ class Request:
     def files(self) -> ImmutableMultiDict:
         """Uploaded files as ImmutableMultiDict."""
         if self._files_cache is None:
-            # TODO: Implement file upload handling in Rust backend
-            # For now, return empty dict
-            self._files_cache = ImmutableMultiDict([])
+            if self._rust_request:
+                # files is a property in PyRequest (#[getter])
+                files_dict = self._rust_request.files
+                items = [(k, v) for k, v in files_dict.items()]
+            else:
+                items = []
+            self._files_cache = ImmutableMultiDict(items)
         return self._files_cache
 
     @property
