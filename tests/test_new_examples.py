@@ -25,7 +25,12 @@ class TestNewExamples(unittest.TestCase):
             env=env,
             preexec_fn=os.setsid,
         )
-        time.sleep(2)  # Wait for startup
+        time.sleep(3)  # Wait for startup (increased to 3s)
+        if proc.poll() is not None:
+             out, err = proc.communicate()
+             print(f"Process failed to start! Return code: {proc.returncode}")
+             print(f"STDOUT: {out.decode()}")
+             print(f"STDERR: {err.decode()}")
         return proc
 
     def tearDown(self):
@@ -40,8 +45,18 @@ class TestNewExamples(unittest.TestCase):
             self.assertEqual(r.status_code, 200)
             self.assertIn("<h1>Welcome, Rustacean!</h1>", r.text)
             self.assertIn("<li>Fast</li>", r.text)
-        finally:
+        except Exception as e:
+            print(f"Test 05 failed: {e}")
             os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            out, err = proc.communicate()
+            print(f"STDOUT: {out.decode()}")
+            print(f"STDERR: {err.decode()}")
+            raise e
+        finally:
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            except ProcessLookupError:
+                pass
 
     def test_06_blueprints(self):
         print("Testing 06_blueprints.py...")
@@ -61,8 +76,18 @@ class TestNewExamples(unittest.TestCase):
             r = requests.get("http://127.0.0.1:5005/admin/dashboard")
             self.assertEqual(r.status_code, 200)
             self.assertIn("Admin Dashboard", r.text)
-        finally:
+        except Exception as e:
+            print(f"Test 06 failed: {e}")
             os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            out, err = proc.communicate()
+            print(f"STDOUT: {out.decode()}")
+            print(f"STDERR: {err.decode()}")
+            raise e
+        finally:
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            except ProcessLookupError:
+                pass
 
     def test_07_database(self):
         print("Testing 07_database_raw.py...")
@@ -80,8 +105,18 @@ class TestNewExamples(unittest.TestCase):
             data = r.json()
             self.assertTrue(len(data) >= 2)
             self.assertEqual(data[0]["name"], "Rust")
-        finally:
+        except Exception as e:
+            print(f"Test 07 failed: {e}")
             os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            out, err = proc.communicate()
+            print(f"STDOUT: {out.decode()}")
+            print(f"STDERR: {err.decode()}")
+            raise e
+        finally:
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            except ProcessLookupError:
+                pass
             if os.path.exists("example.db"):
                 os.remove("example.db")
 
@@ -100,8 +135,18 @@ class TestNewExamples(unittest.TestCase):
             schema = r.json()
             self.assertEqual(schema["info"]["title"], "My Documented API")
             self.assertIn("/items", schema["paths"])
-        finally:
+        except Exception as e:
+            print(f"Test 08 failed: {e}")
             os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            out, err = proc.communicate()
+            print(f"STDOUT: {out.decode()}")
+            print(f"STDERR: {err.decode()}")
+            raise e
+        finally:
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            except ProcessLookupError:
+                pass
 
     def test_09_complex_routing(self):
         print("Testing 09_complex_routing.py...")
@@ -115,8 +160,56 @@ class TestNewExamples(unittest.TestCase):
             self.assertEqual(r.status_code, 200)
             self.assertEqual(r.json()["product_id"], 99)
             self.assertEqual(r.json()["api_version"], "v2")
-        finally:
+        except Exception as e:
+            print(f"Test 09 failed: {e}")
             os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            out, err = proc.communicate()
+            print(f"STDOUT: {out.decode()}")
+            print(f"STDERR: {err.decode()}")
+            raise e
+        finally:
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+
+
+    def test_10_sqlmodel(self):
+        print("Testing 10_database_sqlmodel.py...")
+        # Note: 10_database_sqlmodel uses 'example_sqlmodel.db'
+        proc = self.run_example("10_database_sqlmodel.py", 5010)
+        try:
+            # Init DB
+            r = requests.get("http://127.0.0.1:5010/init-db")
+            self.assertEqual(r.status_code, 200)
+
+            # List items
+            r = requests.get("http://127.0.0.1:5010/items")
+            self.assertEqual(r.status_code, 200)
+            data = r.json()
+            self.assertTrue(len(data) >= 2)
+            self.assertEqual(data[0]["name"], "Rust")
+            
+            # Get Item
+            item_id = data[0]["id"]
+            r = requests.get(f"http://127.0.0.1:5010/items/{item_id}")
+            self.assertEqual(r.status_code, 200)
+            self.assertEqual(r.json()["name"], "Rust")
+
+        except Exception as e:
+            print(f"Test 10 failed: {e}")
+            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            out, err = proc.communicate()
+            print(f"STDOUT: {out.decode()}")
+            print(f"STDERR: {err.decode()}")
+            raise e
+        finally:
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            if os.path.exists("example_sqlmodel.db"):
+                os.remove("example_sqlmodel.db")
 
 
 if __name__ == "__main__":

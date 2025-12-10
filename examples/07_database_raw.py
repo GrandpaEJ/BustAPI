@@ -7,14 +7,15 @@ DB_FILE = "example.db"
 
 
 def get_db_connection():
-    conn = sqlite3.connect(DB_FILE)
+    # check_same_thread=False is required because BustAPI runs on a multi-threaded Rust server.
+    # timeout=10 helps prevent 'database locked' errors during tests.
+    conn = sqlite3.connect(DB_FILE, timeout=10, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
 
 @app.before_request
 def connect_db():
-    """Connect to DB and attach to request."""
     request.db = get_db_connection()
 
 
@@ -46,4 +47,4 @@ def list_items():
 if __name__ == "__main__":
     print("Running database example on http://127.0.0.1:5006")
     print("First run: curl http://127.0.0.1:5006/init-db")
-    app.run(port=5006, debug=True)
+    app.run(port=5006, debug=False)

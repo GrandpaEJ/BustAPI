@@ -33,6 +33,7 @@ dependencies = [
     "colorama>=0.4.6",
     "watchfiles>=0.21.0",
     "itsdangerous>=0.1.0",
+    "sqlmodel>=0.0.16",
 ]
 
 [project.optional-dependencies]

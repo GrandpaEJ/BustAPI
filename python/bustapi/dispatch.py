@@ -79,13 +79,15 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                      result = handler(**kwargs)
 
                 # OPTIMIZATION: Bypass Response object creation for common types
-                if isinstance(result, str):
-                     return (result, 200, {})
-                elif isinstance(result, bytes):
-                     return (result.decode("utf-8", "replace"), 200, {})
-                elif isinstance(result, dict):
-                     import json
-                     return (json.dumps(result), 200, {"Content-Type": "application/json"})
+                # Only if we don't need to save session or run after_request hooks
+                if session is None and not app.after_request_funcs:
+                    if isinstance(result, str):
+                        return (result, 200, {})
+                    elif isinstance(result, bytes):
+                        return (result.decode("utf-8", "replace"), 200, {})
+                    elif isinstance(result, dict):
+                        import json
+                        return (json.dumps(result), 200, {"Content-Type": "application/json"})
                 
                 # Fallback for other types or tuples
                 if isinstance(result, tuple):
@@ -182,13 +184,15 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
                      result = await handler(**kwargs)
 
                 # OPTIMIZATION: Bypass Response object creation for common types
-                if isinstance(result, str):
-                     return (result, 200, {})
-                elif isinstance(result, bytes):
-                     return (result.decode("utf-8", "replace"), 200, {})
-                elif isinstance(result, dict):
-                     import json
-                     return (json.dumps(result), 200, {"Content-Type": "application/json"})
+                # Only if we don't need to save session or run after_request hooks
+                if session is None and not app.after_request_funcs:
+                    if isinstance(result, str):
+                        return (result, 200, {})
+                    elif isinstance(result, bytes):
+                        return (result.decode("utf-8", "replace"), 200, {})
+                    elif isinstance(result, dict):
+                        import json
+                        return (json.dumps(result), 200, {"Content-Type": "application/json"})
                 
                 # Fallback for other types or tuples
                 if isinstance(result, tuple):
