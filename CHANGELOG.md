@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented here.
 
+## [0.3.1] - 2025-12-10
+
+### Improvements
+
+- **Benchmark Suite**: Complete overhaul of `benchmarks/run_comparison_auto.py` to include FastAPI, detailed metrics (min/max latency, transfer rate), and "futuristic" reporting.
+- **Python Compatibility**: Explicit support for Python 3.10 through 3.14 (experimental).
+
+### Fixed
+
+- **Reloader**: Fixed `watchfiles` integration on Linux by correctly serializing the subprocess command.
+- **Linting**: Resolved `ruff` B904 error in `rate_limit.py` by properly chaining exceptions.
+
 ## [0.3.0] - 2025-12-10
 
 ### Major Changes
