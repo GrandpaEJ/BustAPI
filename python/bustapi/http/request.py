@@ -181,19 +181,10 @@ class Request:
 
     @property
     def cookies(self) -> Dict[str, str]:
-        """Request cookies."""
+        """Request cookies (parsed in Rust for performance)."""
         if self._rust_request:
-            # Rust bindings don't expose cookies yet, parse from headers
-            cookie_header = self.headers.get("Cookie", "")
-            if not cookie_header:
-                return {}
-
-            cookies = {}
-            for item in cookie_header.split(";"):
-                if "=" in item:
-                    name, value = item.strip().split("=", 1)
-                    cookies[name.strip()] = value.strip()
-            return cookies
+            # Use Rust implementation for high-performance cookie parsing
+            return self._rust_request.cookies
         return {}
 
     @property
