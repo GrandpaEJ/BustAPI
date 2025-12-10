@@ -156,8 +156,9 @@ class BustAPIDocs:
             path_item = {}
 
             # Convert Flask rule to OpenAPI path
-            # e.g., /user/<name> -> /user/{name}
-            openapi_path = rule.replace("<", "{").replace(">", "}")
+            # e.g., /user/<int:name> -> /user/{name}
+            import re
+            openapi_path = re.sub(r'<(?:int:|float:|path:)?([^>]+)>', r'{\1}', rule)
 
             docstring = inspect.getdoc(view_func) or ""
             summary = docstring.split("\n")[0] if docstring else endpoint_name
@@ -183,29 +184,74 @@ class BustAPIDocs:
                     "responses": {
                         "200": {
                             "description": "Successful Response",
+                        },
+                        "400": {
+                            "description": "Validation Error",
                         }
                     },
                 }
 
-                # Basic parameter extraction from rule
-                # This is a simplified implementation. A full one would parse the rule
-                # and type hints to generate detailed parameters.
+                # Extract path parameters with Path metadata
                 if "{" in openapi_path:
                     parameters = []
-                    # Extract param names from rule (simplified)
-                    import re
-
-                    param_names = re.findall(r"\{([^}]+)\}", openapi_path)
-                    for name in param_names:
-                        parameters.append(
-                            {
+                    
+                    # Extract param names and types from rule
+                    param_matches = re.findall(r'<((?:int|float|path)?:?([^>]+))>', rule)
+                    param_info = {}
+                    for match in param_matches:
+                        full_match, param_name = match
+                        if ':' in full_match:
+                            param_type, _ = full_match.split(':', 1)
+                        else:
+                            param_type = 'str'
+                        param_info[param_name] = param_type
+                    
+                    # Get Path validators from function signature
+                    try:
+                        from ..params import Path as PathValidator
+                        sig = inspect.signature(view_func)
+                        
+                        for param_name, param_type in param_info.items():
+                            # Check if this parameter has a Path validator
+                            path_validator = self.app.path_validators.get((rule, param_name))
+                            
+                            # Determine OpenAPI type
+                            if param_type == 'int':
+                                openapi_type = 'integer'
+                            elif param_type == 'float':
+                                openapi_type = 'number'
+                            else:
+                                openapi_type = 'string'
+                            
+                            if path_validator and path_validator.include_in_schema:
+                                # Use Path validator to generate parameter
+                                param_obj = path_validator.to_openapi_parameter(
+                                    param_name, 
+                                    openapi_type, 
+                                    required=True
+                                )
+                                parameters.append(param_obj)
+                            else:
+                                # Basic parameter without validation
+                                parameters.append({
+                                    "name": param_name,
+                                    "in": "path",
+                                    "required": True,
+                                    "schema": {"type": openapi_type},
+                                })
+                    except Exception:
+                        # Fallback to basic parameters if inspection fails
+                        param_names = re.findall(r"\{([^}]+)\}", openapi_path)
+                        for name in param_names:
+                            parameters.append({
                                 "name": name,
                                 "in": "path",
                                 "required": True,
                                 "schema": {"type": "string"},
-                            }
-                        )
-                    operation["parameters"] = parameters
+                            })
+                    
+                    if parameters:
+                        operation["parameters"] = parameters
 
                 path_item[method_lower] = operation
 
