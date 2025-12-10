@@ -12,14 +12,29 @@ This document tracks features that are currently missing, incomplete, or planned
 
 ### 2. Advanced Path Parameters (`Path`)
 
-- [ ] **Validation**: Add `Path()` helper (similar to Pydantic/FastAPI) to validate route parameters (min/max length, regex, etc.).
-- [ ] **Auto-Docs**: Integrate `Path` metadata into the auto-generated documentation.
+- [x] **Validation**: Add `Path()` helper (similar to Pydantic/FastAPI) to validate route parameters (min/max length, regex, etc.).
+- [x] **Auto-Docs**: Integrate `Path` metadata into the auto-generated documentation.
+
+**Note**: Path validation is fully implemented and FastAPI-compatible. The `Path()` helper supports:
+
+- Numeric constraints: `ge`, `le`, `gt`, `lt`
+- String constraints: `min_length`, `max_length`, `regex`
+- Documentation fields: `description`, `title`, `example`, `examples`, `alias`, `deprecated`
+- OpenAPI schema generation with full constraint details
+
+See `examples/21_path_validation.py` for validation examples and `examples/22_path_docs.py` for documentation examples.
 
 ## 🔮 Missing Features (Planned)
 
 ### 3. Request Validation & Dependency Injection
 
-- [ ] **Query/Body**: `Query()`, `Body()` helpers for strict type validation.
+- [x] **Query/Body**: `Query()` helper implemented with strict type validation and coercion.
+  - Type coercion: str → int, float, bool, list
+  - All validation constraints from Path (ge, le, gt, lt, min_length, max_length, regex)
+  - Required vs optional parameters with defaults
+  - OpenAPI schema generation
+  - See `examples/23_query_validation.py`
+- [ ] **Body**: `Body()` helper for request body validation (JSON).
 - [ ] **Dependency Injection**: System for `Depends()` to handle auth and database sessions cleanly.
 
 ### 4. WebSockets
@@ -36,10 +51,14 @@ This document tracks features that are currently missing, incomplete, or planned
 - [ ] **CORS**: Built-in CORS middleware (currently manual or missing).
 - [ ] **GZip**: Compression middleware.
 
-### 7. Cookies
+### 5. Cookies
 
-- [ ] **Request Cookies**: `request.cookies` is currently manually parsed from headers in Python. Move parsing to Rust for performance.
-- [ ] **Response Cookies**: Unified `response.set_cookie` API is basic.
+- [x] **Request Cookies**: `request.cookies` now uses Rust parsing for high performance with URL decoding.
+- [x] **Response Cookies**: Enhanced `response.set_cookie()` API with:
+  - URL encoding for cookie values
+  - Support for datetime objects in `expires` parameter
+  - SameSite validation ('Strict', 'Lax', 'None')
+  - Improved `delete_cookie()` with all cookie attributes
 
 ## 🐛 Known Issues / Technical Debt
 
