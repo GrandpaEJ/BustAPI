@@ -30,7 +30,7 @@ By running on top of **Actix-Web** (Rust) via **PyO3** bindings, BustAPI elimina
 
 ### 🚀 **Performance First**
 
-- **100k+ RPS**: Capable of handling massive loads on a single node.
+- **~20k RPS**: Capable of handling massive loads on a single node.
 - **50x Faster**: Dynamic routing benchmarks show 50x-80x speedup over Flask.
 - **Zero-Process Overhead**: Efficient, low-latency request handling.
 
@@ -56,7 +56,7 @@ Install the core framework:
 pip install bustapi
 ```
 
-### Power Up ⚡
+### If you need ASGI / WSGI
 
 Install with standard server compatibility (Uvicorn, Gunicorn, Hypercorn):
 
@@ -140,15 +140,15 @@ gunicorn main:app
 
 ---
 
-## � Benchmarks at a Glance
+## Benchmarks at a Glance
 
 | Framework          | Requests/Sec | Relative Speed |
 | :----------------- | :----------- | :------------- |
-| **BustAPI (v0.3)** | **175,923**  | **🚀 100%**    |
-| Flask              | 3,251        | 🐢 1.8%        |
-| FastAPI            | 2,029        | 🐢 1.1%        |
+| **BustAPI (v0.3)** | **19,635**   | **🚀 100%**    |
+| Catzilla           | 8,851        | 🐯 45%         |
+| Flask              | 3,526        | 🐢 18%         |
 
-_(Benchmarks run on 4-core machine, 100 concurrent connections)_
+_(Benchmarks run on Intel i5, 8 Cores, 4 threads, 100 connections)_
 
 ---
 
@@ -161,4 +161,4 @@ Join us in building the fastest Python framework ever created.
 
 ## 📄 License
 
-MIT © 2025 BustAPI Team.
+[MIT](LICENSE) © 2025 BustAPI Team.
