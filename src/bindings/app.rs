@@ -98,7 +98,7 @@ impl PyBustApp {
 
         let state = self.state.clone();
         let method_enum = http::Method::GET;
-        
+
         self.runtime.block_on(async {
             let mut routes = state.routes.write().await;
             routes.add_route(method_enum, path, handler);
@@ -162,7 +162,7 @@ impl PyBustApp {
         req_data.body = body;
         // Parse query params from query string if needed
         if !req_data.query_string.is_empty() {
-             req_data.query_params = url::form_urlencoded::parse(req_data.query_string.as_bytes())
+            req_data.query_params = url::form_urlencoded::parse(req_data.query_string.as_bytes())
                 .into_owned()
                 .collect();
         }
@@ -178,7 +178,7 @@ impl PyBustApp {
         let body_str = response_data
             .body_as_string()
             .unwrap_or_else(|_| String::from_utf8_lossy(&response_data.body).to_string());
-        
+
         Ok((
             body_str,
             response_data.status.as_u16(),

@@ -57,7 +57,7 @@ impl PyRateLimiter {
             }
         }
     }
-    
+
     /// Clear all limits
     fn clear(&self) {
         self.limits.clear();

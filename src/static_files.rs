@@ -2,8 +2,8 @@ use crate::request::RequestData;
 use crate::response::ResponseData;
 use crate::router::RouteHandler;
 use http::StatusCode;
-use std::path::{Path, PathBuf};
 use std::fs;
+use std::path::{Path, PathBuf};
 
 /// Secure implementation of static file serving
 pub struct StaticFileHandler {
@@ -15,8 +15,9 @@ impl StaticFileHandler {
     /// Create a new static file handler
     pub fn new(root_path: &str, path_prefix: &str) -> Self {
         // Resolve absolute path for security
-        let absolute_root = fs::canonicalize(root_path).unwrap_or_else(|_| PathBuf::from(root_path));
-        
+        let absolute_root =
+            fs::canonicalize(root_path).unwrap_or_else(|_| PathBuf::from(root_path));
+
         Self {
             root_path: absolute_root,
             path_prefix: path_prefix.to_string(),
@@ -30,7 +31,7 @@ impl StaticFileHandler {
         if !req_path.starts_with(&self.path_prefix) {
             return None;
         }
-        
+
         // Remove prefix to get relative path
         let relative_path = &req_path[self.path_prefix.len()..];
         let relative_path = relative_path.trim_start_matches('/');
@@ -38,30 +39,30 @@ impl StaticFileHandler {
         // 2. Security Check: Prevent Path Traversal ".."
         // Rust's Path components iteration handles some of this, but we need to be explicit.
         if relative_path.contains("..") {
-             tracing::warn!("Blocked path traversal attempt: {}", req_path);
-             return None;
+            tracing::warn!("Blocked path traversal attempt: {}", req_path);
+            return None;
         }
 
         // 3. Security Check: Block Hidden/Sensitive Files
         // Reject any segment starting with '.' (e.g., .env, .git, .vscode)
         for component in Path::new(relative_path).components() {
-             if let Some(s) = component.as_os_str().to_str() {
-                 if s.starts_with('.') {
-                     tracing::warn!("Blocked access to sensitive file: {}", req_path);
-                     return None;
-                 }
-             }
+            if let Some(s) = component.as_os_str().to_str() {
+                if s.starts_with('.') {
+                    tracing::warn!("Blocked access to sensitive file: {}", req_path);
+                    return None;
+                }
+            }
         }
-        
+
         // 4. Resolve full path
         let full_path = self.root_path.join(relative_path);
-        
+
         // 5. Final Security Check: Ensure resolved path is still within root
         // This handles symlink attacks if fs::canonicalize was used effectively
         if !full_path.starts_with(&self.root_path) {
-             return None;
+            return None;
         }
-        
+
         Some(full_path)
     }
 }
@@ -69,26 +70,31 @@ impl StaticFileHandler {
 impl RouteHandler for StaticFileHandler {
     fn handle(&self, req: RequestData) -> ResponseData {
         if req.method != http::Method::GET {
-             return ResponseData::error(StatusCode::METHOD_NOT_ALLOWED, Some("Method Not Allowed"));
+            return ResponseData::error(StatusCode::METHOD_NOT_ALLOWED, Some("Method Not Allowed"));
         }
 
         if let Some(path) = self.resolve_safe_path(&req.path) {
             if path.exists() && path.is_file() {
                 // Determine Content-Type
                 let mime_type = mime_guess::from_path(&path).first_or_octet_stream();
-                
+
                 // Read File
                 match fs::read(&path) {
                     Ok(content) => {
                         let mut resp = ResponseData::with_body(content);
                         resp.set_header("Content-Type", mime_type.as_ref());
                         return resp;
-                    },
-                    Err(_) => return ResponseData::error(StatusCode::INTERNAL_SERVER_ERROR, Some("File Access Error")),
+                    }
+                    Err(_) => {
+                        return ResponseData::error(
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Some("File Access Error"),
+                        )
+                    }
                 }
             }
         }
-        
+
         // Generic 404 for any failure (file not found, security block, directory access)
         ResponseData::error(StatusCode::NOT_FOUND, Some("Not Found"))
     }

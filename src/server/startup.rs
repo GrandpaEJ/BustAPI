@@ -14,13 +14,22 @@ pub async fn start_server(config: ServerConfig, state: Arc<AppState>) -> std::io
 
     // Stylish Banner (Fiber-like)
     use colored::Colorize;
-    
+
     println!("┌───────────────────────────────────────────────────┐");
-    println!("│                   {}                  │", "BustAPI v0.2.2".cyan().bold());
-    println!("│               http://{:<21}│", addr); 
-    println!("│       (bound on host {} and port {})       │", config.host, config.port);
+    println!(
+        "│                   {}                  │",
+        "BustAPI v0.2.2".cyan().bold()
+    );
+    println!("│               http://{:<21}│", addr);
+    println!(
+        "│       (bound on host {} and port {})       │",
+        config.host, config.port
+    );
     println!("│                                                   │");
-    println!("│ Handlers ............. {:<3} Processes ........... {:<2} │", route_count, workers);
+    println!(
+        "│ Handlers ............. {:<3} Processes ........... {:<2} │",
+        route_count, workers
+    );
     println!("│ Prefork ....... Disabled  PID ............. {:<5} │", pid);
     println!("└───────────────────────────────────────────────────┘");
 

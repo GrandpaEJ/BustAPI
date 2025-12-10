@@ -8,12 +8,12 @@
 use pyo3::prelude::*;
 
 mod bindings;
+mod logger;
+mod rate_limiter;
 mod request;
 mod response;
 mod router;
 mod server;
-mod rate_limiter;
-mod logger;
 mod static_files;
 
 pub use request::RequestData;
