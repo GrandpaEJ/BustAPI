@@ -131,12 +131,14 @@ impl PyBustApp {
         }
 
         // In Python 3.13 free-threaded, we can release GIL and run full parallel!
+        // In Python 3.13 free-threaded, we can release GIL and run full parallel!
         Python::with_gil(|py| {
             py.allow_threads(|| {
                 let sys = actix_rt::System::new();
-                sys.block_on(start_server(config, state)).unwrap();
+                sys.block_on(start_server(config, state))
             })
-        });
+        })
+        .map_err(|e| pyo3::exceptions::PyOSError::new_err(format!("Server error: {}", e)))?;
 
         Ok(())
     }
