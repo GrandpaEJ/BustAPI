@@ -229,22 +229,83 @@ class TestClient:
 
     def _call_application(self, request):
         """
-        Call application with mock request (simplified implementation).
-
-        Args:
-            request: Mock request object
-
-        Returns:
-            Response object
+        Call application using WSGI interface.
         """
-        # TODO: Implement proper test request handling
-        # This would need to interface with the application's route handlers
-        # without going through the Rust HTTP server
+        from io import BytesIO
 
-        # For now, return a mock response
+        # Build WSGI environment
+        environ = {
+            "REQUEST_METHOD": request.method,
+            "PATH_INFO": request.path,
+            "QUERY_STRING": (
+                urlencode(request.query_params) if request.query_params else ""
+            ),
+            "wsgi.input": BytesIO(request.body),
+            "CONTENT_LENGTH": str(len(request.body)),
+            "SERVER_NAME": "localhost",
+            "SERVER_PORT": "5000",
+            "wsgi.version": (1, 0),
+            "wsgi.url_scheme": "http",
+            "wsgi.errors": BytesIO(),
+            "wsgi.multithread": False,
+            "wsgi.multiprocess": False,
+            "wsgi.run_once": False,
+        }
+
+        # Add headers
+        for key, value in request.headers.items():
+            key = key.upper().replace("-", "_")
+            if key == "CONTENT_TYPE":
+                environ["CONTENT_TYPE"] = value
+            elif key == "CONTENT_LENGTH":
+                environ["CONTENT_LENGTH"] = value
+            else:
+                environ[f"HTTP_{key}"] = value
+
+        # Mock start_response
+        response_data = {"status": None, "headers": []}
+
+        def start_response(status, headers, exc_info=None):
+            response_data["status"] = status
+            response_data["headers"] = headers
+
+        # Call app
+        app_iter = self.application.wsgi_app(environ, start_response)
+
+        # Collect body
+        body = b"".join(app_iter)
+
         from ..http.response import Response
 
-        return Response("Test response", status=200)
+        # Parse status code
+        status_code = 200
+        if response_data["status"]:
+            try:
+                status_code = int(response_data["status"].split(" ")[0])
+            except (ValueError, IndexError):
+                pass
+
+        # Create response object
+        # Headers is a list of tuples, convert to dict for Headers object if needed,
+        # but Response takes args... wait, we need to return something that TestClient uses.
+        # TestClient expects something that has status_code, headers (dict), data.
+
+        # Convert headers list to dict
+        headers_dict = {}
+        if response_data["headers"]:
+            for k, v in response_data["headers"]:
+                headers_dict[k] = v
+
+        # We can reuse the Response class or just a simple mock
+        # But TestClient expects attributes.
+        # Actually TestClient accesses .status_code, .headers, .data on the returned object.
+        # The Response class has these?
+        # Response class in bustapi/http/response.py usually has these.
+        # Let's verify Response signature.
+        # make_response returns a Response object.
+
+        resp = Response(body, status=status_code, headers=headers_dict)
+        return resp
 
     def _update_cookies(self, set_cookie_header: str):
         """
