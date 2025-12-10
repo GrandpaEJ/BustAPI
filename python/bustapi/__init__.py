@@ -32,8 +32,9 @@ from .app import BustAPI
 from .core import logging
 from .core.helpers import abort, redirect, render_template, url_for
 from .documentation.generator import BustAPIDocs
-from .http.request import Request, request
+from .http.request import Request, request, session
 from .http.response import Response, jsonify, make_response
+from .middleware import Middleware
 from .routing.blueprints import Blueprint
 from .security.extension import Security
 from .security.rate_limit import RateLimit
@@ -60,6 +61,8 @@ __all__ = [
     "redirect",
     "url_for",
     "render_template",
+    "session",
+    "Middleware",
     # Logging
     "logging",
     # HTTP status codes

@@ -179,7 +179,17 @@ class Request:
     def cookies(self) -> Dict[str, str]:
         """Request cookies."""
         if self._rust_request:
-            return self._rust_request.cookies()
+            # Rust bindings don't expose cookies yet, parse from headers
+            cookie_header = self.headers.get("Cookie", "")
+            if not cookie_header:
+                return {}
+
+            cookies = {}
+            for item in cookie_header.split(";"):
+                if "=" in item:
+                    name, value = item.strip().split("=", 1)
+                    cookies[name.strip()] = value.strip()
+            return cookies
         return {}
 
     @property
@@ -431,3 +441,76 @@ request = _RequestProxy()
 def has_request_context() -> bool:
     """Check if we're currently in a request context."""
     return _request_ctx.get() is not None
+
+
+class _SessionProxy:
+    """Proxy object that provides access to the session of the current request."""
+
+    def __getattr__(self, name: str) -> Any:
+        req = _request_ctx.get()
+        if req is None:
+            raise RuntimeError("Working outside of request context")
+        if not hasattr(req, "session") or req.session is None:
+            raise RuntimeError("Session not available. ensure secret_key is set.")
+        return getattr(req.session, name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        req = _request_ctx.get()
+        if req is None:
+            raise RuntimeError("Working outside of request context")
+        if not hasattr(req, "session") or req.session is None:
+            raise RuntimeError("Session not available")
+        setattr(req.session, name, value)
+
+    def __getitem__(self, key: str) -> Any:
+        req = _request_ctx.get()
+        if req is None:
+            raise RuntimeError("Working outside of request context")
+        if not hasattr(req, "session") or req.session is None:
+            raise RuntimeError("Session not available")
+        return req.session[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        req = _request_ctx.get()
+        if req is None:
+            raise RuntimeError("Working outside of request context")
+        if not hasattr(req, "session") or req.session is None:
+            raise RuntimeError("Session not available")
+        req.session[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        req = _request_ctx.get()
+        if req is None:
+            raise RuntimeError("Working outside of request context")
+        if not hasattr(req, "session") or req.session is None:
+            raise RuntimeError("Session not available")
+        del req.session[key]
+
+    def __contains__(self, key: str) -> bool:
+        req = _request_ctx.get()
+        if req is None:
+            return False
+        if not hasattr(req, "session") or req.session is None:
+            return False
+        return key in req.session
+
+    def get(self, key, default=None):
+        req = _request_ctx.get()
+        if req is None or not hasattr(req, "session") or req.session is None:
+            return default
+        return req.session.get(key, default)
+
+    def pop(self, key, default=None):
+        req = _request_ctx.get()
+        if req is None:
+            raise RuntimeError("Working outside of request context")
+        return req.session.pop(key, default)
+
+    def clear(self):
+        req = _request_ctx.get()
+        if req is None:
+            raise RuntimeError("Working outside of request context")
+        req.session.clear()
+
+
+session = _SessionProxy()
