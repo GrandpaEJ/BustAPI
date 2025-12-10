@@ -3,8 +3,10 @@ Response handling for BustAPI - Flask-compatible response objects
 """
 
 import json
+from datetime import datetime, timedelta
 from http import HTTPStatus
 from typing import Any, Dict, Iterable, Optional, Union
+from urllib.parse import quote
 
 
 class Headers(dict):
@@ -146,7 +148,7 @@ class Response:
         key: str,
         value: str = "",
         max_age: Optional[int] = None,
-        expires: Optional[str] = None,
+        expires: Optional[Union[str, datetime, int]] = None,
         path: str = "/",
         domain: Optional[str] = None,
         secure: bool = False,
@@ -154,25 +156,41 @@ class Response:
         samesite: Optional[str] = None,
     ):
         """
-        Set a cookie.
+        Set a cookie with URL encoding for security.
 
         Args:
             key: Cookie name
-            value: Cookie value
+            value: Cookie value (will be URL-encoded)
             max_age: Maximum age in seconds
-            expires: Expiration date
+            expires: Expiration date (datetime, timestamp, or RFC 2822 string)
             path: Cookie path
             domain: Cookie domain
-            secure: Secure flag
-            httponly: HttpOnly flag
-            samesite: SameSite attribute
+            secure: Secure flag (HTTPS only)
+            httponly: HttpOnly flag (not accessible via JavaScript)
+            samesite: SameSite attribute ('Strict', 'Lax', or 'None')
         """
-        cookie_parts = [f"{key}={value}"]
+        # URL encode the cookie value for security
+        encoded_value = quote(value, safe='')
+        cookie_parts = [f"{key}={encoded_value}"]
 
         if max_age is not None:
             cookie_parts.append(f"Max-Age={max_age}")
+        
         if expires:
-            cookie_parts.append(f"Expires={expires}")
+            # Handle different expires formats
+            if isinstance(expires, datetime):
+                # Convert datetime to RFC 2822 format
+                expires_str = expires.strftime("%a, %d %b %Y %H:%M:%S GMT")
+                cookie_parts.append(f"Expires={expires_str}")
+            elif isinstance(expires, int):
+                # Treat as timestamp
+                dt = datetime.utcfromtimestamp(expires)
+                expires_str = dt.strftime("%a, %d %b %Y %H:%M:%S GMT")
+                cookie_parts.append(f"Expires={expires_str}")
+            else:
+                # Assume it's already a properly formatted string
+                cookie_parts.append(f"Expires={expires}")
+        
         if path:
             cookie_parts.append(f"Path={path}")
         if domain:
@@ -182,11 +200,13 @@ class Response:
         if httponly:
             cookie_parts.append("HttpOnly")
         if samesite:
-            cookie_parts.append(f"SameSite={samesite}")
+            # Validate and capitalize SameSite value
+            if samesite.lower() in ('strict', 'lax', 'none'):
+                cookie_parts.append(f"SameSite={samesite.capitalize()}")
 
         cookie_string = "; ".join(cookie_parts)
 
-        # Add to existing Set-Cookie headers
+        # Add to existing Set-Cookie headers (support multiple cookies)
         if "Set-Cookie" in self.headers:
             existing = self.headers.getlist("Set-Cookie")
             existing.append(cookie_string)
@@ -194,17 +214,40 @@ class Response:
         else:
             self.headers["Set-Cookie"] = cookie_string
 
-    def delete_cookie(self, key: str, path: str = "/", domain: Optional[str] = None):
+    def delete_cookie(
+        self,
+        key: str,
+        path: str = "/",
+        domain: Optional[str] = None,
+        secure: bool = False,
+        httponly: bool = False,
+        samesite: Optional[str] = None,
+    ):
         """
-        Delete a cookie by setting it to expire.
-
+        Delete a cookie by setting it to expire immediately.
+        
         Args:
-            key: Cookie name
-            path: Cookie path
-            domain: Cookie domain
+            key: Cookie name to delete
+            path: Cookie path (must match the path used when setting)
+            domain: Cookie domain (must match the domain used when setting)
+            secure: Secure flag (must match the flag used when setting)
+            httponly: HttpOnly flag (must match the flag used when setting)
+            samesite: SameSite attribute (must match the attribute used when setting)
+        
+        Note:
+            All attributes must match those used when setting the cookie
+            for the deletion to work properly.
         """
         self.set_cookie(
-            key, "", expires="Thu, 01 Jan 1970 00:00:00 GMT", path=path, domain=domain
+            key=key,
+            value="",
+            max_age=0,
+            expires=datetime.utcnow() - timedelta(days=1),
+            path=path,
+            domain=domain,
+            secure=secure,
+            httponly=httponly,
+            samesite=samesite,
         )
 
     def __repr__(self) -> str:
