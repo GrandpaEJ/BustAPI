@@ -32,6 +32,7 @@ classifiers = [
 dependencies = [
     "jinja2>=3.1",
     "colorama>=0.4.6",
+    "watchfiles>=0.21.0",
 ]
 
 [project.optional-dependencies]
