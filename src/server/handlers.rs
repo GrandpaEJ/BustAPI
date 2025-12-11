@@ -122,9 +122,8 @@ pub async fn handle_request(
 
                 let mut field_bytes = Vec::new();
                 while let Some(chunk) = field.next().await {
-                    match chunk {
-                        Ok(data) => field_bytes.extend_from_slice(&data),
-                        Err(_) => {}
+                    if let Ok(data) = chunk {
+                        field_bytes.extend_from_slice(&data);
                     }
                 }
 
@@ -140,19 +139,16 @@ pub async fn handle_request(
                             content: field_bytes,
                         },
                     );
-                } else {
-                    if let Ok(s) = String::from_utf8(field_bytes) {
-                        multipart_form.insert(name, s);
-                    }
+                } else if let Ok(s) = String::from_utf8(field_bytes) {
+                    multipart_form.insert(name, s);
                 }
             }
         }
     } else {
         // Regular body
         while let Some(chunk) = payload.next().await {
-            match chunk {
-                Ok(data) => body_bytes.extend_from_slice(&data),
-                Err(_) => {} // TODO: handle error
+            if let Ok(data) = chunk {
+                body_bytes.extend_from_slice(&data);
             }
         }
     }

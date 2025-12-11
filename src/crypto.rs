@@ -11,7 +11,7 @@ pub struct Signer {
 impl Signer {
     #[new]
     pub fn new(secret_key: &str) -> PyResult<Self> {
-        if secret_key.len() < 1 {
+        if secret_key.is_empty() {
             return Err(pyo3::exceptions::PyValueError::new_err(
                 "Secret key cannot be empty.",
             ));
