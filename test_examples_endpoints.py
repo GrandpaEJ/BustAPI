@@ -14,9 +14,9 @@ import requests
 
 def test_example(example_file, port, tests):
     """Test an example by starting it and making requests."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Testing: {example_file}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     # Start the server
     proc = subprocess.Popen(

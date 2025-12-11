@@ -3,6 +3,7 @@ Request dispatch and wrapping logic for BustAPI.
 Includes fast-path optimizations for request processing.
 """
 
+import inspect
 from functools import wraps
 from typing import TYPE_CHECKING, Callable
 
@@ -14,6 +15,18 @@ if TYPE_CHECKING:
 
 def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callable:
     """Wrap handler with request context, middleware, and path param support."""
+
+    # Inspect handler signature to filter kwargs later
+    try:
+        sig = inspect.signature(handler)
+        has_kwargs = any(
+            p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+        )
+        expected_args = set(sig.parameters.keys())
+    except (ValueError, TypeError):
+        # Fallback for builtins or weird callables
+        has_kwargs = True
+        expected_args = set()
 
     @wraps(handler)
     def wrapper(rust_request):
@@ -69,8 +82,16 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                     dep_kwargs, dep_cache = app._resolve_dependencies(rule, kwargs)
                     kwargs.update(dep_kwargs)
 
+                    # Filter kwargs to match handler signature
+                    if not has_kwargs:
+                        call_kwargs = {
+                            k: v for k, v in kwargs.items() if k in expected_args
+                        }
+                    else:
+                        call_kwargs = kwargs
+
                     try:
-                        result = handler(**kwargs)
+                        result = handler(**call_kwargs)
                     finally:
                         # Cleanup dependency generators
                         dep_cache.cleanup_sync()
@@ -97,8 +118,16 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                     # Resolve dependencies
                     dep_kwargs, dep_cache = app._resolve_dependencies(rule, kwargs)
                     kwargs.update(dep_kwargs)
+                    # Filter kwargs to match handler signature
+                    if not has_kwargs:
+                        call_kwargs = {
+                            k: v for k, v in kwargs.items() if k in expected_args
+                        }
+                    else:
+                        call_kwargs = kwargs
+
                     try:
-                        result = handler(**kwargs)
+                        result = handler(**call_kwargs)
                     finally:
                         dep_cache.cleanup_sync()
                 else:
@@ -114,8 +143,16 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                     dep_kwargs, dep_cache = app._resolve_dependencies(rule, kwargs)
                     kwargs.update(dep_kwargs)
 
+                    # Filter kwargs to match handler signature
+                    if not has_kwargs:
+                        call_kwargs = {
+                            k: v for k, v in kwargs.items() if k in expected_args
+                        }
+                    else:
+                        call_kwargs = kwargs
+
                     try:
-                        result = handler(**kwargs)
+                        result = handler(**call_kwargs)
                     finally:
                         # Cleanup dependency generators
                         dep_cache.cleanup_sync()
@@ -182,6 +219,18 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
 def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callable:
     """Wrap asynchronous handler; executed synchronously via asyncio.run for now."""
 
+    # Inspect handler signature to filter kwargs later
+    try:
+        sig = inspect.signature(handler)
+        has_kwargs = any(
+            p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+        )
+        expected_args = set(sig.parameters.keys())
+    except (ValueError, TypeError):
+        # Fallback for builtins or weird callables
+        has_kwargs = True
+        expected_args = set()
+
     @wraps(handler)
     async def wrapper(rust_request):
         try:
@@ -229,8 +278,16 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
                     )
                     kwargs.update(dep_kwargs)
 
+                    # Filter kwargs to match handler signature
+                    if not has_kwargs:
+                        call_kwargs = {
+                            k: v for k, v in kwargs.items() if k in expected_args
+                        }
+                    else:
+                        call_kwargs = kwargs
+
                     try:
-                        result = await handler(**kwargs)
+                        result = await handler(**call_kwargs)
                     finally:
                         # Cleanup dependency generators
                         await dep_cache.cleanup()
@@ -256,8 +313,16 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
                         rule, kwargs
                     )
                     kwargs.update(dep_kwargs)
+                    # Filter kwargs to match handler signature
+                    if not has_kwargs:
+                        call_kwargs = {
+                            k: v for k, v in kwargs.items() if k in expected_args
+                        }
+                    else:
+                        call_kwargs = kwargs
+
                     try:
-                        result = await handler(**kwargs)
+                        result = await handler(**call_kwargs)
                     finally:
                         await dep_cache.cleanup()
                 else:
@@ -275,8 +340,16 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
                     )
                     kwargs.update(dep_kwargs)
 
+                    # Filter kwargs to match handler signature
+                    if not has_kwargs:
+                        call_kwargs = {
+                            k: v for k, v in kwargs.items() if k in expected_args
+                        }
+                    else:
+                        call_kwargs = kwargs
+
                     try:
-                        result = await handler(**kwargs)
+                        result = await handler(**call_kwargs)
                     finally:
                         # Cleanup dependency generators
                         await dep_cache.cleanup()

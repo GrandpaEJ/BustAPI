@@ -28,7 +28,7 @@ docs = BustAPIDocs(
 def get_user(
     user_id: int = Path(
         ge=1, le=1000, description="The unique identifier for the user", example=123
-    )
+    ),
 ):
     """
     Get user by ID.
@@ -49,7 +49,7 @@ def get_product(
         description="Product ID (must be positive)",
         title="Product ID",
         example=42,
-    )
+    ),
 ):
     """
     Get product details.
@@ -72,7 +72,7 @@ def get_post(
         regex=r"^[a-z0-9-]+$",
         description="URL-friendly post identifier (lowercase alphanumeric with hyphens)",
         example="my-first-post",
-    )
+    ),
 ):
     """
     Get blog post by slug.
@@ -95,7 +95,7 @@ def check_price(
         description="Price amount in USD",
         example=19.99,
         title="Price Amount",
-    )
+    ),
 ):
     """
     Validate price amount.
@@ -119,7 +119,7 @@ def get_tag(
         description="Tag name (lowercase, alphanumeric with hyphens)",
         examples=["python", "web-dev", "api-design"],
         deprecated=False,
-    )
+    ),
 ):
     """
     Get posts by tag.

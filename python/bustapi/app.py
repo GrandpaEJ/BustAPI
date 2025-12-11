@@ -85,15 +85,15 @@ class BustAPI:
 
         # Query parameter validation metadata
         # Maps (rule, param_name) -> Query validator with type hint
-        self.query_validators: Dict[tuple, tuple] = (
-            {}
-        )  # (rule, param_name) -> (Query, type)
+        self.query_validators: Dict[
+            tuple, tuple
+        ] = {}  # (rule, param_name) -> (Query, type)
 
         # Body parameter validation metadata
         # Maps (rule, param_name) -> Body validator with type hint
-        self.body_validators: Dict[tuple, tuple] = (
-            {}
-        )  # (rule, param_name) -> (Body, type)
+        self.body_validators: Dict[
+            tuple, tuple
+        ] = {}  # (rule, param_name) -> (Body, type)
 
         # Dependency injection metadata
         # Maps (rule, param_name) -> Depends instance
@@ -160,6 +160,73 @@ class BustAPI:
         except ImportError as e:
             raise RuntimeError(f"Failed to import Rust backend: {e}") from e
 
+    def _register_func_params(
+        self, rule: str, func: Callable, is_top_level: bool = True
+    ):
+        """
+        Recursively register (flatten) parameters from a function and its dependencies.
+
+        Args:
+            rule: The URL rule string
+            func: The function to inspect
+            is_top_level: Whether this is the main view function (register dependencies)
+                          or a nested dependency (only register params)
+        """
+        from .dependencies import Depends
+        from .params import Body, Path, Query
+
+        if not func:
+            return
+
+        # Avoid infinite recursion
+        if getattr(func, "_bustapi_registered", False):
+            return
+
+        # Inspect signature
+        try:
+            sig = inspect.signature(func)
+        except (ValueError, TypeError):
+            return
+
+        for param_name, param in sig.parameters.items():
+            if isinstance(param.default, Path):
+                # Store Path validator for this rule and parameter
+                self.path_validators[(rule, param_name)] = param.default
+            elif isinstance(param.default, Query):
+                # Store Query validator with type hint for this rule and parameter
+                param_type = (
+                    param.annotation
+                    if param.annotation != inspect.Parameter.empty
+                    else str
+                )
+                self.query_validators[(rule, param_name)] = (
+                    param.default,
+                    param_type,
+                )
+            elif isinstance(param.default, Body):
+                # Store Body validator with type hint for this rule and parameter
+                param_type = (
+                    param.annotation
+                    if param.annotation != inspect.Parameter.empty
+                    else dict
+                )
+                self.body_validators[(rule, param_name)] = (
+                    param.default,
+                    param_type,
+                )
+            elif isinstance(param.default, Depends):
+                # Store Depends marker ONLY if top level
+                if is_top_level:
+                    if not hasattr(self, "dependencies"):
+                        self.dependencies = {}
+                    self.dependencies[(rule, param_name)] = param.default
+
+                # RECURSIVELY register params from the dependency function
+                # Mark as NOT top level so we don't register the dependency itself again
+                self._register_func_params(
+                    rule, param.default.dependency, is_top_level=False
+                )
+
     def add_url_rule(
         self,
         rule: str,
@@ -186,41 +253,7 @@ class BustAPI:
 
         # Extract Path, Query, Body, and Depends validators from function signature
         if view_func:
-            from .dependencies import Depends
-            from .params import Body, Path, Query
-
-            sig = inspect.signature(view_func)
-            for param_name, param in sig.parameters.items():
-                if isinstance(param.default, Path):
-                    # Store Path validator for this rule and parameter
-                    self.path_validators[(rule, param_name)] = param.default
-                elif isinstance(param.default, Query):
-                    # Store Query validator with type hint for this rule and parameter
-                    param_type = (
-                        param.annotation
-                        if param.annotation != inspect.Parameter.empty
-                        else str
-                    )
-                    self.query_validators[(rule, param_name)] = (
-                        param.default,
-                        param_type,
-                    )
-                elif isinstance(param.default, Body):
-                    # Store Body validator with type hint for this rule and parameter
-                    param_type = (
-                        param.annotation
-                        if param.annotation != inspect.Parameter.empty
-                        else dict
-                    )
-                    self.body_validators[(rule, param_name)] = (
-                        param.default,
-                        param_type,
-                    )
-                elif isinstance(param.default, Depends):
-                    # Store Depends marker - we'll resolve these at request time
-                    if not hasattr(self, "dependencies"):
-                        self.dependencies = {}
-                    self.dependencies[(rule, param_name)] = param.default
+            self._register_func_params(rule, view_func, is_top_level=True)
 
         # Store view function
         self.view_functions[endpoint] = view_func

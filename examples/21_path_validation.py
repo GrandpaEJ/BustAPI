@@ -12,7 +12,7 @@ app = BustAPI()
 
 @app.route("/users/<int:user_id>")
 def get_user(
-    user_id: int = Path(ge=1, le=1000, description="User ID between 1 and 1000")
+    user_id: int = Path(ge=1, le=1000, description="User ID between 1 and 1000"),
 ):
     """
     Get user by ID with validation.
@@ -25,7 +25,7 @@ def get_user(
 
 @app.route("/products/<int:product_id>")
 def get_product(
-    product_id: int = Path(gt=0, description="Product ID must be positive")
+    product_id: int = Path(gt=0, description="Product ID must be positive"),
 ):
     """
     Get product by ID.
@@ -58,7 +58,7 @@ def get_tag(
     tag_name: str = Path(
         regex=r"^[a-z0-9-]+$",
         description="Tag name (lowercase alphanumeric with hyphens)",
-    )
+    ),
 ):
     """
     Get tag with regex validation.
@@ -74,7 +74,7 @@ def get_tag(
 def check_price(
     price: float = Path(
         ge=0.01, le=999999.99, description="Price between $0.01 and $999,999.99"
-    )
+    ),
 ):
     """
     Check price with range validation.

@@ -30,7 +30,7 @@ def main():
 
     print(f"Starting benchmark ({runs} runs)...")
     for i in range(runs):
-        print(f"\nRun {i+1}/{runs}")
+        print(f"\nRun {i + 1}/{runs}")
         rps = run_wrk()
         if rps:
             results.append(rps)

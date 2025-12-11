@@ -551,7 +551,7 @@ def main():
                 first_metric = False
 
             # Divider
-            report_lines.append(f"| | | {' | '.join(['---']*len(frameworks))} |")
+            report_lines.append(f"| | | {' | '.join(['---'] * len(frameworks))} |")
 
         report_lines.append("")
         report_lines.append("## ⚙️ How to Reproduce")
