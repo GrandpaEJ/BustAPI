@@ -85,15 +85,19 @@ class BustAPI:
 
         # Query parameter validation metadata
         # Maps (rule, param_name) -> Query validator with type hint
-        self.query_validators: Dict[tuple, tuple] = (
-            {}
-        )  # (rule, param_name) -> (Query, type)
+        self.query_validators: Dict[
+            tuple, tuple
+        ] = {}  # (rule, param_name) -> (Query, type)
 
         # Body parameter validation metadata
         # Maps (rule, param_name) -> Body validator with type hint
-        self.body_validators: Dict[tuple, tuple] = (
-            {}
-        )  # (rule, param_name) -> (Body, type)
+        self.body_validators: Dict[
+            tuple, tuple
+        ] = {}  # (rule, param_name) -> (Body, type)
+
+        # Dependency injection metadata
+        # Maps (rule, param_name) -> Depends instance
+        self.dependencies: Dict[tuple, Any] = {}  # (rule, param_name) -> Depends
 
         # Templating
         self.jinja_env = None
@@ -180,9 +184,10 @@ class BustAPI:
         options["endpoint"] = endpoint
         methods = options.pop("methods", ["GET"])
 
-        # Extract Path and Query validators from function signature
+        # Extract Path, Query, Body, and Depends validators from function signature
         if view_func:
-            from .params import Path, Query
+            from .dependencies import Depends
+            from .params import Body, Path, Query
 
             sig = inspect.signature(view_func)
             for param_name, param in sig.parameters.items():
@@ -200,6 +205,22 @@ class BustAPI:
                         param.default,
                         param_type,
                     )
+                elif isinstance(param.default, Body):
+                    # Store Body validator with type hint for this rule and parameter
+                    param_type = (
+                        param.annotation
+                        if param.annotation != inspect.Parameter.empty
+                        else dict
+                    )
+                    self.body_validators[(rule, param_name)] = (
+                        param.default,
+                        param_type,
+                    )
+                elif isinstance(param.default, Depends):
+                    # Store Depends marker - we'll resolve these at request time
+                    if not hasattr(self, "dependencies"):
+                        self.dependencies = {}
+                    self.dependencies[(rule, param_name)] = param.default
 
         # Store view function
         self.view_functions[endpoint] = view_func
@@ -435,6 +456,102 @@ class BustAPI:
                 abort(400, description=str(e))
 
         return kwargs
+
+    def _extract_body_params(self, rule: str, request):
+        """Extract and validate request body based on Body validators."""
+        from .params import ValidationError
+
+        kwargs = {}
+
+        # Get all body validators for this route
+        for (validator_rule, param_name), (
+            body_validator,
+            param_type,
+        ) in self.body_validators.items():
+            if validator_rule != rule:
+                continue
+
+            # Parse JSON body
+            try:
+                if request.is_json:
+                    body_data = request.get_json()
+                else:
+                    # If not JSON, try to parse as JSON anyway
+                    import json
+
+                    body_data = json.loads(request.data.decode("utf-8"))
+            except Exception:
+                # If body is required and parsing fails, abort
+                if body_validator.default is ...:
+                    from .core.helpers import abort
+
+                    abort(400, description="Invalid JSON in request body")
+                else:
+                    # Use default value if provided
+                    kwargs[param_name] = body_validator.default
+                    continue
+
+            # Validate the body
+            try:
+                validated_value = body_validator.validate(body_data, param_type)
+                kwargs[param_name] = validated_value
+            except ValidationError as e:
+                # Raise HTTP 400 error with validation message
+                from .core.helpers import abort
+
+                abort(400, description=str(e))
+
+        return kwargs
+
+    def _resolve_dependencies(self, rule: str, resolved_params: dict):
+        """Resolve dependencies for this route (sync version)."""
+        from .dependencies import DependencyCache, resolve_dependency_sync
+
+        kwargs = {}
+        cache = DependencyCache()
+
+        # Get all dependencies for this route
+        for (dep_rule, param_name), depends in self.dependencies.items():
+            if dep_rule != rule:
+                continue
+
+            # Resolve the dependency
+            try:
+                value = resolve_dependency_sync(depends, cache, resolved_params)
+                kwargs[param_name] = value
+            except Exception as e:
+                # Dependency resolution failed
+                from .core.helpers import abort
+
+                abort(500, description=f"Dependency resolution failed: {str(e)}")
+
+        # Store cache for cleanup
+        return kwargs, cache
+
+    async def _resolve_dependencies_async(self, rule: str, resolved_params: dict):
+        """Resolve dependencies for this route (async version)."""
+        from .dependencies import DependencyCache, resolve_dependency
+
+        kwargs = {}
+        cache = DependencyCache()
+
+        # Get all dependencies for this route
+        for (dep_rule, param_name), depends in self.dependencies.items():
+            if dep_rule != rule:
+                continue
+
+            # Resolve the dependency
+            try:
+                value = await resolve_dependency(depends, cache, resolved_params)
+                kwargs[param_name] = value
+            except Exception as e:
+                # Dependency resolution failed
+                from .core.helpers import abort
+
+                abort(500, description=f"Dependency resolution failed: {str(e)}")
+
+        # Store cache for cleanup
+        return kwargs, cache
 
     def before_request(self, f: Callable) -> Callable:
         """

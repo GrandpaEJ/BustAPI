@@ -60,15 +60,19 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                     # Extract and merge query parameters
                     query_kwargs = app._extract_query_params(rule, request)
                     kwargs.update(query_kwargs)
-                    result = handler(**kwargs)
-                    response = app._make_response(
-                        result if not isinstance(result, tuple) else result[0]
-                    )
-                    if isinstance(result, tuple) and len(result) > 1:
-                        # Re-wrap if tuple was expanded for make_response
-                        # actually _make_response handles tuples, but the optimized line above
-                        # tried to be clever. Let's revert to standard for correctness unless verified.
-                        pass
+                    # Extract and merge body parameters (for POST/PUT/PATCH)
+                    if request.method in ("POST", "PUT", "PATCH"):
+                        body_kwargs = app._extract_body_params(rule, request)
+                        kwargs.update(body_kwargs)
+                    # Resolve dependencies
+                    dep_kwargs, dep_cache = app._resolve_dependencies(rule, kwargs)
+                    kwargs.update(dep_kwargs)
+
+                    try:
+                        result = handler(**kwargs)
+                    finally:
+                        # Cleanup dependency generators
+                        dep_cache.cleanup_sync()
 
                     # Wait, let's keep the original logic for result to response but optimized
                     if isinstance(result, tuple):
@@ -80,13 +84,30 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                 # Optimization: Skip param extraction for static routes
                 # (We know it matches because Rust router sent it here)
                 if "<" not in rule:
-                    result = handler()
+                    # Still need to resolve dependencies even for static routes
+                    dep_kwargs, dep_cache = app._resolve_dependencies(rule, {})
+                    try:
+                        result = handler(**dep_kwargs)
+                    finally:
+                        dep_cache.cleanup_sync()
                 else:
                     args, kwargs = app._extract_path_params(rule, request.path)
                     # Extract and merge query parameters
                     query_kwargs = app._extract_query_params(rule, request)
                     kwargs.update(query_kwargs)
-                    result = handler(**kwargs)
+                    # Extract and merge body parameters (for POST/PUT/PATCH)
+                    if request.method in ("POST", "PUT", "PATCH"):
+                        body_kwargs = app._extract_body_params(rule, request)
+                        kwargs.update(body_kwargs)
+                    # Resolve dependencies
+                    dep_kwargs, dep_cache = app._resolve_dependencies(rule, kwargs)
+                    kwargs.update(dep_kwargs)
+
+                    try:
+                        result = handler(**kwargs)
+                    finally:
+                        # Cleanup dependency generators
+                        dep_cache.cleanup_sync()
 
                 # OPTIMIZATION: Bypass Response object creation for common types
                 # Only if we don't need to save session or run after_request hooks
@@ -187,7 +208,21 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
                     # Extract and merge query parameters
                     query_kwargs = app._extract_query_params(rule, request)
                     kwargs.update(query_kwargs)
-                    result = await handler(**kwargs)
+                    # Extract and merge body parameters (for POST/PUT/PATCH)
+                    if request.method in ("POST", "PUT", "PATCH"):
+                        body_kwargs = app._extract_body_params(rule, request)
+                        kwargs.update(body_kwargs)
+                    # Resolve dependencies (async)
+                    dep_kwargs, dep_cache = await app._resolve_dependencies_async(
+                        rule, kwargs
+                    )
+                    kwargs.update(dep_kwargs)
+
+                    try:
+                        result = await handler(**kwargs)
+                    finally:
+                        # Cleanup dependency generators
+                        await dep_cache.cleanup()
 
                     if isinstance(result, tuple):
                         response = app._make_response(*result)
@@ -196,13 +231,34 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
             else:
                 # NO MIDDLEWARE PATH (FAST)
                 if "<" not in rule:
-                    result = await handler()
+                    # Still need to resolve dependencies even for static routes
+                    dep_kwargs, dep_cache = await app._resolve_dependencies_async(
+                        rule, {}
+                    )
+                    try:
+                        result = await handler(**dep_kwargs)
+                    finally:
+                        await dep_cache.cleanup()
                 else:
                     args, kwargs = app._extract_path_params(rule, request.path)
                     # Extract and merge query parameters
                     query_kwargs = app._extract_query_params(rule, request)
                     kwargs.update(query_kwargs)
-                    result = await handler(**kwargs)
+                    # Extract and merge body parameters (for POST/PUT/PATCH)
+                    if request.method in ("POST", "PUT", "PATCH"):
+                        body_kwargs = app._extract_body_params(rule, request)
+                        kwargs.update(body_kwargs)
+                    # Resolve dependencies (async)
+                    dep_kwargs, dep_cache = await app._resolve_dependencies_async(
+                        rule, kwargs
+                    )
+                    kwargs.update(dep_kwargs)
+
+                    try:
+                        result = await handler(**kwargs)
+                    finally:
+                        # Cleanup dependency generators
+                        await dep_cache.cleanup()
 
                 # OPTIMIZATION: Bypass Response object creation for common types
                 # Only if we don't need to save session or run after_request hooks
