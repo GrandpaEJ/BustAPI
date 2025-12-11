@@ -35,7 +35,7 @@ jobs:
 
       - name: Install tools
         run: |
-          uv pip install maturin black ruff requests --python $VENV_PY
+          uv pip install maturin black ruff requests pytest --python $VENV_PY
 
       - name: Lint Rust code
         if: matrix.python-version == '3.12'
@@ -56,7 +56,7 @@ jobs:
 
       - name: Run basic tests
         run: |
-          $VENV_PY -m unittest discover tests
+          $VENV_PY -m pytest tests
 
   build-wheels:
     name: Build wheels on ${{ matrix.os }}

@@ -29,11 +29,11 @@ class TestPathValidation:
         # Valid: user_id >= 1
         response = client.get("/users/1")
         assert response.status_code == 200
-        assert response.json()["user_id"] == 1
+        assert response.json["user_id"] == 1
 
         response = client.get("/users/100")
         assert response.status_code == 200
-        assert response.json()["user_id"] == 100
+        assert response.json["user_id"] == 100
 
         # Invalid: user_id < 1
         response = client.get("/users/0")
@@ -230,7 +230,7 @@ class TestPathValidation:
         # Both valid
         response = client.get("/items/5/quantity/10")
         assert response.status_code == 200
-        data = response.json()
+        data = response.json
         assert data["item_id"] == 5
         assert data["quantity"] == 10
 

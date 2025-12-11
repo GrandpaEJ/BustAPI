@@ -27,7 +27,7 @@ def test_basic_app():
     response = client.get("/")
 
     assert response.status_code == 200
-    data = response.json()
+    data = response.json
     assert data["message"] == "Hello, World!"
     print("✅ Basic app test passed")
 
@@ -57,13 +57,13 @@ def test_routing():
 
     # Test all routes
     response = client.get("/")
-    assert response.json()["page"] == "home"
+    assert response.json["page"] == "home"
 
     response = client.get("/about")
-    assert response.json()["page"] == "about"
+    assert response.json["page"] == "about"
 
     response = client.get("/contact")
-    assert response.json()["page"] == "contact"
+    assert response.json["page"] == "contact"
 
     print("✅ Basic routing test passed")
 
