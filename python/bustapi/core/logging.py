@@ -9,6 +9,7 @@ import sys
 import time
 from typing import Optional
 
+
 # ANSI Color Codes
 class Fore:
     BLACK = "\033[30m"
@@ -21,6 +22,7 @@ class Fore:
     WHITE = "\033[37m"
     RESET = "\033[39m"
 
+
 class Back:
     BLACK = "\033[40m"
     RED = "\033[41m"
@@ -32,11 +34,13 @@ class Back:
     WHITE = "\033[47m"
     RESET = "\033[49m"
 
+
 class Style:
     DIM = "\033[2m"
     NORMAL = "\033[22m"
     BRIGHT = "\033[1m"
     RESET_ALL = "\033[0m"
+
 
 HAS_COLORAMA = True  # Native ANSI support
 

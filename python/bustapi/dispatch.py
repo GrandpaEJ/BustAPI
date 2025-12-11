@@ -2,8 +2,10 @@
 Request dispatch and wrapping logic for BustAPI.
 Includes fast-path optimizations for request processing.
 """
+
 from functools import wraps
-from typing import Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
+
 from .http.request import Request, _request_ctx
 
 if TYPE_CHECKING:
@@ -20,11 +22,11 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
             # Note: accessing attributes on self is fast, but local vars are faster.
             # In a real "compile" step we would bake these, but for now dynamic checks
             # with early exits are improved.
-            
+
             # Convert Rust request to Python Request object
             request = Request._from_rust_request(rust_request)
             request.app = app
-            
+
             # Context is needed for proxies
             token = _request_ctx.set(request)
 
@@ -59,30 +61,32 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                     query_kwargs = app._extract_query_params(rule, request)
                     kwargs.update(query_kwargs)
                     result = handler(**kwargs)
-                    response = app._make_response(result if not isinstance(result, tuple) else result[0]) 
+                    response = app._make_response(
+                        result if not isinstance(result, tuple) else result[0]
+                    )
                     if isinstance(result, tuple) and len(result) > 1:
-                         # Re-wrap if tuple was expanded for make_response
-                         # actually _make_response handles tuples, but the optimized line above
-                         # tried to be clever. Let's revert to standard for correctness unless verified.
-                         pass 
-                    
+                        # Re-wrap if tuple was expanded for make_response
+                        # actually _make_response handles tuples, but the optimized line above
+                        # tried to be clever. Let's revert to standard for correctness unless verified.
+                        pass
+
                     # Wait, let's keep the original logic for result to response but optimized
                     if isinstance(result, tuple):
-                         response = app._make_response(*result)
+                        response = app._make_response(*result)
                     else:
-                         response = app._make_response(result)
+                        response = app._make_response(result)
             else:
                 # NO MIDDLEWARE PATH (FAST)
                 # Optimization: Skip param extraction for static routes
                 # (We know it matches because Rust router sent it here)
                 if "<" not in rule:
-                     result = handler()
+                    result = handler()
                 else:
-                     args, kwargs = app._extract_path_params(rule, request.path)
-                     # Extract and merge query parameters
-                     query_kwargs = app._extract_query_params(rule, request)
-                     kwargs.update(query_kwargs)
-                     result = handler(**kwargs)
+                    args, kwargs = app._extract_path_params(rule, request.path)
+                    # Extract and merge query parameters
+                    query_kwargs = app._extract_query_params(rule, request)
+                    kwargs.update(query_kwargs)
+                    result = handler(**kwargs)
 
                 # OPTIMIZATION: Bypass Response object creation for common types
                 # Only if we don't need to save session or run after_request hooks
@@ -93,8 +97,13 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                         return (result.decode("utf-8", "replace"), 200, {})
                     elif isinstance(result, dict):
                         import json
-                        return (json.dumps(result), 200, {"Content-Type": "application/json"})
-                
+
+                        return (
+                            json.dumps(result),
+                            200,
+                            {"Content-Type": "application/json"},
+                        )
+
                 # Fallback for other types or tuples
                 if isinstance(result, tuple):
                     response = app._make_response(*result)
@@ -128,9 +137,9 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                         teardown_func(None)
                     except Exception:
                         pass
-            
+
             # Context reset
-            if 'token' in locals():
+            if "token" in locals():
                 _request_ctx.reset(token)
             else:
                 _request_ctx.set(None)
@@ -147,7 +156,7 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
             # Convert Rust request to Python Request object
             request = Request._from_rust_request(rust_request)
             request.app = app
-            
+
             token = _request_ctx.set(request)
 
             # Open Session
@@ -185,15 +194,15 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
                     else:
                         response = app._make_response(result)
             else:
-                 # NO MIDDLEWARE PATH (FAST)
+                # NO MIDDLEWARE PATH (FAST)
                 if "<" not in rule:
-                     result = await handler()
+                    result = await handler()
                 else:
-                     args, kwargs = app._extract_path_params(rule, request.path)
-                     # Extract and merge query parameters
-                     query_kwargs = app._extract_query_params(rule, request)
-                     kwargs.update(query_kwargs)
-                     result = await handler(**kwargs)
+                    args, kwargs = app._extract_path_params(rule, request.path)
+                    # Extract and merge query parameters
+                    query_kwargs = app._extract_query_params(rule, request)
+                    kwargs.update(query_kwargs)
+                    result = await handler(**kwargs)
 
                 # OPTIMIZATION: Bypass Response object creation for common types
                 # Only if we don't need to save session or run after_request hooks
@@ -204,8 +213,13 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
                         return (result.decode("utf-8", "replace"), 200, {})
                     elif isinstance(result, dict):
                         import json
-                        return (json.dumps(result), 200, {"Content-Type": "application/json"})
-                
+
+                        return (
+                            json.dumps(result),
+                            200,
+                            {"Content-Type": "application/json"},
+                        )
+
                 # Fallback for other types or tuples
                 if isinstance(result, tuple):
                     response = app._make_response(*result)
@@ -241,7 +255,7 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
                     except Exception:
                         pass
 
-            if 'token' in locals():
+            if "token" in locals():
                 _request_ctx.reset(token)
             else:
                 _request_ctx.set(None)

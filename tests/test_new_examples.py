@@ -27,10 +27,10 @@ class TestNewExamples(unittest.TestCase):
         )
         time.sleep(3)  # Wait for startup (increased to 3s)
         if proc.poll() is not None:
-             out, err = proc.communicate()
-             print(f"Process failed to start! Return code: {proc.returncode}")
-             print(f"STDOUT: {out.decode()}")
-             print(f"STDERR: {err.decode()}")
+            out, err = proc.communicate()
+            print(f"Process failed to start! Return code: {proc.returncode}")
+            print(f"STDOUT: {out.decode()}")
+            print(f"STDERR: {err.decode()}")
         return proc
 
     def tearDown(self):
@@ -173,7 +173,6 @@ class TestNewExamples(unittest.TestCase):
             except ProcessLookupError:
                 pass
 
-
     def test_10_sqlmodel(self):
         print("Testing 10_database_sqlmodel.py...")
         # Note: 10_database_sqlmodel uses 'example_sqlmodel.db'
@@ -189,7 +188,7 @@ class TestNewExamples(unittest.TestCase):
             data = r.json()
             self.assertTrue(len(data) >= 2)
             self.assertEqual(data[0]["name"], "Rust")
-            
+
             # Get Item
             item_id = data[0]["id"]
             r = requests.get(f"http://127.0.0.1:5010/items/{item_id}")

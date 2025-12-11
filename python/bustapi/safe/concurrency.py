@@ -1,22 +1,23 @@
 """
 Concurrency helpers.
 """
+
 import asyncio
-from typing import Awaitable, Any
+from typing import Any, Awaitable
 
 
 def py(coro: Awaitable[Any]) -> asyncio.Task:
     """
     Spawn a background task (fire-and-forget), similar to 'go func()'.
-    
+
     Args:
         coro: The coroutine to run properly.
-        
+
     Returns:
         The created asyncio.Task
     """
     task = asyncio.create_task(coro)
-    
+
     # Ideally we should attach a done callback to log exceptions
     # so they aren't swallowed silently.
     def _handle_result(t: asyncio.Task):

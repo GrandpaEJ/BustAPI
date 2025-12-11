@@ -7,6 +7,7 @@ in the OpenAPI schema with full validation constraints.
 
 import os
 import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python"))
 
 from bustapi import BustAPI, Path
@@ -19,28 +20,25 @@ docs = BustAPIDocs(
     app,
     title="BustAPI Path Documentation Demo",
     version="1.0.0",
-    description="Demonstration of FastAPI-compatible Path parameter documentation"
+    description="Demonstration of FastAPI-compatible Path parameter documentation",
 )
 
 
 @app.route("/users/<int:user_id>")
 def get_user(
     user_id: int = Path(
-        ge=1,
-        le=1000,
-        description="The unique identifier for the user",
-        example=123
+        ge=1, le=1000, description="The unique identifier for the user", example=123
     )
 ):
     """
     Get user by ID.
-    
+
     Retrieves a user's information using their unique ID.
     """
     return {
         "user_id": user_id,
         "name": f"User {user_id}",
-        "email": f"user{user_id}@example.com"
+        "email": f"user{user_id}@example.com",
     }
 
 
@@ -50,19 +48,19 @@ def get_product(
         gt=0,
         description="Product ID (must be positive)",
         title="Product ID",
-        example=42
+        example=42,
     )
 ):
     """
     Get product details.
-    
+
     Fetch detailed information about a specific product.
     """
     return {
         "product_id": product_id,
         "name": f"Product {product_id}",
         "price": 99.99,
-        "in_stock": True
+        "in_stock": True,
     }
 
 
@@ -73,19 +71,19 @@ def get_post(
         max_length=50,
         regex=r"^[a-z0-9-]+$",
         description="URL-friendly post identifier (lowercase alphanumeric with hyphens)",
-        example="my-first-post"
+        example="my-first-post",
     )
 ):
     """
     Get blog post by slug.
-    
+
     Retrieve a blog post using its URL-friendly slug identifier.
     """
     return {
         "slug": slug,
         "title": f"Post: {slug.replace('-', ' ').title()}",
         "content": "Lorem ipsum dolor sit amet...",
-        "published": True
+        "published": True,
     }
 
 
@@ -96,19 +94,19 @@ def check_price(
         le=999999.99,
         description="Price amount in USD",
         example=19.99,
-        title="Price Amount"
+        title="Price Amount",
     )
 ):
     """
     Validate price amount.
-    
+
     Check if a price amount is within acceptable range.
     """
     return {
         "amount": amount,
         "formatted": f"${amount:,.2f}",
         "currency": "USD",
-        "valid": True
+        "valid": True,
     }
 
 
@@ -120,36 +118,32 @@ def get_tag(
         max_length=30,
         description="Tag name (lowercase, alphanumeric with hyphens)",
         examples=["python", "web-dev", "api-design"],
-        deprecated=False
+        deprecated=False,
     )
 ):
     """
     Get posts by tag.
-    
+
     Retrieve all posts associated with a specific tag.
     """
-    return {
-        "tag": tag,
-        "posts_count": 42,
-        "posts": []
-    }
+    return {"tag": tag, "posts_count": 42, "posts": []}
 
 
 @app.route("/items/<int:item_id>/reviews/<int:review_id>")
 def get_review(
     item_id: int = Path(ge=1, description="Item ID", example=5),
-    review_id: int = Path(ge=1, description="Review ID", example=123)
+    review_id: int = Path(ge=1, description="Review ID", example=123),
 ):
     """
     Get a specific review for an item.
-    
+
     Retrieve detailed information about a particular review.
     """
     return {
         "item_id": item_id,
         "review_id": review_id,
         "rating": 5,
-        "comment": "Great product!"
+        "comment": "Great product!",
     }
 
 
@@ -174,5 +168,5 @@ if __name__ == "__main__":
     print("  - Constraints (minimum, maximum, pattern, etc.)")
     print("  - Descriptions and examples")
     print("=" * 60)
-    
+
     app.run(port=5021, workers=2, debug=True)

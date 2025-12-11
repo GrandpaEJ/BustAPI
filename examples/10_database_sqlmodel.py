@@ -1,13 +1,16 @@
 from typing import Optional
-from sqlmodel import Field, Session, SQLModel, create_engine, select
+
 from bustapi import BustAPI, jsonify, request
+from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 app = BustAPI()
+
 
 # 1. Define Model
 class Item(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
+
 
 # 2. Create Engine (with check_same_thread=False for SQLite in multithreaded env)
 # Note: BustAPI runs on multiple threads, so this flag is REQUIRED for SQLite.
@@ -58,7 +61,7 @@ def get_item(item_id):
 
 
 if __name__ == "__main__":
-    print(f"Running SQLModel example on http://127.0.0.1:5010", flush=True)
-    print(f"First run: curl http://127.0.0.1:5010/init-db", flush=True)
+    print("Running SQLModel example on http://127.0.0.1:5010", flush=True)
+    print("First run: curl http://127.0.0.1:5010/init-db", flush=True)
     # debug=False is required for tests to handle signals correctly
     app.run(port=5010, debug=False)

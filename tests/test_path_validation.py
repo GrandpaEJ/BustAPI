@@ -38,7 +38,10 @@ class TestPathValidation:
         # Invalid: user_id < 1
         response = client.get("/users/0")
         assert response.status_code == 400
-        assert "Validation error" in response.text or "must be greater than or equal" in response.text
+        assert (
+            "Validation error" in response.text
+            or "must be greater than or equal" in response.text
+        )
 
     def test_numeric_le_constraint(self):
         """Test less-than-or-equal-to constraint for numeric parameters."""
@@ -219,10 +222,7 @@ class TestPathValidation:
         app = BustAPI()
 
         @app.route("/items/<int:item_id>/quantity/<int:qty>")
-        def update_quantity(
-            item_id: int = Path(ge=1),
-            qty: int = Path(ge=1, le=100)
-        ):
+        def update_quantity(item_id: int = Path(ge=1), qty: int = Path(ge=1, le=100)):
             return {"item_id": item_id, "quantity": qty}
 
         client = TestClient(app)
@@ -304,7 +304,9 @@ class TestPathValidation:
         response = client.get("/users/0")
         assert response.status_code == 400
         # Should contain parameter name in error message
-        assert "user_id" in response.text.lower() or "validation" in response.text.lower()
+        assert (
+            "user_id" in response.text.lower() or "validation" in response.text.lower()
+        )
 
 
 if __name__ == "__main__":

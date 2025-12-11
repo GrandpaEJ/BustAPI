@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
 from .bustapi_core import Signer
-
 from .http.request import Request
 from .http.response import Response
 
@@ -75,7 +74,7 @@ class SecureCookieSessionInterface(SessionInterface):
             return self.session_class()
 
         signer = Signer(app.secret_key)
-        
+
         # 1. Verify signature using Rust
         payload = signer.verify(self.session_cookie_name, val)
         if payload is None:

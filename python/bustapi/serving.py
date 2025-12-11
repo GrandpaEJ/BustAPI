@@ -2,10 +2,11 @@
 Server execution adapters for BusAPI.
 Handles running the application with various backends (Rust, Uvicorn, Gunicorn, Hypercorn).
 """
+
+import multiprocessing
 import os
 import sys
-import multiprocessing
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from .app import BustAPI
@@ -41,23 +42,25 @@ def run_server(
                 from watchfiles import run_process
 
                 print(f"🔄 BustAPI reloader active (using {server})")
-                
+
                 # We need to construct the target function or command
                 # run_process takes a target function.
                 # simpler to just re-run the current script.
                 # But watchfiles run_process target usually expects a function that *blocks*.
                 # or we can use the 'args' approach to re-execute argv.
-                
+
                 # Re-executing command line is safest for generic entry points
                 run_process(
-                   os.getcwd(),
-                   target=sys.executable,
-                   args=[sys.executable, *sys.argv],
-                   callback=lambda _: os.environ.update({"BUSTAPI_RELOADER_RUN": "true"})
+                    os.getcwd(),
+                    target=sys.executable,
+                    args=[sys.executable, *sys.argv],
+                    callback=lambda _: os.environ.update(
+                        {"BUSTAPI_RELOADER_RUN": "true"}
+                    ),
                 )
                 return
             except ImportError:
-               pass
+                pass
 
     if workers is None:
         workers = 1 if debug else multiprocessing.cpu_count()
@@ -75,6 +78,7 @@ def run_server(
     elif server == "uvicorn":
         try:
             import uvicorn
+
             config = uvicorn.Config(
                 app=app.asgi_app,
                 host=host,
@@ -93,7 +97,9 @@ def run_server(
 
     elif server == "gunicorn":
         print("⚠️ Gunicorn is typically run via command line: `gunicorn module:app`")
-        print("   Starting Gunicorn programmatically via subprocess as a convenience...")
+        print(
+            "   Starting Gunicorn programmatically via subprocess as a convenience..."
+        )
         try:
             from gunicorn.app.base import BaseApplication
 
@@ -131,6 +137,7 @@ def run_server(
     elif server == "hypercorn":
         try:
             import asyncio
+
             from hypercorn.asyncio import serve
             from hypercorn.config import Config
 
@@ -141,6 +148,8 @@ def run_server(
             asyncio.run(serve(app.asgi_app, config))
 
         except ImportError:
-            print("❌ 'hypercorn' not installed. Install it via `pip install hypercorn`.")
+            print(
+                "❌ 'hypercorn' not installed. Install it via `pip install hypercorn`."
+            )
         except Exception as e:
             print(f"❌ Hypercorn error: {e}")

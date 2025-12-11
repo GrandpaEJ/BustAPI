@@ -170,12 +170,12 @@ class Response:
             samesite: SameSite attribute ('Strict', 'Lax', or 'None')
         """
         # URL encode the cookie value for security
-        encoded_value = quote(value, safe='')
+        encoded_value = quote(value, safe="")
         cookie_parts = [f"{key}={encoded_value}"]
 
         if max_age is not None:
             cookie_parts.append(f"Max-Age={max_age}")
-        
+
         if expires:
             # Handle different expires formats
             if isinstance(expires, datetime):
@@ -190,7 +190,7 @@ class Response:
             else:
                 # Assume it's already a properly formatted string
                 cookie_parts.append(f"Expires={expires}")
-        
+
         if path:
             cookie_parts.append(f"Path={path}")
         if domain:
@@ -201,7 +201,7 @@ class Response:
             cookie_parts.append("HttpOnly")
         if samesite:
             # Validate and capitalize SameSite value
-            if samesite.lower() in ('strict', 'lax', 'none'):
+            if samesite.lower() in ("strict", "lax", "none"):
                 cookie_parts.append(f"SameSite={samesite.capitalize()}")
 
         cookie_string = "; ".join(cookie_parts)
@@ -225,7 +225,7 @@ class Response:
     ):
         """
         Delete a cookie by setting it to expire immediately.
-        
+
         Args:
             key: Cookie name to delete
             path: Cookie path (must match the path used when setting)
@@ -233,7 +233,7 @@ class Response:
             secure: Secure flag (must match the flag used when setting)
             httponly: HttpOnly flag (must match the flag used when setting)
             samesite: SameSite attribute (must match the attribute used when setting)
-        
+
         Note:
             All attributes must match those used when setting the cookie
             for the deletion to work properly.
