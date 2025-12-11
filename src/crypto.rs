@@ -1,6 +1,6 @@
-use cookie::{Key, Cookie, CookieJar};
+use cookie::{Cookie, CookieJar, Key};
 use pyo3::prelude::*;
-use sha2::{Sha512, Digest};
+use sha2::{Digest, Sha512};
 
 #[pyclass]
 pub struct Signer {
@@ -12,17 +12,17 @@ impl Signer {
     #[new]
     pub fn new(secret_key: &str) -> PyResult<Self> {
         if secret_key.len() < 1 {
-             return Err(pyo3::exceptions::PyValueError::new_err(
-                "Secret key cannot be empty."
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "Secret key cannot be empty.",
             ));
         }
-        
+
         // Use SHA512 to hash the input key to exactly 64 bytes
         // cookie::Key::from requires 64 bytes for signing+encryption master key.
         let mut hasher = Sha512::new();
         hasher.update(secret_key.as_bytes());
         let result = hasher.finalize();
-        
+
         // result is GenericArray<u8, 64>
         let key = Key::from(&result);
         Ok(Signer { key })
@@ -38,7 +38,9 @@ impl Signer {
         if let Some(cookie) = jar.get(name) {
             Ok(cookie.value().to_string())
         } else {
-             Err(pyo3::exceptions::PyValueError::new_err("Failed to sign cookie"))
+            Err(pyo3::exceptions::PyValueError::new_err(
+                "Failed to sign cookie",
+            ))
         }
     }
 

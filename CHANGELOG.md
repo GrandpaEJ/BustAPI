@@ -4,6 +4,29 @@ All notable changes to this project will be documented here.
 
 ## [0.4.0] - 2025-12-11
 
+### Major Features
+
+- **Dependency Injection System**: Full-featured `Depends()` support with recursive resolution.
+  - Supports nested dependencies (dependency functions depending on other dependencies).
+  - **Recursive Parameter Extraction**: Dependencies can define their own `Query`, `Path`, and `Body` parameters, which are automatically extracted from the request.
+  - Async support: Dependencies can be sync or async functions.
+  - Per-request caching and generator cleanup (dependency usage scope).
+- **Body Validation**: Added `Body()` helper for JSON request body validation.
+  - Support for dictionary and Pydantic-like validation.
+  - Automatic type coercion and error handling (400 Bad Request).
+  - Integration with static and dynamic routes.
+
+### Performance
+
+- **Benchmark Results**: Achieved **19,969 RPS** on root endpoint (benchmarked against Flask @ 4.7k and FastAPI @ 2.1k).
+- **Optimized Dispatch**: Intelligent keyword argument filtering in dispatch wrappers prevents argument pollution while determining handler signatures at runtime.
+
+### Fixed
+
+- **Static Route Validations**: Fixed bug where static routes (fast path) skipped body and query parameter extraction.
+- **TestClient**: Added proper `json` parameter support to `TestClient` methods for easier API testing.
+- **Signature Errors**: Resolved "unexpected keyword argument" errors by filtering `kwargs` based on handler signatures.
+
 ### Added
 
 - **Query Parameter Validation**: FastAPI-compatible `Query()` helper for query parameter validation

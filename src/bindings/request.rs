@@ -1,9 +1,9 @@
 //! Python wrapper for HTTP requests
 
+use percent_encoding;
 use pyo3::prelude::*;
 use std::collections::HashMap;
 use std::io::Write;
-use percent_encoding;
 
 use crate::bindings::converters::*;
 
@@ -79,7 +79,10 @@ impl PyRequest {
 
     #[getter]
     pub fn files(&self, py: Python) -> HashMap<String, Py<PyUploadedFile>> {
-        self.files.iter().map(|(k, v)| (k.clone(), v.clone_ref(py))).collect()
+        self.files
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone_ref(py)))
+            .collect()
     }
 
     pub fn get_data(&self, py: Python) -> Py<PyBytes> {
@@ -139,7 +142,9 @@ impl PyRequest {
     pub fn cookies(&self) -> HashMap<String, String> {
         let mut cookies = HashMap::new();
 
-        if let Some(cookie_header) = self.headers.iter()
+        if let Some(cookie_header) = self
+            .headers
+            .iter()
             .find(|(k, _)| k.to_lowercase() == "cookie")
             .map(|(_, v)| v)
         {
@@ -162,14 +167,17 @@ impl PyRequest {
 /// Create PyRequest from generic RequestData
 pub fn create_py_request(py: Python, req: &crate::request::RequestData) -> PyResult<Py<PyRequest>> {
     let py_body = PyBytes::new(py, &req.body);
-    
+
     let mut py_files = HashMap::new();
     for (key, file) in &req.files {
-        let py_file = Py::new(py, PyUploadedFile {
-            filename: file.filename.clone(),
-            content_type: file.content_type.clone(),
-            content: file.content.clone(),
-        })?;
+        let py_file = Py::new(
+            py,
+            PyUploadedFile {
+                filename: file.filename.clone(),
+                content_type: file.content_type.clone(),
+                content: file.content.clone(),
+            },
+        )?;
         py_files.insert(key.clone(), py_file);
     }
 

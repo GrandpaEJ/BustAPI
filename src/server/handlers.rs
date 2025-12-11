@@ -1,10 +1,10 @@
 //! Actix-web HTTP Server implementation for maximum performance
 
+use actix_multipart::Multipart;
 use actix_web::{web, HttpRequest, HttpResponse};
+use futures::{StreamExt, TryStreamExt};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use actix_multipart::Multipart;
-use futures::{StreamExt, TryStreamExt};
 
 use crate::request::RequestData;
 use crate::router::{RouteHandler, Router};
@@ -124,16 +124,22 @@ pub async fn handle_request(
                 while let Some(chunk) = field.next().await {
                     match chunk {
                         Ok(data) => field_bytes.extend_from_slice(&data),
-                        Err(_) => {}, 
+                        Err(_) => {}
                     }
                 }
 
                 if let Some(fname) = filename {
-                    files.insert(name, crate::request::UploadedFile {
-                        filename: fname,
-                        content_type: field.content_type().map(|ct| ct.to_string()).unwrap_or_default(),
-                        content: field_bytes,
-                    });
+                    files.insert(
+                        name,
+                        crate::request::UploadedFile {
+                            filename: fname,
+                            content_type: field
+                                .content_type()
+                                .map(|ct| ct.to_string())
+                                .unwrap_or_default(),
+                            content: field_bytes,
+                        },
+                    );
                 } else {
                     if let Ok(s) = String::from_utf8(field_bytes) {
                         multipart_form.insert(name, s);
@@ -146,7 +152,7 @@ pub async fn handle_request(
         while let Some(chunk) = payload.next().await {
             match chunk {
                 Ok(data) => body_bytes.extend_from_slice(&data),
-                Err(_) => {}, // TODO: handle error
+                Err(_) => {} // TODO: handle error
             }
         }
     }
