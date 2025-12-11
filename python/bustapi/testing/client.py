@@ -2,7 +2,7 @@
 Testing utilities for BustAPI - Flask-compatible test client
 """
 
-import json
+import json as json_module
 from typing import Any, Dict, Optional, Union
 from urllib.parse import urlencode
 
@@ -73,7 +73,7 @@ class TestResponse:
             return None
 
         try:
-            self._json_cache = json.loads(self.get_data(as_text=True))
+            self._json_cache = json_module.loads(self.get_data(as_text=True))
             return self._json_cache
         except (ValueError, TypeError):
             if not silent:
@@ -145,6 +145,7 @@ class TestClient:
         path: str,
         method: str = "GET",
         data: Optional[Union[str, bytes, dict]] = None,
+        json: Optional[Any] = None,
         query_string: Optional[Union[str, dict]] = None,
         headers: Optional[Dict[str, str]] = None,
         content_type: Optional[str] = None,
@@ -157,6 +158,7 @@ class TestClient:
             path: Request path
             method: HTTP method
             data: Request data
+            json: JSON data (automatically sets Content-Type)
             query_string: Query parameters
             headers: Request headers
             content_type: Content type header
@@ -166,6 +168,11 @@ class TestClient:
             TestResponse object
         """
         headers = headers or {}
+
+        # Handle JSON data
+        if json is not None:
+            headers["Content-Type"] = "application/json"
+            data = json_module.dumps(json)
 
         # Set content type if provided
         if content_type:

@@ -17,6 +17,7 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
 
     @wraps(handler)
     def wrapper(rust_request):
+        """Synchronous wrapper for route handlers."""
         try:
             # Fast Path: Check optimizations
             # Note: accessing attributes on self is fast, but local vars are faster.
@@ -84,10 +85,20 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                 # Optimization: Skip param extraction for static routes
                 # (We know it matches because Rust router sent it here)
                 if "<" not in rule:
-                    # Still need to resolve dependencies even for static routes
-                    dep_kwargs, dep_cache = app._resolve_dependencies(rule, {})
+                    # Static route (no path params), but still need query/body/deps
+                    kwargs = {}
+                    # Extract query parameters
+                    query_kwargs = app._extract_query_params(rule, request)
+                    kwargs.update(query_kwargs)
+                    # Extract body parameters (for POST/PUT/PATCH)
+                    if request.method in ("POST", "PUT", "PATCH"):
+                        body_kwargs = app._extract_body_params(rule, request)
+                        kwargs.update(body_kwargs)
+                    # Resolve dependencies
+                    dep_kwargs, dep_cache = app._resolve_dependencies(rule, kwargs)
+                    kwargs.update(dep_kwargs)
                     try:
-                        result = handler(**dep_kwargs)
+                        result = handler(**kwargs)
                     finally:
                         dep_cache.cleanup_sync()
                 else:
@@ -231,12 +242,22 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
             else:
                 # NO MIDDLEWARE PATH (FAST)
                 if "<" not in rule:
-                    # Still need to resolve dependencies even for static routes
+                    # Static route (no path params), but still need query/body/deps
+                    kwargs = {}
+                    # Extract query parameters
+                    query_kwargs = app._extract_query_params(rule, request)
+                    kwargs.update(query_kwargs)
+                    # Extract body parameters (for POST/PUT/PATCH)
+                    if request.method in ("POST", "PUT", "PATCH"):
+                        body_kwargs = app._extract_body_params(rule, request)
+                        kwargs.update(body_kwargs)
+                    # Resolve dependencies (async)
                     dep_kwargs, dep_cache = await app._resolve_dependencies_async(
-                        rule, {}
+                        rule, kwargs
                     )
+                    kwargs.update(dep_kwargs)
                     try:
-                        result = await handler(**dep_kwargs)
+                        result = await handler(**kwargs)
                     finally:
                         await dep_cache.cleanup()
                 else:

@@ -472,23 +472,28 @@ class BustAPI:
                 continue
 
             # Parse JSON body
+            body_data = None
             try:
                 if request.is_json:
                     body_data = request.get_json()
-                else:
+                elif request.data:
                     # If not JSON, try to parse as JSON anyway
                     import json
 
                     body_data = json.loads(request.data.decode("utf-8"))
             except Exception:
-                # If body is required and parsing fails, abort
+                pass  # body_data remains None
+
+            # Handle missing body
+            if body_data is None:
+                # If body is required, abort
                 if body_validator.default is ...:
                     from .core.helpers import abort
 
-                    abort(400, description="Invalid JSON in request body")
+                    abort(400, description="Missing required request body")
                 else:
-                    # Use default value if provided
-                    kwargs[param_name] = body_validator.default
+                    # Use default value if provided (but NOT the Body object itself!)
+                    # Body objects should never have a default other than ...
                     continue
 
             # Validate the body
@@ -516,14 +521,9 @@ class BustAPI:
                 continue
 
             # Resolve the dependency
-            try:
-                value = resolve_dependency_sync(depends, cache, resolved_params)
-                kwargs[param_name] = value
-            except Exception as e:
-                # Dependency resolution failed
-                from .core.helpers import abort
-
-                abort(500, description=f"Dependency resolution failed: {str(e)}")
+            # Note: Don't catch abort exceptions - let them propagate
+            value = resolve_dependency_sync(depends, cache, resolved_params)
+            kwargs[param_name] = value
 
         # Store cache for cleanup
         return kwargs, cache
@@ -541,14 +541,9 @@ class BustAPI:
                 continue
 
             # Resolve the dependency
-            try:
-                value = await resolve_dependency(depends, cache, resolved_params)
-                kwargs[param_name] = value
-            except Exception as e:
-                # Dependency resolution failed
-                from .core.helpers import abort
-
-                abort(500, description=f"Dependency resolution failed: {str(e)}")
+            # Note: Don't catch abort exceptions - let them propagate
+            value = await resolve_dependency(depends, cache, resolved_params)
+            kwargs[param_name] = value
 
         # Store cache for cleanup
         return kwargs, cache
