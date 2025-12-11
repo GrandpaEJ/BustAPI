@@ -37,7 +37,7 @@ By running on top of **Actix-Web** (Rust) via **PyO3** bindings, BustAPI elimina
 ### 🧠 **Intelligent Concurrency**
 
 - **Native Async**: Built on Tokio, the industry-standard Rust async runtime.
-- **Free-Threaded Ready**: Fully supports **Python 3.13 (NoGIL)** mode for true multi-core Python execution.
+- **Free-Threaded Ready**: Fully supports **Python 3.13 (NoGIL)** and **PyPy** for heavily optimized execution. [OPTIONAL]
 - **Smart Worker Pool**: Rust manages the thread pool, automatically scaling to your CPU cores.
 
 ### 🛠️ **Developer Experience (DX)**
@@ -142,14 +142,13 @@ gunicorn main:app
 
 ## Benchmarks at a Glance
 
-| Framework          | Requests/Sec | Relative Speed |
-| :----------------- | :----------- | :------------- |
-| **BustAPI (v0.3)** | **19,126**   | **🚀 100%**    |
-| Catzilla           | 8,688        | 🐯 45%         |
-| Flask              | 2,858        | 🐢 15%         |
-| FastAPI            | 2,029        | 🐢 11%         |
+| Framework           | Requests/Sec | Relative Speed |
+| :------------------ | :----------- | :------------- |
+| **BustAPI (v0.4)**  | **16,311**   | **🚀 100%**    |
+| Flask (4 workers)   | 2,603        | 🐢 16%         |
+| FastAPI (4 workers) | 2,022        | 🐢 12%         |
 
-_(Benchmarks run on Intel i5, 8 Cores, 4 threads, 100 connections)_
+_(Benchmarks run on PyPy 3.11, Intel i5-8365U, 8 Cores, 100 connections)_
 
 ---
 

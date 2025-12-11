@@ -17,7 +17,7 @@ import sys
 import threading
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import psutil
 
@@ -32,7 +32,7 @@ SERVER_FILES = {
     "BustAPI": "benchmarks/temp_bustapi.py",
     "Flask": "benchmarks/temp_flask.py",
     "FastAPI": "benchmarks/temp_fastapi.py",
-    "Catzilla": "benchmarks/temp_catzilla.py",
+    # "Catzilla": "benchmarks/temp_catzilla.py",
 }
 
 RUN_COMMANDS = {
@@ -64,7 +64,6 @@ RUN_COMMANDS = {
         "warning",
         "--no-access-log",
     ],
-    "Catzilla": ["python", "benchmarks/temp_catzilla.py"],
 }
 
 # Server Code Templates
@@ -160,29 +159,29 @@ class BenchmarkResult:
 class ResourceMonitor:
     def __init__(self, pid: int):
         self.process = psutil.Process(pid)
-        self.cpu_samples = []
-        self.ram_samples = []
+        self.cpu_samples: List[float] = []
+        self.ram_samples: List[float] = []
         self.running = False
-        self.thread = None
+        self.thread: Optional[threading.Thread] = None
 
-    def start(self):
+    def start(self) -> None:
         self.running = True
         self.thread = threading.Thread(target=self._monitor)
         self.thread.start()
 
-    def stop(self):
+    def stop(self) -> None:
         self.running = False
         if self.thread:
             self.thread.join()
 
-    def _monitor(self):
+    def _monitor(self) -> None:
         # Initial CPU call for main process
         try:
             self.process.cpu_percent()
         except:
             pass
 
-        children_cache = {}  # pid -> process_obj
+        children_cache: Dict[int, psutil.Process] = {}  # pid -> process_obj
 
         while self.running:
             try:
@@ -230,7 +229,7 @@ class ResourceMonitor:
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 break
 
-    def get_stats(self):
+    def get_stats(self) -> tuple[float, float]:
         if not self.cpu_samples:
             return 0.0, 0.0
         avg_cpu = sum(self.cpu_samples) / len(self.cpu_samples)
@@ -238,7 +237,7 @@ class ResourceMonitor:
         return avg_cpu, max_ram
 
 
-def get_system_info():
+def get_system_info() -> Dict[str, Union[str, int, float]]:
     info = {}
     info["os"] = f"{platform.system()} {platform.release()}"
     info["python"] = platform.python_version()
@@ -270,8 +269,8 @@ def create_server_files():
         f.write(CODE_FLASK)
     with open(SERVER_FILES["FastAPI"], "w") as f:
         f.write(CODE_FASTAPI)
-    with open(SERVER_FILES["Catzilla"], "w") as f:
-        f.write(CODE_CATZILLA)
+    # with open(SERVER_FILES["Catzilla"], "w") as f:
+    #     f.write(CODE_CATZILLA)
 
 
 def clean_server_files():
@@ -468,7 +467,7 @@ def main():
     all_results = []
 
     try:
-        frameworks = ["BustAPI", "Flask", "FastAPI", "Catzilla"]
+        frameworks = ["BustAPI", "Flask", "FastAPI"]
 
         for fw in frameworks:
             fw_results = benchmark_framework(fw)
