@@ -7,17 +7,16 @@ from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 from .core.logging import get_logger
+
+# NOTE: itsdangerous is no longer used for session signing.
+# We use the Rust Signer class imported in sessions.py
+from .dispatch import create_async_wrapper, create_sync_wrapper
 from .http.request import Request, _request_ctx
 from .http.response import Response, make_response
 from .middleware import MiddlewareManager
 from .routing.blueprints import Blueprint
-from .sessions import SecureCookieSessionInterface
-# NOTE: itsdangerous is no longer used for session signing. 
-# We use the Rust Signer class imported in sessions.py
-
-
-from .dispatch import create_async_wrapper, create_sync_wrapper
 from .serving import run_server
+from .sessions import SecureCookieSessionInterface
 
 
 class BustAPI:
@@ -79,14 +78,22 @@ class BustAPI:
         # URL map and rules
         # url_map maps rule -> {endpoint, methods}
         self.url_map: Dict[str, Dict] = {}
-        
+
         # Path parameter validation metadata
         # Maps (rule, param_name) -> Path validator
         self.path_validators: Dict[tuple, Any] = {}
-        
+
         # Query parameter validation metadata
         # Maps (rule, param_name) -> Query validator with type hint
-        self.query_validators: Dict[tuple, tuple] = {}  # (rule, param_name) -> (Query, type)
+        self.query_validators: Dict[
+            tuple, tuple
+        ] = {}  # (rule, param_name) -> (Query, type)
+
+        # Body parameter validation metadata
+        # Maps (rule, param_name) -> Body validator with type hint
+        self.body_validators: Dict[
+            tuple, tuple
+        ] = {}  # (rule, param_name) -> (Body, type)
 
         # Templating
         self.jinja_env = None
@@ -176,6 +183,7 @@ class BustAPI:
         # Extract Path and Query validators from function signature
         if view_func:
             from .params import Path, Query
+
             sig = inspect.signature(view_func)
             for param_name, param in sig.parameters.items():
                 if isinstance(param.default, Path):
@@ -183,8 +191,15 @@ class BustAPI:
                     self.path_validators[(rule, param_name)] = param.default
                 elif isinstance(param.default, Query):
                     # Store Query validator with type hint for this rule and parameter
-                    param_type = param.annotation if param.annotation != inspect.Parameter.empty else str
-                    self.query_validators[(rule, param_name)] = (param.default, param_type)
+                    param_type = (
+                        param.annotation
+                        if param.annotation != inspect.Parameter.empty
+                        else str
+                    )
+                    self.query_validators[(rule, param_name)] = (
+                        param.default,
+                        param_type,
+                    )
 
         # Store view function
         self.view_functions[endpoint] = view_func
@@ -329,9 +344,9 @@ class BustAPI:
         return self.jinja_env
 
     def _extract_path_params(self, rule: str, path: str):
-        """Extract and validate path params from a Flask-style rule like '/greet/<name>' or '/users/<int:id>'."""        
+        """Extract and validate path params from a Flask-style rule like '/greet/<name>' or '/users/<int:id>'."""
         from .params import ValidationError
-        
+
         rule_parts = rule.strip("/").split("/")
         path_parts = path.strip("/").split("/")
         args = []
@@ -359,7 +374,7 @@ class BustAPI:
                         val = float(pp)
                     except ValueError:
                         val = pp
-                
+
                 # Validate against Path constraints if present
                 validator = self.path_validators.get((rule, name))
                 if validator:
@@ -368,46 +383,57 @@ class BustAPI:
                     except ValidationError as e:
                         # Raise HTTP 400 error with validation message
                         from .core.helpers import abort
+
                         abort(400, description=str(e))
-                
+
                 # Only populate kwargs to avoid duplicate positional+keyword arguments
                 kwargs[name] = val
         return args, kwargs
-    
+
     def _extract_query_params(self, rule: str, request):
         """Extract and validate query parameters based on Query validators."""
         from .params import ValidationError
-        
+
         kwargs = {}
-        
+
         # Get all query validators for this route
-        for (validator_rule, param_name), (query_validator, param_type) in self.query_validators.items():
+        for (validator_rule, param_name), (
+            query_validator,
+            param_type,
+        ) in self.query_validators.items():
             if validator_rule != rule:
                 continue
-            
+
             # Get raw value from query string
             raw_value = request.args.get(param_name)
-            
+
             # Handle required vs optional
             if raw_value is None:
                 if query_validator.default is ...:
                     # Required parameter is missing
                     from .core.helpers import abort
-                    abort(400, description=f"Missing required query parameter: {param_name}")
+
+                    abort(
+                        400,
+                        description=f"Missing required query parameter: {param_name}",
+                    )
                 else:
                     # Use default value
                     kwargs[param_name] = query_validator.default
                     continue
-            
+
             # Validate and coerce the value
             try:
-                validated_value = query_validator.validate(param_name, raw_value, param_type)
+                validated_value = query_validator.validate(
+                    param_name, raw_value, param_type
+                )
                 kwargs[param_name] = validated_value
             except ValidationError as e:
                 # Raise HTTP 400 error with validation message
                 from .core.helpers import abort
+
                 abort(400, description=str(e))
-        
+
         return kwargs
 
     def before_request(self, f: Callable) -> Callable:
@@ -512,7 +538,6 @@ class BustAPI:
                     self._rust_app.add_route(
                         method, rule, create_sync_wrapper(self, view_func, rule)
                     )
-
 
     def _make_response(self, *args) -> Response:
         """Convert various return types to Response objects."""

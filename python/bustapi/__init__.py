@@ -31,11 +31,12 @@ __email__ = ""
 from .app import BustAPI
 from .core import logging
 from .core.helpers import abort, redirect, render_template, url_for
+from .dependencies import Depends
 from .documentation.generator import BustAPIDocs
 from .http.request import Request, request, session
 from .http.response import Response, jsonify, make_response
 from .middleware import Middleware
-from .params import Path, Query
+from .params import Body, Path, Query
 from .routing.blueprints import Blueprint
 from .security.extension import Security
 from .security.rate_limit import RateLimit
@@ -55,6 +56,8 @@ __all__ = [
     "Blueprint",
     "Path",
     "Query",
+    "Body",
+    "Depends",
     "render_template",
     "render_template_string",
     "url_for",
