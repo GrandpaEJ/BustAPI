@@ -409,7 +409,7 @@ class MockRequest:
         if not self.is_json():
             return None
         try:
-            return json.loads(self.body.decode("utf-8"))
+            return json_module.loads(self.body.decode("utf-8"))
         except (ValueError, UnicodeDecodeError):
             return None
 
