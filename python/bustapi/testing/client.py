@@ -195,7 +195,7 @@ class TestClient:
                     headers["Content-Type"] = "application/x-www-form-urlencoded"
                     data = urlencode(data)
                 elif headers.get("Content-Type") == "application/json":
-                    data = json.dumps(data)
+                    data = json_module.dumps(data)
 
             if isinstance(data, str):
                 data = data.encode("utf-8")
@@ -205,12 +205,23 @@ class TestClient:
             cookie_header = "; ".join([f"{k}={v}" for k, v in self.cookie_jar.items()])
             headers["Cookie"] = cookie_header
 
+        # Convert data to bytes for MockRequest
+        if isinstance(data, str):
+            data_bytes = data.encode("utf-8")
+        elif isinstance(data, dict):
+            # Should have been encoded already, but safe fallback
+            data_bytes = urlencode(data).encode("utf-8")
+        elif data is None:
+            data_bytes = b""
+        else:
+            data_bytes = data
+
         # Create mock request object for the Rust backend
         # TODO: This is a simplified mock - in a full implementation,
         # we would need to properly interface with the Rust backend
         # or create a test mode that bypasses the network layer
 
-        mock_request = MockRequest(method, path, headers, data or b"")
+        mock_request = MockRequest(method, path, headers, data_bytes)
 
         try:
             # Call application handler directly
@@ -234,7 +245,7 @@ class TestClient:
             error_msg = f"Test client error: {str(e)}"
             return self.response_wrapper(error_msg.encode(), 500, {})
 
-    def _call_application(self, request):
+    def _call_application(self, request: "MockRequest") -> Any:
         """
         Call application using WSGI interface.
         """
@@ -270,7 +281,7 @@ class TestClient:
                 environ[f"HTTP_{key}"] = value
 
         # Mock start_response
-        response_data = {"status": None, "headers": []}
+        response_data: Dict[str, Any] = {"status": None, "headers": []}
 
         def start_response(status, headers, exc_info=None):
             response_data["status"] = status
@@ -314,7 +325,7 @@ class TestClient:
         resp = Response(body, status=status_code, headers=headers_dict)
         return resp
 
-    def _update_cookies(self, set_cookie_header: str):
+    def _update_cookies(self, set_cookie_header: str) -> None:
         """
         Update cookie jar from Set-Cookie header.
 
@@ -361,10 +372,10 @@ class TestClient:
         return self.open(path, method="TRACE", **kwargs)
 
     # Context manager support
-    def __enter__(self):
+    def __enter__(self) -> "TestClient":
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         # Cleanup if needed
         self.cookie_jar.clear()
 
@@ -384,7 +395,7 @@ class MockRequest:
         if "?" in path:
             self.path, query_string = path.split("?", 1)
             self.query_params = dict(
-                item.split("=", 1) if "=" in item else (item, "")
+                tuple(item.split("=", 1)) if "=" in item else (item, "")
                 for item in query_string.split("&")
                 if item
             )
@@ -404,7 +415,7 @@ class MockRequest:
         content_type = self.get_header("content-type") or ""
         return "application/json" in content_type.lower()
 
-    def get_json(self):
+    def get_json(self) -> Optional[Any]:
         """Get request body as JSON."""
         if not self.is_json():
             return None

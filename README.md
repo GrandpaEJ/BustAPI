@@ -37,7 +37,7 @@ By running on top of **Actix-Web** (Rust) via **PyO3** bindings, BustAPI elimina
 ### 🧠 **Intelligent Concurrency**
 
 - **Native Async**: Built on Tokio, the industry-standard Rust async runtime.
-- **Free-Threaded Ready**: Fully supports **Python 3.13 (NoGIL)** and **PyPy** for heavily optimized execution. [OPTIONAL]
+- **Free-Threaded Ready**: Fully supports **Python 3.13 (NoGIL)** and **PyPy** for heavily optimized execution. [OPTIONAL] `DEFAULT: GIL`
 - **Smart Worker Pool**: Rust manages the thread pool, automatically scaling to your CPU cores.
 
 ### 🛠️ **Developer Experience (DX)**

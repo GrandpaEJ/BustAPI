@@ -10,29 +10,29 @@
 
 ## 🏆 Throughput (Requests/sec)
 
-| Endpoint | Metrics | BustAPI | Flask | FastAPI |
-| :--- | :--- | :---: | :---: | :---: |
-| **`/`** | 🚀 RPS | 🥇 **16,311** | **2,603** | **2,022** |
-|  | ⏱️ Avg Latency | 6.11ms | 37.70ms | 48.80ms |
-|  | 📉 Max Latency | 27.57ms | 77.00ms | 138.96ms |
-|  | 📦 Transfer | 1.88 MB/s | 0.41 MB/s | 0.29 MB/s |
-|  | 🔥 CPU Usage | 155% | 395% | 241% |
-|  | 🧠 RAM Usage | 67.5 MB | 202.4 MB | 292.7 MB |
-| | | --- | --- | --- |
-| **`/json`** | 🚀 RPS | 🥇 **8,828** | **3,314** | **2,134** |
-|  | ⏱️ Avg Latency | 11.49ms | 29.76ms | 46.50ms |
-|  | 📉 Max Latency | 54.26ms | 49.83ms | 102.75ms |
-|  | 📦 Transfer | 1.06 MB/s | 0.52 MB/s | 0.29 MB/s |
-|  | 🔥 CPU Usage | 125% | 365% | 203% |
-|  | 🧠 RAM Usage | 67.9 MB | 202.6 MB | 293.2 MB |
-| | | --- | --- | --- |
-| **`/user/10`** | 🚀 RPS | 🥇 **9,555** | **4,179** | **1,901** |
-|  | ⏱️ Avg Latency | 10.52ms | 23.63ms | 52.33ms |
-|  | 📉 Max Latency | 42.81ms | 49.88ms | 135.15ms |
-|  | 📦 Transfer | 1.12 MB/s | 0.64 MB/s | 0.25 MB/s |
-|  | 🔥 CPU Usage | 133% | 370% | 200% |
-|  | 🧠 RAM Usage | 67.8 MB | 202.4 MB | 293.4 MB |
-| | | --- | --- | --- |
+| Endpoint | Metrics | BustAPI | Flask | FastAPI | Catzilla |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| **`/`** | 🚀 RPS | 🥇 **18,015** | **3,560** | **2,039** | **9,953** |
+|  | ⏱️ Avg Latency | 5.67ms | 27.71ms | 48.91ms | 12.96ms |
+|  | 📉 Max Latency | 73.26ms | 71.26ms | 118.88ms | 452.51ms |
+|  | 📦 Transfer | 2.08 MB/s | 0.56 MB/s | 0.29 MB/s | 1.40 MB/s |
+|  | 🔥 CPU Usage | 161% | 358% | 309% | 97% |
+|  | 🧠 RAM Usage | 67.1 MB | 201.5 MB | 295.2 MB | 502.0 MB |
+| | | --- | --- | --- | --- |
+| **`/json`** | 🚀 RPS | 🥇 **11,660** | **4,156** | **2,112** | **11,290** |
+|  | ⏱️ Avg Latency | 8.57ms | 23.77ms | 47.07ms | 8.96ms |
+|  | 📉 Max Latency | 28.94ms | 42.93ms | 91.49ms | 151.01ms |
+|  | 📦 Transfer | 1.40 MB/s | 0.65 MB/s | 0.29 MB/s | 1.22 MB/s |
+|  | 🔥 CPU Usage | 139% | 378% | 193% | 98% |
+|  | 🧠 RAM Usage | 67.4 MB | 201.7 MB | 295.7 MB | 1001.6 MB |
+| | | --- | --- | --- | --- |
+| **`/user/10`** | 🚀 RPS | **9,197** | **3,690** | **1,976** | 🥇 **10,249** |
+|  | ⏱️ Avg Latency | 11.02ms | 26.72ms | 50.30ms | 14.44ms |
+|  | 📉 Max Latency | 50.08ms | 59.05ms | 117.82ms | 494.67ms |
+|  | 📦 Transfer | 1.08 MB/s | 0.56 MB/s | 0.26 MB/s | 1.45 MB/s |
+|  | 🔥 CPU Usage | 131% | 373% | 201% | 98% |
+|  | 🧠 RAM Usage | 67.4 MB | 201.5 MB | 296.1 MB | 1475.4 MB |
+| | | --- | --- | --- | --- |
 
 ## ⚙️ How to Reproduce
 ```bash
