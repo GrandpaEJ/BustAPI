@@ -388,12 +388,8 @@ def benchmark_framework(name: str):
     time.sleep(1)
 
     cmd = RUN_COMMANDS[name]
-    # Use uv run to ensure dependencies are found
-    if cmd[0] == "python":
-        final_cmd = ["uv", "run", "--extra", "benchmarks"] + cmd
-    else:
-        # e.g. gunicorn
-        final_cmd = ["uv", "run", "--extra", "benchmarks"] + cmd
+    # Use generic command execution
+    final_cmd = cmd
 
     print(f"   Starting: {' '.join(final_cmd)}")
 
@@ -468,7 +464,7 @@ def main():
     all_results = []
 
     try:
-        frameworks = ["BustAPI", "Flask", "FastAPI", "Catzilla"]
+        frameworks = ["BustAPI", "Catzilla", "Flask", "FastAPI"]
 
         for fw in frameworks:
             fw_results = benchmark_framework(fw)
