@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented here.
 
+## [0.5.0] - 2026-01-01
+
+### Major Features
+
+- **FastAPI Compatibility Layer**:
+  - Added support for `Header`, `Cookie`, `Form`, and `File` parameter validators.
+  - Implemented `UploadFile` wrapper for easier file handling.
+  - Added `BackgroundTasks` for simple background execution.
+  - Introduced `JSONResponse`, `HTMLResponse`, `PlainTextResponse`, `RedirectResponse`, `FileResponse` aliases.
+
+- **Core Context Improvements**:
+  - Implemented functional `g` (application globals) and `current_app` context proxies.
+  - Fixed issues where these globals were exported but not importable/functional.
+  - Ensured correct context isolation using `contextvars`.
+
+- **API Completeness**:
+  - Improved `Request` object compatibility with Flask/Werkzeug (e.g. `request.files`, `request.cookies` via Rust).
+
 ## [0.4.0] - 2025-12-11
 
 ### Major Features
