@@ -168,4 +168,4 @@ Join us in building the fastest Python framework ever created.
 
 ## 📄 License
 
-[MIT](LICENSE) © 2025 BustAPI Team.
+[MIT](LICENSE) © 2025 GrandpaEJ.
