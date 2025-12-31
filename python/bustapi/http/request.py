@@ -22,6 +22,8 @@ class ImmutableMultiDict(dict):
 
 # Thread-local request context
 _request_ctx: ContextVar[Optional["Request"]] = ContextVar("request", default=None)
+_app_ctx: ContextVar[Optional[Any]] = ContextVar("app", default=None)
+_g_ctx: ContextVar[Optional[Dict[str, Any]]] = ContextVar("g", default=None)
 
 
 class Request:
@@ -509,3 +511,82 @@ class _SessionProxy:
 
 
 session = _SessionProxy()
+
+
+# Global app proxy object
+class _AppProxy:
+    """Proxy object that provides access to the current application."""
+
+    def __getattr__(self, name: str) -> Any:
+        app = _app_ctx.get()
+        if app is None:
+            # Try to get from request context
+            req = _request_ctx.get()
+            if req and hasattr(req, "app"):
+                return getattr(req.app, name)
+
+            raise RuntimeError("Working outside of application context")
+        return getattr(app, name)
+
+    def __repr__(self) -> str:
+        app = _app_ctx.get()
+        if app is None:
+            # Try to get from request context
+            req = _request_ctx.get()
+            if req and hasattr(req, "app"):
+                return f"<AppProxy: {req.app.import_name}>"
+            return "<AppProxy: no app context>"
+        return f"<AppProxy: {app.import_name}>"
+
+
+# Global g object (general temporary storage)
+class _GProxy:
+    """Proxy object for global temporary storage."""
+
+    def __getattr__(self, name: str) -> Any:
+        g_store = _g_ctx.get()
+        if g_store is None:
+            # Try to initialize if we have a request context
+            if _request_ctx.get():
+                g_store = {}
+                _g_ctx.set(g_store)
+            else:
+                raise RuntimeError("Working outside of application context")
+
+        return g_store.get(name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        g_store = _g_ctx.get()
+        if g_store is None:
+            # Try to initialize if we have a request context
+            if _request_ctx.get():
+                g_store = {}
+                _g_ctx.set(g_store)
+            else:
+                raise RuntimeError("Working outside of application context")
+
+        g_store[name] = value
+
+    def __delattr__(self, name: str) -> None:
+        g_store = _g_ctx.get()
+        if g_store is None:
+            raise RuntimeError("Working outside of application context")
+
+        if name in g_store:
+            del g_store[name]
+        else:
+            raise AttributeError(name)
+
+    def get(self, name: str, default: Any = None) -> Any:
+        g_store = _g_ctx.get()
+        if g_store is None:
+            return default
+        return g_store.get(name, default)
+
+    def __contains__(self, item: str) -> bool:
+        g_store = _g_ctx.get()
+        return g_store is not None and item in g_store
+
+
+current_app = _AppProxy()
+g = _GProxy()

@@ -33,13 +33,28 @@ from .core import logging
 from .core.helpers import abort, redirect, render_template, url_for
 from .dependencies import Depends
 from .documentation.generator import BustAPIDocs
-from .http.request import Request, request, session
+from .http.request import Request, current_app, g, request, session
 from .http.response import Response, jsonify, make_response
 from .middleware import Middleware
 from .params import Body, Path, Query
 from .routing.blueprints import Blueprint
 from .security.extension import Security
 from .security.rate_limit import RateLimit
+from .responses import (
+    JSONResponse,
+    HTMLResponse,
+    PlainTextResponse,
+    RedirectResponse,
+    FileResponse,
+)
+from .fastapi_compat import (
+    Header,
+    Cookie,
+    Form,
+    File,
+    UploadFile,
+    BackgroundTasks,
+)
 
 # Import testing utilities
 from .testing.client import TestClient
@@ -70,11 +85,22 @@ __all__ = [
     "Middleware",
     "RateLimiter",
     "TestClient",
+    "Header",
+    "Cookie",
+    "Form",
+    "File",
+    "UploadFile",
+    "BackgroundTasks",
     "Struct",
     "String",
     "Integer",
     "HTTPStatus",
     "__version__",
+    "JSONResponse",
+    "HTMLResponse",
+    "PlainTextResponse",
+    "RedirectResponse",
+    "FileResponse",
 ]
 
 # Convenience imports for common use cases
