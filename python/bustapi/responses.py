@@ -1,7 +1,9 @@
 """
 Response type aliases for Flask/FastAPI compatibility.
 """
-from typing import Any, Optional, Union, Dict
+
+from typing import Any, Dict, Optional, Union
+
 from .http.response import Response, redirect
 
 
@@ -9,6 +11,7 @@ class JSONResponse(Response):
     """
     JSON Response alias (FastAPI-compatible).
     """
+
     def __init__(
         self,
         content: Any,
@@ -26,6 +29,7 @@ class HTMLResponse(Response):
     """
     HTML Response alias (FastAPI-compatible).
     """
+
     def __init__(
         self,
         content: str,
@@ -41,6 +45,7 @@ class PlainTextResponse(Response):
     """
     Plain Text Response alias (FastAPI-compatible).
     """
+
     def __init__(
         self,
         content: str,
@@ -56,6 +61,7 @@ class RedirectResponse(Response):
     """
     Redirect Response alias (FastAPI-compatible).
     """
+
     def __init__(
         self,
         url: str,
@@ -65,24 +71,22 @@ class RedirectResponse(Response):
     ):
         # Create base redirect response
         resp = redirect(url, code=status_code)
-        
+
         # Merge custom headers if any
         if headers:
             for k, v in headers.items():
                 resp.headers[k] = v
-                
+
         # Copy to self (hacky but works for inheritance)
-        super().__init__(
-            status=resp.status_code,
-            headers=resp.headers
-        )
-        self.headers['Location'] = url
+        super().__init__(status=resp.status_code, headers=resp.headers)
+        self.headers["Location"] = url
 
 
 class FileResponse(Response):
     """
     File Response alias (FastAPI-compatible).
     """
+
     def __init__(
         self,
         path: str,
@@ -94,26 +98,24 @@ class FileResponse(Response):
         content_disposition_type: str = "attachment",
     ):
         from .core.helpers import send_file
-        
+
         # Create base file response
         resp = send_file(
             path,
             mimetype=media_type,
             as_attachment=True if filename else False,
-            attachment_filename=filename
+            attachment_filename=filename,
         )
-        
+
         # Update status if needed
         resp.status_code = status_code
-        
+
         # Merge custom headers
         if headers:
             for k, v in headers.items():
                 resp.headers[k] = v
-                
+
         super().__init__(
-            response=resp.data,
-            status=resp.status_code,
-            headers=resp.headers
+            response=resp.data, status=resp.status_code, headers=resp.headers
         )
         self.content_type = resp.content_type
