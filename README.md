@@ -37,7 +37,7 @@ By running on top of **Actix-Web** (Rust) via **PyO3** bindings, BustAPI elimina
 ### 🧠 **Intelligent Concurrency**
 
 - **Native Async**: Built on Tokio, the industry-standard Rust async runtime.
-- **Free-Threaded Ready**: Fully supports **Python 3.13 (NoGIL)** and **PyPy** for heavily optimized execution. [OPTIONAL] `DEFAULT: GIL`
+<!-- - **Free-Threaded Ready**: Fully supports **Python 3.13 (NoGIL)** and **PyPy** for heavily optimized execution. [OPTIONAL] `DEFAULT: GIL` -->
 - **Smart Worker Pool**: Rust manages the thread pool, automatically scaling to your CPU cores.
 
 ### 🛠️ **Developer Experience (DX)**
@@ -138,17 +138,24 @@ gunicorn main:app
 - **Templates**: Integrated Jinja2 support.
 - **Security**: Robust headers and CORS support out of the box.
 
+### ✨ New in v0.5.0
+- **FastAPI Compatibility**: Migrate easily with `Header`, `Cookie`, `Form`, `File`, and `UploadFile` support.
+- **Context Globals**: Full support for Flask-style `g` and `current_app` proxies.
+- **Background Tasks**: Fire-and-forget tasks with `BackgroundTasks`.
+- **Response Aliases**: Use `JSONResponse`, `HTMLResponse`, etc., just like in FastAPI.
+
 ---
 
 ## Benchmarks at a Glance
 
-| Framework           | Requests/Sec | Relative Speed |
-| :------------------ | :----------- | :------------- |
-| **BustAPI (v0.4)**  | **16,311**   | **🚀 100%**    |
-| Flask (4 workers)   | 2,603        | 🐢 16%         |
-| FastAPI (4 workers) | 2,022        | 🐢 12%         |
+| Framework           | Requests/Sec | Relative Speed | Memory (RAM) |
+| :------------------ | :----------- | :------------- | :----------- |
+| **BustAPI (v0.5)**  | **25,782**   | **🚀 100%**    | **~24 MB**   |
+| Catzilla (v0.2)     | 15,727       | 💨 61%         | ~718 MB      |
+| Flask (4 workers)   | 6,869        | 🐢 27%         | ~160 MB      |
+| FastAPI (4 workers) | 1,867        | 🐢 7%          | ~237 MB      |
 
-_(Benchmarks run on PyPy 3.11, Intel i5-8365U, 8 Cores, 100 connections)_
+_(Benchmarks run on Python 3.13, Intel i5-8365U, 8 Cores, Ubuntu Linux)_
 
 ---
 
