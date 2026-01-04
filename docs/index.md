@@ -1,59 +1,40 @@
-# Welcome to BustAPI
+# BustAPI
 
-**BustAPI** is a high-performance Python web framework with the raw speed of [Rust](https://www.rust-lang.org/). Built on top of [PyO3](https://pyo3.rs/) and [Actix-web](https://actix.rs/).
+**The speed of Rust. The simplicity of Flask.**
 
-[![PyPI version](https://badge.fury.io/py/bustapi.svg)](https://badge.fury.io/py/bustapi)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+`BustAPI` is a high-performance, async-native, type-safe Python web framework built on top of Rust bindings. It is designed to be a drop-in high-performance alternative to Flask-like frameworks.
+
+<div align="center">
+  <img src="assets/logo.png" alt="BustAPI Logo" width="200">
+</div>
 
 ---
 
-## 🚀 Key Features
+## Features
 
-- **Rust-Powered Engine**: The core HTTP server, router, and request handling are implemented in Rust using Actix-web, providing blazing fast performance.
-- **Async Support**: Native support for `async/await` syntax for high-concurrency workloads.
-- **True Parallelism**: Leverages Python 3.13's free-threading mode (no GIL) for true multi-core parallel execution.
-- **Secure by Default**: Built-in protection against Path Traversal, with optional Rate Limiting and Security Headers.
-- **Developer Experience**: Includes Blueprints, Templates (Jinja2), and colorful Logging out of the box.
+- **Rust-Powered Performance**: Built on top of **Actix-web** via PyO3 bindings. BustAPI handles the heavy lifting of HTTP parsing and routing in optimized Rust code, while your business logic stays in friendly Python.
+- **Type-Safe by Design**: Leveraging Python's `typing` module, BustAPI enforces rigorous validation using Rust-based validators. Errors are caught early with descriptive messages.
+- **True Async Support**: Designed for modern I/O-bound workloads. BustAPI runs on a dedicated Rust event loop, allowing you to handle thousands of concurrent connections efficiently.
 
-## ⚡ Performance
+## Developer Experience
 
-BustAPI allows write-heavy and compute-heavy logic to run in parallel without the GIL bottleneck, handling **100k+ requests per second** on modern hardware.
-
-## 🛠️ Getting Started
-
-Install with pip:
-
-```bash
-pip install bustapi
-```
-
-Create `app.py`:
 
 ```python
-from bustapi import BustAPI
+from bustapi import BustAPI, Body
+from bustapi.safe import Struct, String
+
+class User(Struct):
+    name: String
+    email: String
 
 app = BustAPI()
 
-@app.route("/")
-def hello():
-    return {"message": "Hello from BustAPI!"}
-
-if __name__ == "__main__":
-    app.run(debug=True)
+@app.post("/users")
+async def create_user(user: User = Body(...)):
+    # user is strictly validated!
+    return {"message": f"Welcome, {user.name}!"}
 ```
 
-Run it:
+## Getting Started
 
-```bash
-python app.py
-```
-
-Visit `http://127.0.0.1:5000` to see your API in action.
-
-## 📚 Documentation Sections
-
-- **[Installation](installation.md)**: Setup guide and requirements.
-- **[Quickstart](quickstart.md)**: Build your first application in minutes.
-- **[User Guide](user-guide/routing.md)**: Master routing, request handling, and templates.
-- **[Advanced Features](advanced/async.md)**: Security, Async, and Deployment.
-- **[API Reference](api-reference.md)**: Detailed API documentation.
+Check out the [Quickstart](quickstart.md) or dive into the [Core Concepts](user-guide/routing.md).

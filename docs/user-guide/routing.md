@@ -1,10 +1,10 @@
 # Routing
 
-Modern web applications use meaningful URLs to help users. BustAPI provides a decorator-based routing system similar to Flask.
+Routing is the mechanism of mapping a URL to a specific function in your code. BustAPI uses a high-performance Radix Tree implementation in Rust for this purpose.
 
-## Basic Routing
+## Basic Registration
 
-Use the `route()` decorator to bind a function to a URL.
+Use the `@app.route()` decorator to register a view function.
 
 ```python
 @app.route("/")
@@ -13,38 +13,45 @@ def index():
 
 @app.route("/hello")
 def hello():
-    return "Hello, World"
+    return "Hello Page"
 ```
+
+!!! note "Trailing Slashes"
+    BustAPI enforces strict matching. `/hello` and `/hello/` are different URLs. We recommend being consistent with your slash usage.
 
 ## Variable Rules
 
-You can add variable sections to a URL by marking sections with `<variable_name>`. The value is passed as a keyword argument to your function.
+You can capture parts of the URL as variables. The variable part is marked with `<variable_name>`.
 
 ```python
 @app.route("/user/<username>")
-def show_user_profile(username):
-    # show the user profile for that user
-    return f"User {username}"
-
-@app.route("/post/<int:post_id>")
-def show_post(post_id):
-    # show the post with the given id, the id is an integer
-    return f"Post {post_id}"
+def show_user(username):
+    # username is passed as a string
+    return f"User: {username}"
 ```
 
-### Supported Converters
+### Type Converters
 
-- **`string`**: (Default) Accepts any text without a slash.
-- **`int`**: Accepts positive integers.
-- **`path`**: Accepts text strings including slashes (useful for file paths).
+You can enforce types directly in the URL rule. If the type match fails, BustAPI returns a 404 automatically.
+
+| Converter | Description |
+| :--- | :--- |
+| `<string:name>` | Accepts any text without slashes (default). |
+| `<int:id>` | Accepts positive integers only. |
+| `<float:val>` | Accepts positive floating point numbers. |
+
+```python
+@app.route("/post/<int:post_id>")
+def show_post(post_id):
+    # post_id is now a python int, not a string!
+    return f"Post ID: {post_id}"
+```
 
 ## HTTP Methods
 
-By default, a route only answers to `GET` requests. You can use the `methods` argument to handle different HTTP methods.
+Web applications use different HTTP methods for different actions. By default, a route only answers to `GET`.
 
 ```python
-from bustapi import request
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -53,15 +60,16 @@ def login():
         return show_the_login_form()
 ```
 
-## URL Building
+### Shorthand Decorators
 
-You can build a URL to a specific function using `url_for()`. This is safer than hardcoding URLs.
+BustAPI provides shortcuts for common methods, which are often cleaner to read.
 
 ```python
-from bustapi import url_for
+@app.get("/items")
+def get_items():
+    return ["item1", "item2"]
 
-with app.test_request_context():
-    print(url_for("index"))  # Output: /
-    print(url_for("login"))  # Output: /login
-    print(url_for("show_user_profile", username="Grandpa")) # Output: /user/Grandpa
+@app.post("/items")
+def create_item():
+    return "Created"
 ```

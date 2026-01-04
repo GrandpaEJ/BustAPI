@@ -432,16 +432,43 @@ pre:hover .copy-btn {
 
 .admonition.warning .admonition-title {
     color: #e65100;
+    background-color: transparent;
 }
 
-.admonition.tip {
-    border-color: #4caf50;
-    background-color: rgba(76, 175, 80, 0.05);
+/* Feature Cards (Index Page) */
+.features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 4rem;
 }
 
-.admonition.tip .admonition-title {
-    color: #2e7d32;
+.feature-card {
+    background-color: var(--bg-sidebar);
+    padding: 2rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    transition: transform 0.2s, box-shadow 0.2s;
 }
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow);
+    border-color: var(--primary);
+}
+
+.feature-card h3 {
+    color: var(--primary);
+    font-size: 1.25rem;
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+.feature-card p {
+    margin-bottom: 0;
+    color: var(--text-muted);
+}
+
 
 /* Mobile */
 #menu-button {

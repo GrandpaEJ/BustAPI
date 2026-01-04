@@ -17,17 +17,21 @@
             <div class="header-controls">
                 <button id="menu-button" aria-label="Menu">☰</button>
                 <a href="index.html" class="brand">
-                    <img src="assets/logo.png" alt="Logo" style="height: 30px; margin-right: 10px; vertical-align: middle;">
+                    <img src="assets/logo.png" alt="Logo"
+                        style="height: 30px; margin-right: 10px; vertical-align: middle;">
                     BustAPI <span style="font-size: 0.8em; opacity: 0.7; margin-left: 5px;">v0.5.0</span>
                 </a>
             </div>
 
             <div class="header-controls">
-                <a href="changelog.html" style="color:white; font-size:0.9rem; font-weight:500; margin-right: 15px;">Changelog</a>
-                <iframe src="https://ghbtns.com/github-btn.html?user=GrandpaEJ&repo=bustapi&type=star&count=true" frameborder="0" scrolling="0" width="100" height="20" title="GitHub" style="margin-right: 10px;"></iframe>
+                <a href="changelog.html"
+                    style="color:white; font-size:0.9rem; font-weight:500; margin-right: 15px;">Changelog</a>
+                <iframe src="https://ghbtns.com/github-btn.html?user=GrandpaEJ&repo=bustapi&type=star&count=true"
+                    frameborder="0" scrolling="0" width="100" height="20" title="GitHub"
+                    style="margin-right: 10px;"></iframe>
                 <button id="theme-toggle" aria-label="Toggle Theme">◐</button>
             </div>
-</header>
+        </header>
 
         <div class="layout">
             <div class="overlay"></div>
@@ -96,21 +100,22 @@
 
                 <div
                     style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 4rem;">
-                    <div class="admonition">
-                        <span class="admonition-title">Performance First</span>
-                        <p>Built with PyO3 and Rust, BustAPI handles requests efficiently, freeing up your Python code
-                            to focus on business logic.</p>
-                    </div>
-
-                    <div class="admonition tip">
-                        <span class="admonition-title">Type Safe</span>
-                        <p>Leverage modern Python type hints. Validate complex data structures automatically with zero
-                            boilerplate.</p>
-                    </div>
-
-                    <div class="admonition warning">
-                        <span class="admonition-title">Async Native</span>
-                        <p>Don't block the event loop. BustAPI allows you to mix sync and async handlers seamlessly.</p>
+                    <div class="features">
+                        <div class="feature-card">
+                            <h3>Rust-Powered Performance</h3>
+                            <p>Built on top of <strong>Actix-web</strong> via PyO3 bindings. BustAPI handles the heavy
+                                lifting of HTTP parsing and routing in optimized Rust code.</p>
+                        </div>
+                        <div class="feature-card">
+                            <h3>Type-Safe by Design</h3>
+                            <p>Leveraging Python's <code>typing</code> module, BustAPI enforces rigorous validation
+                                using Rust-based validators. Errors are caught early.</p>
+                        </div>
+                        <div class="feature-card">
+                            <h3>True Async Support</h3>
+                            <p>Designed for modern I/O-bound workloads. BustAPI runs on a dedicated Rust event loop,
+                                allowing efficient handling of concurrent connections.</p>
+                        </div>
                     </div>
                 </div>
 

@@ -130,7 +130,7 @@ All notable changes to this project will be documented here.
 
 ### Added
 
-- Python 3.13 free-threaded mode support (no GIL bottleneck!)
+
 - Expected 30k-100k+ RPS with dynamic Python handlers
 
 ## [0.1.5] - 2025-11-05

@@ -3,21 +3,23 @@ site_description: High-performance Flask-compatible web framework with async sup
 site_author: GrandpaEJ
 site_url:
 repo_url: https://github.com/GrandpaEJ/bustapi
-repo_name: bustapi/bustapi
+repo_name: GrandpaEJ/bustapi
 
 copyright: Copyright &copy; 2025 GrandpaEJ
 
 theme:
   name: material
+  logo: assets/logo.png
+  favicon: assets/logo.png
   palette:
     - scheme: default
-      primary: blue
+      primary: indigo
       accent: blue
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - scheme: slate
-      primary: blue
+      primary: indigo
       accent: blue
       toggle:
         icon: material/brightness-4
@@ -28,6 +30,7 @@ theme:
     - toc.integrate
     - search.suggest
     - search.highlight
+    - content.code.copy
 
 plugins:
   - search
@@ -60,22 +63,23 @@ nav:
   - Getting Started:
       - Installation: installation.md
       - Quickstart: quickstart.md
-  - User Guide (Beginner):
-      - Routing: user-guide/routing.md
-      - Requests & Responses: user-guide/requests_responses.md
-      - Templates: user-guide/templates.md
-      - Static Files: user-guide/static_files.md
-  - User Guide (Intermediate):
-      - Blueprints: user-guide/blueprints.md
-      - Error Handling: user-guide/error_handling.md
-      - Logging: user-guide/logging.md
-  - Advanced Features:
-      - Security: advanced/security.md
-      - Async Support: advanced/async.md
-      - Middleware: advanced/middleware.md
-      - Deployment: advanced/deployment.md
-  - API Reference: api-reference.md
-  - Deployment: deployment.md
-  - Project Info:
+  - General:
       - Changelog: changelog.md
-      - Release Track: release_track.md
+  - Core Concepts:
+      - Routing: user-guide/routing.md
+      - Request Data: user-guide/request_data.md
+      - Responses: user-guide/responses.md
+      - Templates: user-guide/templates.md
+  - Advanced:
+      - Blueprints: advanced/blueprints.md
+      - Middleware: advanced/middleware.md
+      - Dependency Injection: advanced/dependency_injection.md
+      - Validation: advanced/validation.md
+      - Async Support: advanced/async.md
+      - Security: advanced/security.md
+      - Deployment: advanced/deployment.md
+  - API Reference:
+      - All APIs: api-reference.md
+  - Examples:
+      - Gallery: examples-guide.md
+

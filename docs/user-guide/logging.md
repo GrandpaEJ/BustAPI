@@ -25,5 +25,5 @@ def index():
 
 ## Rust vs Python Logging
 
-- **Rust Logger**: Handles request/response logs. It runs outside the GIL for maximum speed and does not block Python execution.
+- **Rust Logger**: Handles request/response logs efficiently using Rust's high-performance I/O.
 - **Python Logger**: Standard `logging` module for your application logic. BustAPI bridges these so you can see all logs in one stream.

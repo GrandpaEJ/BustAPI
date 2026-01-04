@@ -32,11 +32,7 @@ Restart=always
 WantedBy=multi-user.target
 ```
 
-### Free-Threaded Mode (Python 3.13t)
 
-If you are using Python 3.13 free-threaded (nogil) mode, BustAPI automatically detects it. This allows your application to use all CPU cores from a single process without the Global Interpreter Lock (GIL).
-
-This is ideal for heavy workloads where traditionally you would need to spawn multiple Gunicorn workers. With BustAPI + Python 3.13t, **one process** is often enough to saturate the machine.
 
 ## Alternative Servers
 

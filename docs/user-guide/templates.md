@@ -1,55 +1,59 @@
 # Templates
 
-BustAPI includes support for the **Jinja2** template engine, the same one used by Flask. This allows you to separate your HTML structure from your Python logic.
+Generating HTML directly in Python strings is tedious and dangerous (XSS vulnerabilities). BustAPI uses **Jinja2**, the most popular Python templating engine, for this purpose.
 
-## Configuration
+## Directory Structure
 
-By default, BustAPI looks for templates in a `templates/` folder relative to your application.
+BustAPI expects a `templates` folder in the same directory as your application module.
 
 ```
-/myapp
+/yourapp
     app.py
-    templates/
+    /templates
+        base.html
         index.html
+    /static
+        style.css
 ```
 
-You can customize this path:
+## Rendering
+
+Use the `render_template` function. You can pass any number of keyword arguments to be available in the template context.
 
 ```python
-app = BustAPI(template_folder="my_templates")
-```
-
-## Rendering Templates
-
-Use the `render_template` function to render HTML and pass variables (context).
-
-```python title="app.py"
-from bustapi import BustAPI, render_template
-
-app = BustAPI()
+from bustapi import render_template
 
 @app.route("/hello/<name>")
 def hello(name):
-    return render_template("index.html", user=name)
+    return render_template('index.html', name=name)
 ```
 
-```html title="templates/index.html"
-<!DOCTYPE html>
-<title>Hello from BustAPI</title>
-{% if user %}
-<h1>Hello {{ user }}!</h1>
-{% else %}
-<h1>Hello, World!</h1>
-{% endif %}
+## Template Inheritance
+
+The power of Jinja2 comes from inheritance. Define a base layout and extend it.
+
+### base.html
+
+```html
+<!doctype html>
+<html>
+<head>
+    <title>{% block title %}{% endblock %}</title>
+</head>
+<body>
+    {% block content %}{% endblock %}
+</body>
+</html>
 ```
 
-## Template Syntax
+### index.html
 
-Jinja2 is powerful. Some common syntax:
+```html
+{% extends "base.html" %}
 
-- **`{{ variable }}`**: Output a variable.
-- **`{% if condition %}`**: Conditional logic.
-- **`{% for item in list %}`**: Loops.
-- **`{# comment #}`**: Comments.
+{% block title %}Home{% endblock %}
 
-Refer to the [Jinja2 Documentation](https://jinja.palletsprojects.com/) for full details.
+{% block content %}
+    <h1>Welcome to my site</h1>
+{% endblock %}
+```
