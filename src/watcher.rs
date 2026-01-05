@@ -1,0 +1,76 @@
+use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
+use std::ffi::CString;
+use std::path::Path;
+use std::sync::mpsc::channel;
+use std::thread;
+use std::time::Duration;
+
+/// Enable hot reloading by watching the specified paths.
+/// When a change is detected, this function restarts the current process.
+pub fn enable_hot_reload(path_str: String) {
+    // Spawn a thread to handle watching
+    thread::spawn(move || {
+        let (tx, rx) = channel();
+
+        // Initialize watcher
+        let mut watcher: RecommendedWatcher = Watcher::new(tx, Config::default()).unwrap();
+
+        // Watch the directory
+        if let Err(e) = watcher.watch(Path::new(&path_str), RecursiveMode::Recursive) {
+            eprintln!("❌ Failed to watch directory {}: {}", path_str, e);
+            return;
+        }
+
+        println!("👀 Rust Hot-Reloader Active: Watching '{}'", path_str);
+
+        // Wait for events
+        loop {
+            match rx.recv() {
+                Ok(Ok(Event {
+                    kind: notify::EventKind::Modify(_),
+                    paths,
+                    ..
+                })) => {
+                    // Filter out non-python files if needed, but for now watch all
+                    // Simple debounce: Wait a bit to avoid multiple restarts for one save
+                    let _ = paths;
+                    println!("🔄 Change detected! Restarting...");
+                    restart_process();
+                }
+                Ok(Err(e)) => eprintln!("watch error: {:?}", e),
+                Err(e) => eprintln!("watch channel error: {:?}", e),
+                _ => {} // Ignore other events for now
+            }
+        }
+    });
+}
+
+fn restart_process() {
+    use nix::unistd::execvp;
+
+    // Get current arguments
+    let args: Vec<String> = std::env::args().collect();
+    
+    // Prepare CStrings for execvp
+    let program = CString::new(args[0].clone()).unwrap();
+    let c_args: Vec<CString> = args
+        .iter()
+        .map(|arg| CString::new(arg.clone()).unwrap())
+        .collect();
+
+    // Execvp replaces the current process
+    // We need to pass the program name as the first argument as well in the args list? 
+    // Yes, execvp takes (program, args). The first arg in args is conventionally the program name.
+    
+    // CAUTION: execvp expects the args slice to include the program name at index 0.
+    // std::env::args() includes it at index 0.
+
+    match execvp(&program, &c_args) {
+        Ok(_) => {
+            // Should never be reached
+        }
+        Err(e) => {
+            eprintln!("❌ Failed to restart process: {}", e);
+        }
+    }
+}

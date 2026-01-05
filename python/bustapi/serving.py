@@ -35,32 +35,19 @@ def run_server(
         # accept that serving.py modifies the app.
         pass
 
-    # Handle reload using watchfiles
+    # Handle reload using Rust hot-reloader
     if reload or debug:
         if os.environ.get("BUSTAPI_RELOADER_RUN") != "true":
             try:
-                from watchfiles import run_process
+                from . import bustapi_core
 
-                print(f"🔄 BustAPI reloader active (using {server})")
-
-                # We need to construct the target function or command
-                # run_process takes a target function.
-                # simpler to just re-run the current script.
-                # But watchfiles run_process target usually expects a function that *blocks*.
-                # or we can use the 'args' approach to re-execute argv.
-
-                # Re-executing command line is safest for generic entry points
-                run_process(
-                    os.getcwd(),
-                    target=sys.executable,
-                    args=[sys.executable, *sys.argv],
-                    callback=lambda _: os.environ.update(
-                        {"BUSTAPI_RELOADER_RUN": "true"}
-                    ),
-                )
-                return
+                print(f"🔄 BustAPI Rust reloader active (using {server})")
+                bustapi_core.enable_hot_reload(".")
+                
+                # Rust reloader spawns a thread, so we continue to run the server.
+                # When a file changes, Rust will execvp() restart the process.
             except ImportError:
-                pass
+                print("❌ Failed to enable Rust hot-reloader (bustapi_core not found)")
 
     if workers is None:
         workers = 1 if debug else multiprocessing.cpu_count()

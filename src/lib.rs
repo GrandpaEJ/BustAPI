@@ -16,6 +16,7 @@ mod response;
 mod router;
 mod server;
 mod static_files;
+mod watcher;
 
 pub use request::RequestData;
 pub use response::ResponseData;
@@ -33,8 +34,15 @@ fn bustapi_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Add helper functions
     m.add_function(wrap_pyfunction!(create_app, m)?)?;
+    m.add_function(wrap_pyfunction!(enable_hot_reload, m)?)?;
 
     Ok(())
+}
+
+/// Enable hot reloading
+#[pyfunction]
+fn enable_hot_reload(path: String) {
+    watcher::enable_hot_reload(path);
 }
 
 /// Create a new BustAPI application instance

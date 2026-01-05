@@ -41,6 +41,8 @@ chrono = { version = "0.4", features = ["now"] }
 colored = "2.0"
 mime_guess = "2.0"
 actix-multipart = "0.7.2"
+nix = { version = "0.30.1", features = ["process", "signal"] }
+notify = "8.2.0"
 
 
 [build-dependencies]

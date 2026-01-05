@@ -30,7 +30,6 @@ classifiers = [
 
 dependencies = [
     "jinja2>=3.1",
-    "watchfiles>=0.21.0",
     "sqlmodel>=0.0.16",
 ]
 
