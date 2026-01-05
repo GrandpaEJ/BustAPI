@@ -97,25 +97,21 @@ class FileResponse(Response):
         method: Optional[str] = None,
         content_disposition_type: str = "attachment",
     ):
-        from .core.helpers import send_file
-
-        # Create base file response
-        resp = send_file(
-            path,
-            mimetype=media_type,
-            as_attachment=True if filename else False,
-            attachment_filename=filename,
-        )
-
-        # Update status if needed
-        resp.status_code = status_code
-
-        # Merge custom headers
-        if headers:
-            for k, v in headers.items():
-                resp.headers[k] = v
-
-        super().__init__(
-            response=resp.data, status=resp.status_code, headers=resp.headers
-        )
-        self.content_type = resp.content_type
+        # Initialize base response with empty body
+        super().__init__(response=None, status=status_code, headers=headers)
+        
+        self.path = path
+        
+        # Determine media type
+        if media_type:
+             self.content_type = media_type
+        else:
+             import mimetypes
+             guessed_type, _ = mimetypes.guess_type(path)
+             if guessed_type:
+                 self.content_type = guessed_type
+        
+        # Handle Content-Disposition
+        if filename or content_disposition_type == "attachment":
+             fname = filename or path.split("/")[-1]
+             self.headers["Content-Disposition"] = f"{content_disposition_type}; filename={fname}"

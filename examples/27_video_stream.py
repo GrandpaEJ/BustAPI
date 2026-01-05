@@ -32,8 +32,8 @@ def video_dynamic():
     # Helper to serve a file from a route
     # Note: For large files, static_folder is preferred as it avoids
     # loading the entire file into Python memory.
-    return FileResponse("static/bigbuckbunny.mp4", media_type="video/mp4")
+    return FileResponse("static/bigbuckbunny.mp4", media_type="video/mp4", filename="bigbuckbunny.mp4")
 
 if __name__ == "__main__":
     print("Serving video on http://127.0.0.1:8004")
-    app.run(port=8004)
+    app.run(debug=True, port=8004)

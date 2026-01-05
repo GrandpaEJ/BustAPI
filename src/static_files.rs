@@ -75,23 +75,8 @@ impl RouteHandler for StaticFileHandler {
 
         if let Some(path) = self.resolve_safe_path(&req.path) {
             if path.exists() && path.is_file() {
-                // Determine Content-Type
-                let mime_type = mime_guess::from_path(&path).first_or_octet_stream();
-
-                // Read File
-                match fs::read(&path) {
-                    Ok(content) => {
-                        let mut resp = ResponseData::with_body(content);
-                        resp.set_header("Content-Type", mime_type.as_ref());
-                        return resp;
-                    }
-                    Err(_) => {
-                        return ResponseData::error(
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            Some("File Access Error"),
-                        )
-                    }
-                }
+                // Use shared logic for file serving with Range support
+                return crate::file_serving::serve_file_part(&path, req.get_header("Range"));
             }
         }
 

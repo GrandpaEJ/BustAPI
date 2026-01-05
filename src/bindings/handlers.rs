@@ -31,7 +31,7 @@ impl RouteHandler for PyRouteHandler {
                 Ok(py_req_obj) => {
                     // Call Python handler
                     match self.handler.call1(py, (py_req_obj,)) {
-                        Ok(result) => convert_py_result_to_response(py, result),
+                        Ok(result) => convert_py_result_to_response(py, result, &req.headers),
                         Err(e) => {
                             tracing::error!("Python handler error: {:?}", e);
                             ResponseData::error(
@@ -110,6 +110,7 @@ impl RouteHandler for PyAsyncRouteHandler {
                                                     return convert_py_result_to_response(
                                                         py,
                                                         awaited.into(),
+                                                        &req.headers,
                                                     );
                                                 } else {
                                                     tracing::error!("run_until_complete failed");
@@ -130,6 +131,7 @@ impl RouteHandler for PyAsyncRouteHandler {
                                                         return convert_py_result_to_response(
                                                             py,
                                                             awaited.into(),
+                                                            &req.headers,
                                                         );
                                                     }
                                                 }
@@ -140,7 +142,7 @@ impl RouteHandler for PyAsyncRouteHandler {
                                     Err(e) => tracing::error!("iscoroutine check failed: {:?}", e),
                                 }
                             }
-                            convert_py_result_to_response(py, result)
+                            convert_py_result_to_response(py, result, &req.headers)
                         }
                         Err(e) => {
                             tracing::error!("Async handler error: {:?}", e);
