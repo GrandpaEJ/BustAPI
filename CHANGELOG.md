@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented here.
 
+## [0.6.0] - 2026-01-05
+
+### Added
+
+- **HTTP Range Support for Video Streaming**: Static files now support HTTP Range requests with `206 Partial Content` responses, enabling video seeking and scrubbing in browsers
+- **Shared File Serving Module** (`src/file_serving.rs`): Centralized logic for Range header parsing and partial content delivery
+- **Flask-style `send_file` Helper**: Updated to return `FileResponse` for efficient file serving with Range support
+- **Absolute Path Support**: `FileResponse` now automatically converts relative paths to absolute paths for flexible file serving
+- Video streaming example (`examples/27_video_stream.py`) demonstrating static and dynamic video serving
+
+### Changed
+
+- Refactored `src/static_files.rs` to use shared file serving logic
+- Updated `src/bindings/converters.rs` to check for `path` attribute before generic Response duck-typing
+- Updated `src/bindings/handlers.rs` to pass request headers to response converter
+- `send_file()` in `python/bustapi/http/response.py` now returns `FileResponse` instead of reading entire file into memory
+
+### Fixed
+
+- Video seeking and fast-forward now work correctly for static files
+- Improved memory efficiency for large file serving
+
+### Known Issues
+
+- Dynamic routes using `FileResponse`/`send_file` return `200 OK` with 0 bytes instead of `206 Partial Content` ([#1](https://github.com/GrandpaEJ/BustAPI/issues/1))
+  - **Workaround**: Use static file serving (recommended approach for production)
+
 ## [0.5.0] - 2026-01-01
 
 ### Major Features
