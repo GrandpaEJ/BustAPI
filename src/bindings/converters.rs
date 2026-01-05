@@ -23,7 +23,9 @@ pub fn convert_py_result_to_response(
                     let response_body = python_to_response_body(py, body.into());
                     let mut resp = ResponseData::with_body(response_body.into_bytes());
                     resp.set_status(StatusCode::from_u16(status).unwrap_or(StatusCode::OK));
-                    resp.set_header("Content-Type", "application/json");
+                    resp.set_header("Content-Type", "text/html; charset=utf-8"); // Default to HTML for tuples? Or JSON?
+                    // Previous code defaulted to JSON. Let's keep JSON for tuples unless specified.
+                    resp.set_header("Content-Type", "application/json"); 
                     return resp;
                 }
             }
@@ -55,6 +57,53 @@ pub fn convert_py_result_to_response(
                 }
             }
             _ => {}
+        }
+    }
+
+    // Check for Response object (duck typing)
+    // Look for .status_code, .headers, .get_data()
+    if let Ok(status_code) = result.getattr(py, "status_code") {
+        if let Ok(headers) = result.getattr(py, "headers") {
+            if let Ok(get_data) = result.getattr(py, "get_data") {
+                // It looks like a Response object!
+                
+                // Extract status
+                let status = status_code.extract::<u16>(py).unwrap_or(200);
+                
+                // Extract body
+                let body_obj = get_data.call0(py).unwrap_or_else(|_| result.clone());
+                let body_bytes = if let Ok(bytes) = body_obj.extract::<Vec<u8>>(py) {
+                    bytes
+                } else if let Ok(s) = body_obj.extract::<String>(py) {
+                    s.into_bytes()
+                } else {
+                    Vec::new() 
+                };
+                
+                let mut resp = ResponseData::with_body(body_bytes);
+                resp.set_status(StatusCode::from_u16(status).unwrap_or(StatusCode::OK));
+                
+                // Extract headers
+                // headers might be a dict or Headers object. try converting to dict
+                if let Ok(header_dict) = headers.extract::<HashMap<String, String>>(py) {
+                    for (k, v) in header_dict {
+                        resp.set_header(&k, &v);
+                    }
+                } else {
+                    // Try iterating if it's not a dict
+                     if let Ok(items) = headers.call_method0(py, "items") {
+                         if let Ok(iter) = items.iter(py) {
+                             for item in iter {
+                                 if let Ok((k, v)) = item.extract::<(String, String)>() {
+                                     resp.set_header(&k, &v);
+                                 }
+                             }
+                         }
+                     }
+                }
+                
+                return resp;
+            }
         }
     }
 

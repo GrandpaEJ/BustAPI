@@ -13,6 +13,7 @@ from .core.logging import get_logger
 from .dispatch import create_async_wrapper, create_sync_wrapper
 from .http.request import Request, _request_ctx
 from .http.response import Response, make_response
+from .responses import HTMLResponse
 from .middleware import MiddlewareManager
 from .routing.blueprints import Blueprint
 from .serving import run_server
@@ -703,10 +704,12 @@ class BustAPI:
                 raise RuntimeError(f"Failed to create Jinja environment: {e}") from e
         return self.jinja_env
 
-    def render_template(self, template_name: str, **context) -> str:
+    def render_template(self, template_name: str, **context) -> Response:
         """Render a template using the native Rust engine."""
         import json
-        return self._rust_app.render_template(template_name, json.dumps(context))
+        # Prevent recursive json usage if context is already json (not typical but safe)
+        html_content = self._rust_app.render_template(template_name, json.dumps(context))
+        return HTMLResponse(html_content)
 
     def _handle_exception(self, exception: Exception) -> Response:
         """Handle exceptions and return appropriate error responses."""
