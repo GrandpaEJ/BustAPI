@@ -1,5 +1,5 @@
 use minijinja::{Environment, path_loader};
-use std::sync::Arc;
+use crate::bindings::PyBustApp;
 
 pub type TemplateEnv = Environment<'static>;
 

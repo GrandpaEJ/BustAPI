@@ -71,7 +71,7 @@ pub fn convert_py_result_to_response(
                 let status = status_code.extract::<u16>(py).unwrap_or(200);
                 
                 // Extract body
-                let body_obj = get_data.call0(py).unwrap_or_else(|_| result.clone());
+                let body_obj = get_data.call0(py).unwrap_or_else(|_| result.clone_ref(py));
                 let body_bytes = if let Ok(bytes) = body_obj.extract::<Vec<u8>>(py) {
                     bytes
                 } else if let Ok(s) = body_obj.extract::<String>(py) {
@@ -90,12 +90,15 @@ pub fn convert_py_result_to_response(
                         resp.set_header(&k, &v);
                     }
                 } else {
-                    // Try iterating if it's not a dict
+                    // Try iterating if it's not a dict, e.g. wsgiref.headers.Headers
                      if let Ok(items) = headers.call_method0(py, "items") {
-                         if let Ok(iter) = items.iter(py) {
-                             for item in iter {
-                                 if let Ok((k, v)) = item.extract::<(String, String)>() {
-                                     resp.set_header(&k, &v);
+                         if let Ok(iter) = items.bind(py).iter() {
+                             for item_res in iter {
+                                 if let Ok(item) = item_res {
+                                     // Extract tuple (key, value)
+                                     if let Ok((k, v)) = item.extract::<(String, String)>() {
+                                         resp.set_header(&k, &v);
+                                     }
                                  }
                              }
                          }
@@ -109,15 +112,17 @@ pub fn convert_py_result_to_response(
 
     // Default: treat as response body
     let body = python_to_response_body(py, result);
+    let trimmed = body.trim();
 
-    // Check if body looks like HTML
-    if body.trim().starts_with("<") && body.contains("</") {
+    if trimmed.starts_with("<") {
         ResponseData::html(body)
-    } else {
-        // Assume JSON default
+    } else if trimmed.starts_with("{") || trimmed.starts_with("[") {
         let mut resp = ResponseData::with_body(body.into_bytes());
         resp.set_header("Content-Type", "application/json");
         resp
+    } else {
+        // Default to text/plain for other strings
+        ResponseData::text(body)
     }
 }
 

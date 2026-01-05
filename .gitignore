@@ -152,3 +152,8 @@ venv/
 benchmarks/temp_*.py
 stdout_*.txt
 stderr_*.txt
+
+*.mp4
+# Video files
+*.mp4
+static/bigbuckbunny.mp4

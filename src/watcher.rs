@@ -3,7 +3,6 @@ use std::ffi::CString;
 use std::path::Path;
 use std::sync::mpsc::channel;
 use std::thread;
-use std::time::Duration;
 
 /// Enable hot reloading by watching the specified paths.
 /// When a change is detected, this function restarts the current process.
