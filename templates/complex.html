@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Complex Page - {{ super() }}{% endblock %}
+
+{% block content %}
+<h2>Welcome, {{ user }}!</h2>
+
+{% if show_secret %}
+<div class="alert">Secret Code: {{ secret_code }}</div>
+{% endif %}
+
+<ul>
+    {% for item in items %}
+    <li class="{% if item.active %}active{% endif %}">
+        {{ item.name }} (ID: {{ item.id }})
+    </li>
+    {% else %}
+    <li>No items found.</li>
+    {% endfor %}
+</ul>
+{% endblock %}

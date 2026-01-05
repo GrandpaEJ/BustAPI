@@ -49,13 +49,19 @@ impl PyBustApp {
     /// Render a template using the valid JSON context string
     pub fn render_template(&self, template_name: String, context_json: String) -> PyResult<String> {
         let ctx: serde_json::Value = serde_json::from_str(&context_json)
-            .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid JSON context: {}", e)))?;
+            .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Failed to parse context JSON: {}", e)))?;
         
         let tmpl = self.template_env.get_template(&template_name)
-            .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Template not found: {}", e)))?;
+            .map_err(|e| {
+                if e.kind() == minijinja::ErrorKind::TemplateNotFound {
+                    pyo3::exceptions::PyFileNotFoundError::new_err(format!("Template '{}' not found", template_name))
+                } else {
+                    pyo3::exceptions::PyValueError::new_err(format!("Error loading template '{}': {}", template_name, e))
+                }
+            })?;
             
         tmpl.render(ctx)
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Render error: {}", e)))
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to render template '{}': {}", template_name, e)))
     }
 
     /// Add a route with a Python handler
