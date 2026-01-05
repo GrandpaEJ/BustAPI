@@ -471,7 +471,7 @@ def send_file(
     attachment_filename: Optional[str] = None,
 ):
     """
-    Send a file as response (placeholder implementation).
+    Send a file as response with HTTP Range support (Flask-compatible).
 
     Args:
         file_path: Path to file
@@ -480,35 +480,24 @@ def send_file(
         attachment_filename: Attachment filename
 
     Returns:
-        Response object
+        FileResponse object with Range support
 
     Note:
-        This is a placeholder implementation. Full file serving
-        should be implemented in the Rust backend for performance.
+        This now returns a FileResponse which is handled by the Rust backend
+        with full HTTP Range support for video streaming.
     """
-    try:
-        with open(file_path, "rb") as f:
-            data = f.read()
-
-        response = Response(data)
-
-        if mimetype:
-            response.content_type = mimetype
-        else:
-            # Try to guess content type based on file extension
-            import mimetypes
-
-            guessed_type, _ = mimetypes.guess_type(file_path)
-            if guessed_type:
-                response.content_type = guessed_type
-
-        if as_attachment:
-            filename = attachment_filename or file_path.split("/")[-1]
-            response.headers["Content-Disposition"] = f"attachment; filename={filename}"
-
-        return response
-
-    except FileNotFoundError:
-        abort(404, description="File not found")
-    except PermissionError:
-        abort(403, description="Permission denied")
+    # Import here to avoid circular dependency
+    from ..responses import FileResponse
+    
+    # Determine filename for attachment
+    filename = None
+    if as_attachment:
+        filename = attachment_filename or file_path.split("/")[-1]
+    
+    # Return FileResponse which will be handled by Rust with Range support
+    return FileResponse(
+        path=file_path,
+        media_type=mimetype,
+        filename=filename,
+        content_disposition_type="attachment" if as_attachment else "inline"
+    )

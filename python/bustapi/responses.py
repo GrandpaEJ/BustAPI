@@ -100,7 +100,13 @@ class FileResponse(Response):
         # Initialize base response with empty body
         super().__init__(response=None, status=status_code, headers=headers)
         
-        self.path = path
+        # Store the path - convert to absolute if relative
+        import os
+        if not os.path.isabs(path):
+            # If relative, make it absolute from current working directory
+            self.path = os.path.abspath(path)
+        else:
+            self.path = path
         
         # Determine media type
         if media_type:

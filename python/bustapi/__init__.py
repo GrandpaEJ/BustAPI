@@ -30,7 +30,7 @@ __email__ = ""
 # Import core classes and functions
 from .app import BustAPI
 from .core import logging
-from .core.helpers import abort, redirect, render_template, url_for
+from .core.helpers import abort, redirect, render_template, send_file, url_for
 from .dependencies import Depends
 from .documentation.generator import BustAPIDocs
 from .fastapi_compat import (
