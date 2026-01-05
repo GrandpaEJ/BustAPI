@@ -1,30 +1,36 @@
-"""Simple Jinja2-based templating helpers for BustAPI.
+"""MiniJinja-based templating helpers for BustAPI.
 
-This module provides a small wrapper around Jinja2 Environment creation and
-rendering so the application can call `render_template` similarly to Flask.
+This module provides a wrapper around MiniJinja Environment creation and
+rendering, replacing the previous Jinja2 integration.
 """
 
 from typing import Any, Dict, Optional
 
 try:
-    import jinja2
-except Exception:  # pragma: no cover - optional dependency
-    jinja2 = None
+    import minijinja
+except ImportError:  # pragma: no cover - optional dependency
+    minijinja = None
+
+
+def create_template_env(template_folder: Optional[str] = None):
+    if minijinja is None:
+        raise RuntimeError(
+            "MiniJinja is not installed. Add 'minijinja' to your dependencies."
+        )
+    
+    env = minijinja.Environment(
+        loader=lambda n: open(f"{template_folder or 'templates'}/{n}").read()
+    )
+    return env
 
 
 def create_jinja_env(template_folder: Optional[str] = None):
-    if jinja2 is None:
-        raise RuntimeError(
-            "Jinja2 is not installed. Add 'jinja2' to your dependencies."
-        )
-    loader = jinja2.FileSystemLoader(template_folder or "templates")
-    env = jinja2.Environment(loader=loader, autoescape=True)
-    return env
+    """Backwards compatibility alias for create_template_env."""
+    return create_template_env(template_folder)
 
 
 def render_template(
     env, template_name: str, context: Optional[Dict[str, Any]] = None
 ) -> str:
     context = context or {}
-    template = env.get_template(template_name)
-    return template.render(**context)
+    return env.render_template(template_name, **context)

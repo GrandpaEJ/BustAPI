@@ -29,7 +29,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "jinja2>=3.1",
+    "minijinja>=2.0.0",
     "sqlmodel>=0.0.16",
 ]
 
