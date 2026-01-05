@@ -43,6 +43,7 @@ mime_guess = "2.0"
 actix-multipart = "0.7.2"
 nix = { version = "0.30.1", features = ["process", "signal"] }
 notify = "8.2.0"
+minijinja = { version = "2.14.0", features = ["loader", "json"] }
 
 
 [build-dependencies]

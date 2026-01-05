@@ -12,6 +12,7 @@ use crate::server::{start_server, AppState, FastRouteHandler, ServerConfig};
 pub struct PyBustApp {
     state: Arc<AppState>,
     runtime: Runtime,
+    template_env: crate::templating::TemplateEnv,
 }
 
 #[pymethods]
@@ -36,7 +37,25 @@ impl PyBustApp {
         Ok(Self {
             state: Arc::new(AppState::new()),
             runtime,
+            template_env: crate::templating::create_env(None),
         })
+    }
+    
+    /// Configure template folder
+    pub fn set_template_folder(&mut self, folder: String) {
+        self.template_env = crate::templating::create_env(Some(folder));
+    }
+
+    /// Render a template using the valid JSON context string
+    pub fn render_template(&self, template_name: String, context_json: String) -> PyResult<String> {
+        let ctx: serde_json::Value = serde_json::from_str(&context_json)
+            .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid JSON context: {}", e)))?;
+        
+        let tmpl = self.template_env.get_template(&template_name)
+            .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Template not found: {}", e)))?;
+            
+        tmpl.render(ctx)
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Render error: {}", e)))
     }
 
     /// Add a route with a Python handler

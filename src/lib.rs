@@ -17,6 +17,7 @@ mod router;
 mod server;
 mod static_files;
 mod watcher;
+pub mod templating;
 
 pub use request::RequestData;
 pub use response::ResponseData;

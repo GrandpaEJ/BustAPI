@@ -157,6 +157,9 @@ class BustAPI:
             if self.static_folder:
                 url_path = (self.static_url_path or "/static").rstrip("/") + "/"
                 self._rust_app.add_static_route(url_path, self.static_folder)
+            
+            if self.template_folder:
+                self._rust_app.set_template_folder(self.template_folder)
         except ImportError as e:
             raise RuntimeError(f"Failed to import Rust backend: {e}") from e
 
@@ -701,11 +704,9 @@ class BustAPI:
         return self.jinja_env
 
     def render_template(self, template_name: str, **context) -> str:
-        """Render a template using the app's Jinja environment."""
-        env = self.create_jinja_env()
-        from .templating import render_template as _render
-
-        return _render(env, template_name, context)
+        """Render a template using the native Rust engine."""
+        import json
+        return self._rust_app.render_template(template_name, json.dumps(context))
 
     def _handle_exception(self, exception: Exception) -> Response:
         """Handle exceptions and return appropriate error responses."""
