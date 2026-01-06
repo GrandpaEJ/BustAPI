@@ -16,37 +16,19 @@ pub fn convert_py_result_to_response(
 
     // FIRST: Check for explicit path attribute (FileResponse optimization)
     // This must come before generic Response check since FileResponse inherits from Response
-    tracing::debug!("Checking for path attribute on result object");
     if let Ok(path_obj) = result.getattr(py, "path") {
-        tracing::debug!("Found path attribute!");
         if let Ok(path_str) = path_obj.extract::<String>(py) {
-            tracing::debug!("Extracted path string: {}", path_str);
-            // It's a file response! Use Rust's file serving logic with Range support
+            // It's a file response! Use Actix's NamedFile via ResponseData (handled in server/handlers.rs)
             let path = Path::new(&path_str);
             if path.exists() {
-                // Debug headers
-                tracing::debug!("Path exists. Incoming headers: {:?}", req_headers.keys().collect::<Vec<_>>());
 
-                // Determine headers from Python object first (e.g. Content-Disposition)
-                let range_header = req_headers.iter()
-                    .find(|(k, _)| k.to_lowercase() == "range")
-                    .map(|(_, v)| v);
-                
-                if let Some(r) = range_header {
-                     tracing::debug!("Found Range header: {}", r);
-                } else {
-                     tracing::debug!("Range header NOT found");
-                }
-                
-                let mut resp = crate::file_serving::serve_file_part(path, range_header);
+                let mut resp = ResponseData::new();
+                resp.file_path = Some(path_str);
                 
                 // Copy Status
                 if let Ok(status_code) = result.getattr(py, "status_code") {
                     if let Ok(status) = status_code.extract::<u16>(py) {
-                         // Only override if not partial content or if it was an error
-                         if resp.status == StatusCode::OK {
-                              resp.set_status(StatusCode::from_u16(status).unwrap_or(StatusCode::OK));
-                         }
+                         resp.set_status(StatusCode::from_u16(status).unwrap_or(StatusCode::OK));
                     }
                 }
 
@@ -54,8 +36,8 @@ pub fn convert_py_result_to_response(
                 if let Ok(headers) = result.getattr(py, "headers") {
                     if let Ok(header_dict) = headers.extract::<HashMap<String, String>>(py) {
                         for (k, v) in header_dict {
-                            // Don't overwrite Content-Range or Content-Length from file serving
-                            if k.to_lowercase() != "content-length" && k.to_lowercase() != "content-range" {
+                            // Don't overwrite Content-Length from file serving
+                            if k.to_lowercase() != "content-length" {
                                 resp.set_header(&k, &v);
                             }
                         }
@@ -65,9 +47,9 @@ pub fn convert_py_result_to_response(
                              for item_res in iter {
                                  if let Ok(item) = item_res {
                                      if let Ok((k, v)) = item.extract::<(String, String)>() {
-                                         if k.to_lowercase() != "content-length" && k.to_lowercase() != "content-range" {
-                                              resp.set_header(&k, &v);
-                                         }
+                                          if k.to_lowercase() != "content-length" {
+                                            resp.set_header(&k, &v);
+                                          }
                                      }
                                  }
                              }
@@ -137,26 +119,13 @@ pub fn convert_py_result_to_response(
                 // Debug headers
                 tracing::debug!("Path exists. Incoming headers: {:?}", req_headers.keys().collect::<Vec<_>>());
 
-                // Determine headers from Python object first (e.g. Content-Disposition)
-                let range_header = req_headers.iter()
-                    .find(|(k, _)| k.to_lowercase() == "range")
-                    .map(|(_, v)| v);
-                
-                if let Some(r) = range_header {
-                     tracing::debug!("Found Range header: {}", r);
-                } else {
-                     tracing::debug!("Range header NOT found");
-                }
-                
-                let mut resp = crate::file_serving::serve_file_part(path, range_header);
+                let mut resp = ResponseData::new();
+                resp.file_path = Some(path_str);
                 
                 // Copy Status
                 if let Ok(status_code) = result.getattr(py, "status_code") {
                     if let Ok(status) = status_code.extract::<u16>(py) {
-                         // Only override if not partial content or if it was an error
-                         if resp.status == StatusCode::OK {
-                              resp.set_status(StatusCode::from_u16(status).unwrap_or(StatusCode::OK));
-                         }
+                         resp.set_status(StatusCode::from_u16(status).unwrap_or(StatusCode::OK));
                     }
                 }
 
@@ -164,8 +133,8 @@ pub fn convert_py_result_to_response(
                 if let Ok(headers) = result.getattr(py, "headers") {
                     if let Ok(header_dict) = headers.extract::<HashMap<String, String>>(py) {
                         for (k, v) in header_dict {
-                            // Don't overwrite Content-Range or Content-Length from file serving
-                            if k.to_lowercase() != "content-length" && k.to_lowercase() != "content-range" {
+                            // Don't overwrite Content-Length from file serving
+                            if k.to_lowercase() != "content-length" {
                                 resp.set_header(&k, &v);
                             }
                         }
@@ -175,9 +144,9 @@ pub fn convert_py_result_to_response(
                              for item_res in iter {
                                  if let Ok(item) = item_res {
                                      if let Ok((k, v)) = item.extract::<(String, String)>() {
-                                         if k.to_lowercase() != "content-length" && k.to_lowercase() != "content-range" {
-                                              resp.set_header(&k, &v);
-                                         }
+                                          if k.to_lowercase() != "content-length" {
+                                            resp.set_header(&k, &v);
+                                          }
                                      }
                                  }
                              }

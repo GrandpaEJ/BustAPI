@@ -170,6 +170,34 @@ pub async fn handle_request(
     drop(routes);
 
     // 3. Convert ResponseData to Actix Response
+    // Check if it's a file response
+    if let Some(path_str) = response_data.file_path {
+        let path = std::path::Path::new(&path_str);
+        if path.exists() {
+             let named_file = actix_files::NamedFile::open(path);
+             match named_file {
+                 Ok(nf) => {
+                     // NamedFile handles Range requests automatically!
+                     // We can still apply custom headers
+                     let mut response = nf.into_response(&req);
+                     
+                     // Apply custom headers from ResponseData
+                     for (k, v) in response_data.headers {
+                         response.headers_mut().insert(
+                             actix_web::http::header::HeaderName::from_bytes(k.as_bytes()).unwrap(),
+                             actix_web::http::header::HeaderValue::from_str(&v).unwrap()
+                         );
+                     }
+                     
+                     return response;
+                 },
+                 Err(_) => {
+                     return HttpResponse::InternalServerError().body("File Open Error");
+                 }
+             }
+        }
+    }
+
     let mut builder = HttpResponse::build(response_data.status);
 
     for (k, v) in response_data.headers {

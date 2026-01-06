@@ -9,7 +9,7 @@ use pyo3::prelude::*;
 
 mod bindings;
 mod crypto;
-pub mod file_serving; // Added this line
+
 mod logger;
 mod rate_limiter;
 mod request;

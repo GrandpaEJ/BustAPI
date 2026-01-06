@@ -157,3 +157,4 @@ stderr_*.txt
 # Video files
 *.mp4
 static/bigbuckbunny.mp4
+issues.txt

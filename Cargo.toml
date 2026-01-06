@@ -12,6 +12,7 @@ crate-type = ["cdylib"]
 actix-web = "4"
 actix-rt = "2"
 actix-http = "3"
+actix-files = "0.6"
 
 # PyO3 with latest version for free-threading support
 pyo3 = { version = "0.23", features = ["extension-module"] }

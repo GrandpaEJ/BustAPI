@@ -731,8 +731,12 @@ class BustAPI:
 
         return Response(f"Internal Server Error: {str(exception)}", status=status)
 
-    def _response_to_rust_format(self, response: Response) -> tuple:
+    def _response_to_rust_format(self, response: Response) -> Union[tuple, Response]:
         """Convert Python Response object to format expected by Rust."""
+        # Optimization: verify if it is a FileResponse (has path attribute)
+        if hasattr(response, "path"):
+            return response
+
         # Return (body, status_code, headers) tuple
         headers_dict = {}
         if hasattr(response, "headers") and response.headers:

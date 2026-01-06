@@ -9,6 +9,7 @@ pub struct ResponseData {
     pub status: StatusCode,
     pub headers: HashMap<String, String>,
     pub body: Vec<u8>,
+    pub file_path: Option<String>,
 }
 
 impl ResponseData {
@@ -18,6 +19,7 @@ impl ResponseData {
             status: StatusCode::OK,
             headers: HashMap::new(),
             body: Vec::new(),
+            file_path: None,
         }
     }
 
@@ -27,6 +29,7 @@ impl ResponseData {
             status: StatusCode::OK,
             headers: HashMap::new(),
             body: body.to_vec(),
+            file_path: None,
         }
     }
 
@@ -38,6 +41,7 @@ impl ResponseData {
             status: StatusCode::OK,
             headers,
             body: json.as_bytes().to_vec(),
+            file_path: None,
         }
     }
 
@@ -47,6 +51,7 @@ impl ResponseData {
             status,
             headers: HashMap::new(),
             body: Vec::new(),
+            file_path: None,
         }
     }
 
@@ -56,6 +61,7 @@ impl ResponseData {
             status: StatusCode::OK,
             headers: HashMap::new(),
             body: body.into(),
+            file_path: None,
         }
     }
 
