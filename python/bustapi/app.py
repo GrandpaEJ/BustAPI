@@ -42,6 +42,7 @@ class BustAPI:
         template_folder: Optional[str] = None,
         instance_relative_config: bool = False,
         root_path: Optional[str] = None,
+        redirect_slashes: bool = True,
     ):
         """
         Initialize BustAPI application.
@@ -60,6 +61,7 @@ class BustAPI:
         self.template_folder = template_folder
         self.instance_relative_config = instance_relative_config
         self.root_path = root_path
+        self.redirect_slashes = redirect_slashes
 
         # Configuration dictionary
         self.config: Dict[str, Any] = {}
@@ -161,6 +163,10 @@ class BustAPI:
             
             if self.template_folder:
                 self._rust_app.set_template_folder(self.template_folder)
+            
+            # Application features
+            if hasattr(self, "redirect_slashes"):
+                 self._rust_app.set_redirect_slashes(self.redirect_slashes)
         except ImportError as e:
             raise RuntimeError(f"Failed to import Rust backend: {e}") from e
 

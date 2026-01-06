@@ -132,6 +132,16 @@ impl PyBustApp {
         Ok(())
     }
 
+    /// Configure automatic trailing slash redirection
+    pub fn set_redirect_slashes(&self, enabled: bool) -> PyResult<()> {
+        let state = self.state.clone();
+        self.runtime.block_on(async {
+            let mut routes = state.routes.write().await;
+            routes.redirect_slashes = enabled;
+        });
+        Ok(())
+    }
+
     /// Run the server
     pub fn run(&self, host: String, port: u16, workers: usize, debug: bool) -> PyResult<()> {
         let state = self.state.clone();
