@@ -49,7 +49,7 @@ fn restart_process() {
 
     // Get current arguments
     let args: Vec<String> = std::env::args().collect();
-    
+
     // Prepare CStrings for execvp
     let program = CString::new(args[0].clone()).unwrap();
     let c_args: Vec<CString> = args
@@ -58,9 +58,9 @@ fn restart_process() {
         .collect();
 
     // Execvp replaces the current process
-    // We need to pass the program name as the first argument as well in the args list? 
+    // We need to pass the program name as the first argument as well in the args list?
     // Yes, execvp takes (program, args). The first arg in args is conventionally the program name.
-    
+
     // CAUTION: execvp expects the args slice to include the program name at index 0.
     // std::env::args() includes it at index 0.
 

@@ -2,14 +2,16 @@ from bustapi import BustAPI, FileResponse, HTMLResponse
 
 app = BustAPI(static_folder="static")
 
+
 @app.route("/")
 def index():
-    return HTMLResponse("""
+    return HTMLResponse(
+        """
     <!DOCTYPE html>
     <html>
     <body>
         <h1>Video Streaming Demo</h1>
-        
+
         <h2>1. Static File (Recommended)</h2>
         <p>Start downloading immediately, handled by Rust backend.</p>
         <video width="640" height="360" controls>
@@ -25,13 +27,17 @@ def index():
         </video>
     </body>
     </html>
-    """)
+    """
+    )
+
 
 @app.route("/video/dynamic")
 def video_dynamic():
     # Use Flask-style send_file for Range support
     from bustapi import send_file
+
     return send_file("static/bigbuckbunny.mp4", mimetype="video/mp4")
+
 
 if __name__ == "__main__":
     print("Serving video on http://127.0.0.1:8004")

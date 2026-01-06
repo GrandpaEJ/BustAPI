@@ -17,7 +17,7 @@ def create_template_env(template_folder: Optional[str] = None):
         raise RuntimeError(
             "MiniJinja is not installed. Add 'minijinja' to your dependencies."
         )
-    
+
     env = minijinja.Environment(
         loader=lambda n: open(f"{template_folder or 'templates'}/{n}").read()
     )

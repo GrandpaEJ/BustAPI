@@ -1,15 +1,18 @@
-from bustapi import BustAPI
-import time
 import sys
+import time
+
+from bustapi import BustAPI
 
 # Flush stdout immediately
 sys.stdout.reconfigure(line_buffering=True)
 
 app = BustAPI()
 
+
 @app.route("/")
 def index():
     return "Hot Reload Test"
+
 
 if __name__ == "__main__":
     print("🚀 Starting with debug=True to test Rust hot-reloader...")

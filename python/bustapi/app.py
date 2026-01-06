@@ -13,8 +13,8 @@ from .core.logging import get_logger
 from .dispatch import create_async_wrapper, create_sync_wrapper
 from .http.request import Request, _request_ctx
 from .http.response import Response, make_response
-from .responses import HTMLResponse
 from .middleware import MiddlewareManager
+from .responses import HTMLResponse
 from .routing.blueprints import Blueprint
 from .serving import run_server
 from .sessions import SecureCookieSessionInterface
@@ -160,13 +160,13 @@ class BustAPI:
             if self.static_folder:
                 url_path = (self.static_url_path or "/static").rstrip("/") + "/"
                 self._rust_app.add_static_route(url_path, self.static_folder)
-            
+
             if self.template_folder:
                 self._rust_app.set_template_folder(self.template_folder)
-            
+
             # Application features
             if hasattr(self, "redirect_slashes"):
-                 self._rust_app.set_redirect_slashes(self.redirect_slashes)
+                self._rust_app.set_redirect_slashes(self.redirect_slashes)
         except ImportError as e:
             raise RuntimeError(f"Failed to import Rust backend: {e}") from e
 
@@ -713,8 +713,11 @@ class BustAPI:
     def render_template(self, template_name: str, **context) -> Response:
         """Render a template using the native Rust engine."""
         import json
+
         # Prevent recursive json usage if context is already json (not typical but safe)
-        html_content = self._rust_app.render_template(template_name, json.dumps(context))
+        html_content = self._rust_app.render_template(
+            template_name, json.dumps(context)
+        )
         return HTMLResponse(html_content)
 
     def _handle_exception(self, exception: Exception) -> Response:
@@ -742,12 +745,12 @@ class BustAPI:
         # Optimization: verify if it is a FileResponse (has path attribute)
         if hasattr(response, "path"):
             return response
-            
+
         # Optimization: verify if it is a StreamingResponse (has content attribute which is an iterator)
         # We rely on the class type or just existence of content/iterator.
         if hasattr(response, "content"):
-             # It's likely a StreamingResponse (Response base has no 'content' attr, it uses 'response' or '_data')
-             return response
+            # It's likely a StreamingResponse (Response base has no 'content' attr, it uses 'response' or '_data')
+            return response
 
         # Return (body, status_code, headers) tuple
         headers_dict = {}

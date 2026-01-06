@@ -315,13 +315,14 @@ def render_template_string(source: str, **context) -> str:
         Rendered template string
     """
     import jinja2
+
     from ..responses import HTMLResponse
-    
+
     # If context is provided, render it
     if context:
         template = jinja2.Template(source)
         source = template.render(**context)
-        
+
     return HTMLResponse(source)
 
 

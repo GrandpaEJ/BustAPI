@@ -1,7 +1,9 @@
-from bustapi import BustAPI
 import time
 
+from bustapi import BustAPI
+
 app = BustAPI(template_folder="templates", static_folder="static")
+
 
 @app.route("/")
 def index():
@@ -11,12 +13,13 @@ def index():
         {"id": 3, "name": "Item Three", "active": True},
     ]
     return app.render_template(
-        "complex.html", 
-        user="Tester", 
-        items=items, 
-        show_secret=True, 
-        secret_code="RUST_IS_FAST"
+        "complex.html",
+        user="Tester",
+        items=items,
+        show_secret=True,
+        secret_code="RUST_IS_FAST",
     )
+
 
 if __name__ == "__main__":
     print("Starting server for complex templating verification...")

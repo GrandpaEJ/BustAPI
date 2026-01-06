@@ -488,16 +488,16 @@ def send_file(
     """
     # Import here to avoid circular dependency
     from ..responses import FileResponse
-    
+
     # Determine filename for attachment
     filename = None
     if as_attachment:
         filename = attachment_filename or file_path.split("/")[-1]
-    
+
     # Return FileResponse which will be handled by Rust with Range support
     return FileResponse(
         path=file_path,
         media_type=mimetype,
         filename=filename,
-        content_disposition_type="attachment" if as_attachment else "inline"
+        content_disposition_type="attachment" if as_attachment else "inline",
     )

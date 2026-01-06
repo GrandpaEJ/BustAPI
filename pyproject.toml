@@ -137,6 +137,8 @@ asyncio_mode = "auto"
 
 [dependency-groups]
 dev = [
+    "black>=25.12.0",
     "pytest>=9.0.2",
     "requests>=2.32.4",
+    "ruff>=0.14.10",
 ]

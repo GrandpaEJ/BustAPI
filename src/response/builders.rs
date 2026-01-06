@@ -1,8 +1,8 @@
 //! HTTP Response data structures and utilities
 
 use http::StatusCode;
-use std::collections::HashMap;
 use pyo3::PyObject;
+use std::collections::HashMap;
 
 /// HTTP response data structure
 #[derive(Debug)]

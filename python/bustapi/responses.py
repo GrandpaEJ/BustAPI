@@ -99,28 +99,32 @@ class FileResponse(Response):
     ):
         # Initialize base response with empty body
         super().__init__(response=None, status=status_code, headers=headers)
-        
+
         # Store the path - convert to absolute if relative
         import os
+
         if not os.path.isabs(path):
             # If relative, make it absolute from current working directory
             self.path = os.path.abspath(path)
         else:
             self.path = path
-        
+
         # Determine media type
         if media_type:
-             self.content_type = media_type
+            self.content_type = media_type
         else:
-             import mimetypes
-             guessed_type, _ = mimetypes.guess_type(path)
-             if guessed_type:
-                 self.content_type = guessed_type
-        
+            import mimetypes
+
+            guessed_type, _ = mimetypes.guess_type(path)
+            if guessed_type:
+                self.content_type = guessed_type
+
         # Handle Content-Disposition
         if filename or content_disposition_type == "attachment":
-             fname = filename or path.split("/")[-1]
-             self.headers["Content-Disposition"] = f"{content_disposition_type}; filename={fname}"
+            fname = filename or path.split("/")[-1]
+            self.headers["Content-Disposition"] = (
+                f"{content_disposition_type}; filename={fname}"
+            )
 
 
 class StreamingResponse(Response):
@@ -138,7 +142,7 @@ class StreamingResponse(Response):
         super().__init__(response=None, status=status_code, headers=headers)
         self.content = content
         self.content_type = media_type or "application/octet-stream"
-        
+
         # We don't verify iterator type strictly here, Rust will handle it.
         # But we can check for async iterator to set a flag if needed.
         # For now, we trust the content is an iterator/generator.

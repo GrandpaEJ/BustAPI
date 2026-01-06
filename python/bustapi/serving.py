@@ -43,7 +43,7 @@ def run_server(
 
                 print(f"🔄 BustAPI Rust reloader active (using {server})")
                 bustapi_core.enable_hot_reload(".")
-                
+
                 # Rust reloader spawns a thread, so we continue to run the server.
                 # When a file changes, Rust will execvp() restart the process.
             except ImportError:

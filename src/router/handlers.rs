@@ -97,19 +97,22 @@ impl Router {
                 if self.redirect_slashes {
                     let path = &req_data.path;
                     let method = &req_data.method;
-                    
+
                     if path.ends_with('/') {
-                         // Case: /foo/ -> check /foo
-                         let trimmed = &path[..path.len() - 1];
-                         if self.routes.contains_key(&(method.clone(), trimmed.to_string())) {
-                             redirect_path = Some(trimmed.to_string());
-                         }
+                        // Case: /foo/ -> check /foo
+                        let trimmed = &path[..path.len() - 1];
+                        if self
+                            .routes
+                            .contains_key(&(method.clone(), trimmed.to_string()))
+                        {
+                            redirect_path = Some(trimmed.to_string());
+                        }
                     } else {
-                         // Case: /foo -> check /foo/
-                         let slashed = format!("{}/", path);
-                         if self.routes.contains_key(&(method.clone(), slashed.clone())) {
-                             redirect_path = Some(slashed);
-                         }
+                        // Case: /foo -> check /foo/
+                        let slashed = format!("{}/", path);
+                        if self.routes.contains_key(&(method.clone(), slashed.clone())) {
+                            redirect_path = Some(slashed);
+                        }
                     }
                 }
 
@@ -117,14 +120,14 @@ impl Router {
                     // Create 307 Temporary Redirect response
                     let mut resp = ResponseData::new();
                     resp.status = http::StatusCode::TEMPORARY_REDIRECT;
-                    
+
                     // Preserve query string
                     let location = if !req_data.query_string.is_empty() {
                         format!("{}?{}", new_path, req_data.query_string)
                     } else {
                         new_path
                     };
-                    
+
                     resp.headers.insert("Location".to_string(), location);
                     resp
                 } else {

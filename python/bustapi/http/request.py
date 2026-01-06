@@ -4,7 +4,7 @@ Request handling for BustAPI - Flask-compatible request object
 
 import json
 from contextvars import ContextVar
-from typing import Any, Dict, Optional, Union
+from typing import Any, AsyncGenerator, Dict, Optional, Union
 
 
 class ImmutableMultiDict(dict):
@@ -181,7 +181,7 @@ class Request:
     async def body(self) -> bytes:
         """
         Get request body (async compatibility).
-        
+
         This method returns the full request body as bytes.
         Since BustAPI currently buffers the full request, this is immediately available.
         """
@@ -194,9 +194,9 @@ class Request:
         Yields the request body in chunks.
         """
         data = self.data
-        chunk_size = 65536 # 64KB
+        chunk_size = 65536  # 64KB
         for i in range(0, len(data), chunk_size):
-            yield data[i:i+chunk_size]
+            yield data[i : i + chunk_size]
 
     @property
     def headers(self) -> "EnvironHeaders":
