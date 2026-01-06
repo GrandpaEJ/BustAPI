@@ -75,8 +75,7 @@ impl Stream for PythonStream {
                             Ok(ok) => ok,
                             Err(_) => Some(Err(PyErr::new::<PyRuntimeError, _>("Task Join Error"))),
                         }
-                    })
-                        as StreamFuture
+                    }) as StreamFuture
                 }
 
                 StreamMode::Async => {
