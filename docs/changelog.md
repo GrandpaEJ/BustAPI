@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented here.
 
+
+## [0.6.0] - 2026-01-05
+
+### Added
+
+- **HTTP Range Support for Video Streaming**: Static files now support HTTP Range requests with `206 Partial Content` responses ([#1](https://github.com/GrandpaEJ/BustAPI/issues/1))
+- **Strict Path Routing**: Bidirectional redirect support (FastAPI-style) ensures `/foo` and `/foo/` are both accessible, returning `307 Temporary Redirect` to the canonical URL ([#7](https://github.com/GrandpaEJ/BustAPI/issues/7))
+- **Streaming Response Support**: Implemented `StreamingResponse` for efficiency streaming of content from sync and async iterators ([#3](https://github.com/GrandpaEJ/BustAPI/issues/3))
+- **Async Request Body Support**: Added `await request.body()` and `async for chunk in request.stream()` methods for async compatibility ([#4](https://github.com/GrandpaEJ/BustAPI/issues/4))
+- **Keyword Arguments Support**: Automatic injection of path and query parameters into handler keyword arguments ([#6](https://github.com/GrandpaEJ/BustAPI/issues/6))
+- **Query Params Alias**: Added `request.query_params` property (alias to `request.args`) for FastAPI compatibility ([#5](https://github.com/GrandpaEJ/BustAPI/issues/5))
+- **Flask-style `send_file` Helper**: Updated to return `FileResponse` for efficient file serving with Range support
+- **Absolute Path Support**: `FileResponse` now automatically converts relative paths to absolute paths for flexible file serving
+- Video streaming example (`examples/27_video_stream.py`) demonstrating static and dynamic video serving
+- **Documentation**: Updated user guides for Routing, Responses (Streaming), and Request Data (Async Body).
+
+
 ## [0.5.0] - 2026-01-01
 
 ### Major Features
