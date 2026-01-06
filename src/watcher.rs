@@ -44,6 +44,7 @@ pub fn enable_hot_reload(path_str: String) {
     });
 }
 
+#[cfg(unix)]
 fn restart_process() {
     use nix::unistd::execvp;
 
@@ -72,4 +73,10 @@ fn restart_process() {
             eprintln!("❌ Failed to restart process: {}", e);
         }
     }
+}
+
+#[cfg(not(unix))]
+fn restart_process() {
+    eprintln!("⚠️ Process restarting is currently visible only on Unix-like systems.");
+    eprintln!("⚠️ Please manually restart the server to apply changes.");
 }
