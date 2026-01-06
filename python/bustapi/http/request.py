@@ -173,6 +173,26 @@ class Request:
             return data.decode("utf-8", errors="replace")
         return data
 
+    async def body(self) -> bytes:
+        """
+        Get request body (async compatibility).
+        
+        This method returns the full request body as bytes.
+        Since BustAPI currently buffers the full request, this is immediately available.
+        """
+        return self.data
+
+    async def stream(self) -> "AsyncGenerator[bytes, None]":
+        """
+        Stream request body (async compatibility).
+
+        Yields the request body in chunks.
+        """
+        data = self.data
+        chunk_size = 65536 # 64KB
+        for i in range(0, len(data), chunk_size):
+            yield data[i:i+chunk_size]
+
     @property
     def headers(self) -> "EnvironHeaders":
         """Request headers."""
