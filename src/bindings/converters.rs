@@ -239,12 +239,10 @@ pub fn convert_py_result_to_response(
                     // Try iterating if it's not a dict, e.g. wsgiref.headers.Headers
                     if let Ok(items) = headers.call_method0(py, "items") {
                         if let Ok(iter) = items.bind(py).try_iter() {
-                            for item_res in iter {
-                                if let Ok(item) = item_res {
-                                    // Extract tuple (key, value)
-                                    if let Ok((k, v)) = item.extract::<(String, String)>() {
-                                        resp.set_header(&k, &v);
-                                    }
+                            for item in iter.flatten() {
+                                // Extract tuple (key, value)
+                                if let Ok((k, v)) = item.extract::<(String, String)>() {
+                                    resp.set_header(&k, &v);
                                 }
                             }
                         }

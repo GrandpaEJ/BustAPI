@@ -11,10 +11,12 @@ enum StreamMode {
     Async,
 }
 
+type StreamFuture = Pin<Box<dyn Future<Output = Option<Result<Vec<u8>, PyErr>>> + Send>>;
+
 pub struct PythonStream {
     iterator: PyObject,
     mode: StreamMode,
-    fut: Option<Pin<Box<dyn Future<Output = Option<Result<Vec<u8>, PyErr>>> + Send>>>,
+    fut: Option<StreamFuture>,
 }
 
 // Safety: PyObject is generally Send if we hold the GIL when accessing it,
@@ -74,7 +76,7 @@ impl Stream for PythonStream {
                             Err(_) => Some(Err(PyErr::new::<PyRuntimeError, _>("Task Join Error"))),
                         }
                     })
-                        as Pin<Box<dyn Future<Output = Option<Result<Vec<u8>, PyErr>>> + Send>>
+                        as StreamFuture
                 }
 
                 StreamMode::Async => {
