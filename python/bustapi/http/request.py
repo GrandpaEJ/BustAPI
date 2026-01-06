@@ -101,6 +101,11 @@ class Request:
         return self._args_cache
 
     @property
+    def query_params(self) -> ImmutableMultiDict:
+        """Alias for args (FastAPI compatibility)."""
+        return self.args
+
+    @property
     def form(self) -> ImmutableMultiDict:
         """Form data as ImmutableMultiDict."""
         if self._form_cache is None:

@@ -82,6 +82,11 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                     dep_kwargs, dep_cache = app._resolve_dependencies(rule, kwargs)
                     kwargs.update(dep_kwargs)
 
+                    # Auto-inject missing query parameters
+                    for name in expected_args:
+                        if name not in kwargs and name in request.args:
+                            kwargs[name] = request.args.get(name)
+
                     # Filter kwargs to match handler signature
                     if not has_kwargs:
                         call_kwargs = {
@@ -118,6 +123,11 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                     # Resolve dependencies
                     dep_kwargs, dep_cache = app._resolve_dependencies(rule, kwargs)
                     kwargs.update(dep_kwargs)
+
+                    # Auto-inject missing query parameters
+                    for name in expected_args:
+                        if name not in kwargs and name in request.args:
+                            kwargs[name] = request.args.get(name)
                     # Filter kwargs to match handler signature
                     if not has_kwargs:
                         call_kwargs = {
@@ -142,6 +152,11 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                     # Resolve dependencies
                     dep_kwargs, dep_cache = app._resolve_dependencies(rule, kwargs)
                     kwargs.update(dep_kwargs)
+
+                    # Auto-inject missing query parameters
+                    for name in expected_args:
+                        if name not in kwargs and name in request.args:
+                            kwargs[name] = request.args.get(name)
 
                     # Filter kwargs to match handler signature
                     if not has_kwargs:
@@ -278,6 +293,11 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
                     )
                     kwargs.update(dep_kwargs)
 
+                    # Auto-inject missing query parameters
+                    for name in expected_args:
+                        if name not in kwargs and name in request.args:
+                            kwargs[name] = request.args.get(name)
+
                     # Filter kwargs to match handler signature
                     if not has_kwargs:
                         call_kwargs = {
@@ -313,6 +333,11 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
                         rule, kwargs
                     )
                     kwargs.update(dep_kwargs)
+
+                    # Auto-inject missing query parameters
+                    for name in expected_args:
+                        if name not in kwargs and name in request.args:
+                            kwargs[name] = request.args.get(name)
                     # Filter kwargs to match handler signature
                     if not has_kwargs:
                         call_kwargs = {
@@ -339,6 +364,11 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
                         rule, kwargs
                     )
                     kwargs.update(dep_kwargs)
+
+                    # Auto-inject missing query parameters
+                    for name in expected_args:
+                        if name not in kwargs and name in request.args:
+                            kwargs[name] = request.args.get(name)
 
                     # Filter kwargs to match handler signature
                     if not has_kwargs:

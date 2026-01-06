@@ -137,5 +137,6 @@ asyncio_mode = "auto"
 
 [dependency-groups]
 dev = [
+    "pytest>=9.0.2",
     "requests>=2.32.4",
 ]
