@@ -10,28 +10,28 @@
 
 ## 🏆 Throughput (Requests/sec)
 
-| Endpoint | Metrics | BustAPI | Catzilla | Flask | FastAPI |
+| Endpoint | Metrics | BustAPI (1w) | Catzilla (1w) | Flask (4w) | FastAPI (4w) |
 | :--- | :--- | :---: | :---: | :---: | :---: |
-| **`/`** | 🚀 RPS | 🥇 **27,597** | **13,581** | **8,252** | **2,005** |
-|  | ⏱️ Avg Latency | 3.63ms | 7.80ms | 12.33ms | 48.98ms |
-|  | 📉 Max Latency | 23.49ms | 206.56ms | 43.93ms | 136.95ms |
-|  | 📦 Transfer | 3.18 MB/s | 1.92 MB/s | 1.31 MB/s | 0.28 MB/s |
-|  | 🔥 CPU Usage | 154% | 98% | 389% | 201% |
-|  | 🧠 RAM Usage | 24.8 MB | 627.0 MB | 159.4 MB | 232.0 MB |
+| **`/`** | 🚀 RPS | 🥇 **18,735** | **13,898** | **9,372** | **2,087** |
+|  | ⏱️ Avg Latency | 5.37ms | 7.60ms | 10.41ms | 47.68ms |
+|  | 📉 Max Latency | 16.98ms | 185.47ms | 31.57ms | 93.91ms |
+|  | 📦 Transfer | 2.16 MB/s | 1.96 MB/s | 1.48 MB/s | 0.29 MB/s |
+|  | 🔥 CPU Usage | 96% | 97% | 389% | 215% |
+|  | 🧠 RAM Usage | 24.3 MB | 649.8 MB | 159.7 MB | 232.4 MB |
 | | | --- | --- | --- | --- |
-| **`/json`** | 🚀 RPS | 🥇 **21,405** | **8,992** | **5,249** | **1,990** |
-|  | ⏱️ Avg Latency | 4.72ms | 11.31ms | 18.91ms | 49.93ms |
-|  | 📉 Max Latency | 40.64ms | 195.92ms | 49.14ms | 105.61ms |
-|  | 📦 Transfer | 2.57 MB/s | 0.97 MB/s | 0.82 MB/s | 0.27 MB/s |
-|  | 🔥 CPU Usage | 139% | 98% | 384% | 202% |
-|  | 🧠 RAM Usage | 25.1 MB | 1031.1 MB | 159.4 MB | 234.2 MB |
+| **`/json`** | 🚀 RPS | **12,919** | 🥇 **17,215** | **9,071** | **2,039** |
+|  | ⏱️ Avg Latency | 7.78ms | 6.27ms | 10.99ms | 48.74ms |
+|  | 📉 Max Latency | 32.49ms | 177.28ms | 34.52ms | 125.64ms |
+|  | 📦 Transfer | 1.55 MB/s | 1.86 MB/s | 1.41 MB/s | 0.28 MB/s |
+|  | 🔥 CPU Usage | 96% | 97% | 390% | 225% |
+|  | 🧠 RAM Usage | 24.6 MB | 1418.5 MB | 159.8 MB | 233.4 MB |
 | | | --- | --- | --- | --- |
-| **`/user/10`** | 🚀 RPS | 🥇 **11,963** | **7,618** | **6,210** | **1,971** |
-|  | ⏱️ Avg Latency | 8.42ms | 14.89ms | 16.25ms | 50.41ms |
-|  | 📉 Max Latency | 39.41ms | 417.78ms | 58.89ms | 106.55ms |
-|  | 📦 Transfer | 1.40 MB/s | 1.08 MB/s | 0.95 MB/s | 0.26 MB/s |
-|  | 🔥 CPU Usage | 132% | 98% | 497% | 214% |
-|  | 🧠 RAM Usage | 25.3 MB | 1378.3 MB | 159.5 MB | 235.4 MB |
+| **`/user/10`** | 🚀 RPS | **11,958** | 🥇 **16,004** | **8,090** | **1,968** |
+|  | ⏱️ Avg Latency | 8.40ms | 8.06ms | 12.52ms | 50.43ms |
+|  | 📉 Max Latency | 31.62ms | 293.26ms | 58.95ms | 100.86ms |
+|  | 📦 Transfer | 1.40 MB/s | 2.26 MB/s | 1.23 MB/s | 0.26 MB/s |
+|  | 🔥 CPU Usage | 96% | 97% | 387% | 240% |
+|  | 🧠 RAM Usage | 24.7 MB | 2159.7 MB | 160.0 MB | 234.6 MB |
 | | | --- | --- | --- | --- |
 
 ## ⚙️ How to Reproduce

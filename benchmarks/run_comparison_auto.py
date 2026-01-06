@@ -28,6 +28,14 @@ WRK_THREADS = 4
 WRK_CONNECTIONS = 100
 WRK_DURATION = "5s"  # Short duration for quick check, can be increased
 
+
+WORKERS_CONFIG = {
+    "BustAPI": 1,
+    "Flask": 4,
+    "FastAPI": 4,
+    "Catzilla": 1,
+}
+
 SERVER_FILES = {
     "BustAPI": "benchmarks/temp_bustapi.py",
     "Flask": "benchmarks/temp_flask.py",
@@ -40,7 +48,7 @@ RUN_COMMANDS = {
     "Flask": [
         "gunicorn",
         "-w",
-        "4",
+        str(WORKERS_CONFIG["Flask"]),
         "-b",
         f"{HOST}:{PORT}",
         "--access-logfile",
@@ -59,7 +67,7 @@ RUN_COMMANDS = {
         "--port",
         str(PORT),
         "--workers",
-        "4",
+        str(WORKERS_CONFIG["FastAPI"]),
         "--log-level",
         "warning",
         "--no-access-log",
@@ -85,7 +93,7 @@ def user(id):
     return jsonify({{"user_id": int(id)}})
 
 if __name__ == "__main__":
-    app.run(host="{HOST}", port={PORT}, workers=4, debug=False)
+    app.run(host="{HOST}", port={PORT}, workers={WORKERS_CONFIG["BustAPI"]}, debug=False)
 """
 
 CODE_FLASK = """
@@ -492,7 +500,10 @@ def main():
         report_lines.append("")
 
         # Throughput Table
-        headers = ["Endpoint", "Metrics"] + frameworks
+        # Throughput Table
+        headers = ["Endpoint", "Metrics"] + [
+            f"{fw} ({WORKERS_CONFIG[fw]}w)" for fw in frameworks
+        ]
         report_lines.append("| " + " | ".join(headers) + " |")
         report_lines.append(
             "| :--- | :--- | " + " | ".join([":---:" for _ in frameworks]) + " |"
