@@ -44,8 +44,24 @@ from bustapi import make_response
 @app.route("/xml")
 def xml():
     resp = make_response("<data>value</data>")
-    resp.headers['Content-Type'] = 'application/xml'
-    return resp
+```
+
+## Streaming Responses
+
+You can stream data to the client using `StreamingResponse`. This supports both synchronous and asynchronous iterators.
+
+```python
+from bustapi import StreamingResponse
+import asyncio
+
+async def fast_stream():
+    for i in range(10):
+        yield f"Chunk {i}\n"
+        await asyncio.sleep(0.1)
+
+@app.route("/stream")
+async def stream():
+    return StreamingResponse(fast_stream(), media_type="text/plain")
 ```
 
 ## Redirections & Errors

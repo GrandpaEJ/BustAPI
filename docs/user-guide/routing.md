@@ -17,7 +17,12 @@ def hello():
 ```
 
 !!! note "Trailing Slashes"
-    BustAPI enforces strict matching. `/hello` and `/hello/` are different URLs. We recommend being consistent with your slash usage.
+    BustAPI uses strict path routing by default (`redirect_slashes=True`). If a user requests `/hello/` but you defined `/hello`, they will be automatically redirected to `/hello` (and vice-versa).
+    
+    You can disable this behavior when initializing the app:
+    ```python
+    app = BustAPI(redirect_slashes=False)
+    ```
 
 ## Variable Rules
 

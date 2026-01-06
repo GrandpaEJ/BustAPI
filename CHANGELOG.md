@@ -15,6 +15,7 @@ All notable changes to this project will be documented here.
 - **Flask-style `send_file` Helper**: Updated to return `FileResponse` for efficient file serving with Range support
 - **Absolute Path Support**: `FileResponse` now automatically converts relative paths to absolute paths for flexible file serving
 - Video streaming example (`examples/27_video_stream.py`) demonstrating static and dynamic video serving
+- **Documentation**: Updated user guides for Routing, Responses (Streaming), and Request Data (Async Body).
 
 ### Removed
 
@@ -75,6 +76,7 @@ All notable changes to this project will be documented here.
 
 - **Static Route Validations**: Fixed bug where static routes (fast path) skipped body and query parameter extraction.
 - **TestClient**: Added proper `json` parameter support to `TestClient` methods for easier API testing.
+
 - **Signature Errors**: Resolved "unexpected keyword argument" errors by filtering `kwargs` based on handler signatures.
 
 ### Added

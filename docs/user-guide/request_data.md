@@ -46,19 +46,45 @@ def api_data():
 !!! warning "Error Handling"
     If the request content-type is `application/json` but the body is malformed, `get_json()` may raise a 404/400 error. You can pass `force=True` to ignore content-type.
 
+### Async Body Access
+
+For high-performance applications, you might want to stream the request body or read it asynchronously.
+
+```python
+@app.post("/upload")
+async def upload():
+    # Read entire body as bytes (async)
+    body_bytes = await request.body()
+    
+    # Or stream chunks (async generator)
+    async for chunk in request.stream():
+        process_chunk(chunk)
+        
+    return "Uploaded"
+```
+
 ## Type-Safe Injection (Recommended)
 
 While the `request` object is useful, the "modern" way to handle data in BustAPI is via function parameter injection. This provides auto-validation and clearer function signatures.
 
-### Query Injection
+### Query Injection and Keyword Arguments
 
-Use the `Query` marker to declare query parameters.
+You can accept query parameters directly as keyword arguments in your handler function. BustAPI automatically maps `?limit=10` to the `limit` argument.
+
+```python
+@app.get("/items")
+def items(limit=10, offset=0):
+    # ?limit=20&offset=5 -> limit="20", offset="5" (strings)
+    return f"Items {limit}, {offset}"
+```
+
+For type safety and validation, use the `Query` marker (similar to FastAPI):
 
 ```python
 from bustapi import Query
 
-@app.get("/items")
-def items(limit: int = Query(10), offset: int = Query(0)):
+@app.get("/validated")
+def validated(limit: int = Query(10)):
     # limit and offset are automatically converted to int
     return f"Showing items {offset} to {offset + limit}"
 ```
