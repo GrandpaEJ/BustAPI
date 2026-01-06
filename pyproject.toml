@@ -30,6 +30,7 @@ classifiers = [
 
 dependencies = [
     "sqlmodel>=0.0.16",
+    "jinja2>=3.0",
 ]
 
 [project.optional-dependencies]

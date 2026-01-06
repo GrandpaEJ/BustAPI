@@ -28,6 +28,7 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
+- **Jinja2**: Added `jinja2` as a core dependency to ensure `render_template` works out-of-the-box and fix CI test failures.
 - **CI/CD**: Resolved Rust `clippy` checks for `manual_flatten` and `type_complexity` to ensure strict CI compliance.
 - **Dynamic Route Range Support**: Dynamic routes returning `FileResponse` now correctly support Range requests (Video seeking/scrubbing).
 - Improved memory efficiency for large file serving.
