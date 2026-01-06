@@ -736,6 +736,12 @@ class BustAPI:
         # Optimization: verify if it is a FileResponse (has path attribute)
         if hasattr(response, "path"):
             return response
+            
+        # Optimization: verify if it is a StreamingResponse (has content attribute which is an iterator)
+        # We rely on the class type or just existence of content/iterator.
+        if hasattr(response, "content"):
+             # It's likely a StreamingResponse (Response base has no 'content' attr, it uses 'response' or '_data')
+             return response
 
         # Return (body, status_code, headers) tuple
         headers_dict = {}

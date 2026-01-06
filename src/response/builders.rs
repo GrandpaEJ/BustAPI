@@ -2,14 +2,16 @@
 
 use http::StatusCode;
 use std::collections::HashMap;
+use pyo3::PyObject;
 
 /// HTTP response data structure
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ResponseData {
     pub status: StatusCode,
     pub headers: HashMap<String, String>,
     pub body: Vec<u8>,
     pub file_path: Option<String>,
+    pub stream_iterator: Option<PyObject>,
 }
 
 impl ResponseData {
@@ -20,6 +22,7 @@ impl ResponseData {
             headers: HashMap::new(),
             body: Vec::new(),
             file_path: None,
+            stream_iterator: None,
         }
     }
 
@@ -30,6 +33,7 @@ impl ResponseData {
             headers: HashMap::new(),
             body: body.to_vec(),
             file_path: None,
+            stream_iterator: None,
         }
     }
 
@@ -42,6 +46,7 @@ impl ResponseData {
             headers,
             body: json.as_bytes().to_vec(),
             file_path: None,
+            stream_iterator: None,
         }
     }
 
@@ -52,6 +57,7 @@ impl ResponseData {
             headers: HashMap::new(),
             body: Vec::new(),
             file_path: None,
+            stream_iterator: None,
         }
     }
 
@@ -62,6 +68,7 @@ impl ResponseData {
             headers: HashMap::new(),
             body: body.into(),
             file_path: None,
+            stream_iterator: None,
         }
     }
 

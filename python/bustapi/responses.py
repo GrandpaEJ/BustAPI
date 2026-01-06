@@ -121,3 +121,24 @@ class FileResponse(Response):
         if filename or content_disposition_type == "attachment":
              fname = filename or path.split("/")[-1]
              self.headers["Content-Disposition"] = f"{content_disposition_type}; filename={fname}"
+
+
+class StreamingResponse(Response):
+    """
+    Streaming Response alias (FastAPI-compatible).
+    """
+
+    def __init__(
+        self,
+        content: Any,
+        status_code: int = 200,
+        headers: Optional[Dict[str, str]] = None,
+        media_type: Optional[str] = None,
+    ):
+        super().__init__(response=None, status=status_code, headers=headers)
+        self.content = content
+        self.content_type = media_type or "application/octet-stream"
+        
+        # We don't verify iterator type strictly here, Rust will handle it.
+        # But we can check for async iterator to set a flag if needed.
+        # For now, we trust the content is an iterator/generator.

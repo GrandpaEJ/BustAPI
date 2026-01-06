@@ -51,6 +51,7 @@ from .responses import (
     JSONResponse,
     PlainTextResponse,
     RedirectResponse,
+    StreamingResponse,
 )
 from .routing.blueprints import Blueprint
 from .security.extension import Security
@@ -101,6 +102,7 @@ __all__ = [
     "PlainTextResponse",
     "RedirectResponse",
     "FileResponse",
+    "StreamingResponse",
 ]
 
 # Convenience imports for common use cases

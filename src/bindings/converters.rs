@@ -61,6 +61,56 @@ pub fn convert_py_result_to_response(
         }
     }
 
+    // STREAMING: Check for content attribute (for StreamingResponse)
+    if let Ok(content_obj) = result.getattr(py, "content") {
+        // Verify it isn't None (Response base sometimes has content property?)
+        if !content_obj.is_none(py) {
+             let mut resp = ResponseData::new();
+             resp.stream_iterator = Some(content_obj);
+             
+             // Copy Status
+             if let Ok(status_code) = result.getattr(py, "status_code") {
+                 if let Ok(status) = status_code.extract::<u16>(py) {
+                      resp.set_status(StatusCode::from_u16(status).unwrap_or(StatusCode::OK));
+                 }
+             }
+
+             // Copy Headers
+             if let Ok(headers) = result.getattr(py, "headers") {
+                 if let Ok(header_dict) = headers.extract::<HashMap<String, String>>(py) {
+                     for (k, v) in header_dict {
+                         if k.to_lowercase() != "content-length" {
+                             resp.set_header(&k, &v);
+                         }
+                     }
+                 } else if let Ok(items) = headers.call_method0(py, "items") {
+                      if let Ok(iter) = items.bind(py).try_iter() {
+                          for item_res in iter {
+                              if let Ok(item) = item_res {
+                                  if let Ok((k, v)) = item.extract::<(String, String)>() {
+                                       if k.to_lowercase() != "content-length" {
+                                            resp.set_header(&k, &v);
+                                       }
+                                  }
+                              }
+                          }
+                      }
+                 }
+             }
+             
+             // Ensure Content-Type is set if missing (headers might not reflect self.content_type if not synced)
+             if let Ok(ct_prop) = result.getattr(py, "content_type") {
+                 if let Ok(ct) = ct_prop.extract::<String>(py) {
+                     if !resp.headers.contains_key("Content-Type") && !resp.headers.contains_key("content-type") {
+                         resp.set_header("Content-Type", &ct);
+                     }
+                 }
+             }
+             
+             return resp;
+        }
+    }
+
     // Check if tuple (body, status) or (body, status, headers)
     if let Ok(tuple) = result.downcast_bound::<PyTuple>(py) {
         match tuple.len() {

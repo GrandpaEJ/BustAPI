@@ -170,6 +170,18 @@ pub async fn handle_request(
     drop(routes);
 
     // 3. Convert ResponseData to Actix Response
+    
+    // Check if it's a streaming response
+    if let Some(iterator) = response_data.stream_iterator {
+         let stream = crate::server::stream::PythonStream::new(iterator);
+         let mut builder = HttpResponse::build(response_data.status);
+         
+         for (k, v) in response_data.headers {
+             builder.insert_header((k.as_str(), v.as_str()));
+         }
+         return builder.streaming(stream);
+    }
+
     // Check if it's a file response
     if let Some(path_str) = response_data.file_path {
         let path = std::path::Path::new(&path_str);
