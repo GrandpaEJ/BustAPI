@@ -70,6 +70,8 @@ nav:
       - Request Data: user-guide/request_data.md
       - Responses: user-guide/responses.md
       - Templates: user-guide/templates.md
+      - JWT Authentication: user-guide/jwt.md
+      - Session Auth: user-guide/authentication.md
   - Advanced:
       - Blueprints: advanced/blueprints.md
       - Middleware: advanced/middleware.md
