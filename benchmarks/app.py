@@ -13,5 +13,10 @@ def json_endpoint():
 def user(id):
     return jsonify({"user_id": int(id)})
 
+@app.route("/large")
+def large():
+    # Return ~2KB of data
+    return jsonify({"data": "x" * 2048})
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, workers=4, debug=False)
