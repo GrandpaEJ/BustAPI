@@ -36,8 +36,24 @@ All notable changes to this project will be documented here.
   - `argon2` v0.5 for password hashing.
   - `rand` v0.8 for secure random generation.
 
+- **CLI Tool** (`bustapi`):
+  - `bustapi new`: Scaffold new projects with `pip`, `uv`, or `poetry`.
+  - `bustapi run`: Run development server with hot reload.
+  - `bustapi routes`: List all registered routes.
+  - `bustapi info`: View system and installation details.
+
+- **Advanced Routing**:
+  - **Deterministic Matching**: Implemented scoring system (Exact > Typed > Generic > Wildcard) to resolve overlapping routes predictably.
+  - **Wildcard Paths**: Added `<path:name>` type for matching multiple URL segments (e.g. for static files).
+
 - **Examples**: `17_jwt_auth.py`, `18_session_login.py`.
 - **Tests**: `test_jwt.py`, `test_auth.py`, `test_login_manager.py`.
+
+### Fixed
+
+- **Static File Serving**:
+  - Fixed 404 errors for nested static files (e.g. `css/style.css`) using new wildcard routing.
+  - **Robust Path Resolution**: Implemented `get_root_path` to correctly locate `templates` and `static` folders regardless of working directory.
 
 ### Changed
 
