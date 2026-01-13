@@ -1,5 +1,3 @@
-import time
-
 from bustapi import BustAPI
 
 app = BustAPI(template_folder="templates", static_folder="static")
