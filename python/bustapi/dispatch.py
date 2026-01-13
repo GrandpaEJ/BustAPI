@@ -179,11 +179,11 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                         return (result, 200, {})
                     elif isinstance(result, bytes):
                         return (result.decode("utf-8", "replace"), 200, {})
-                    elif isinstance(result, dict):
-                        import json
-
+                    elif isinstance(result, (dict, list)):
+                        # Pass raw dict/list to Rust for native serialization
+                        # This skips Python's json.dumps() entirely!
                         return (
-                            json.dumps(result),
+                            result,
                             200,
                             {"Content-Type": "application/json"},
                         )
@@ -391,11 +391,11 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
                         return (result, 200, {})
                     elif isinstance(result, bytes):
                         return (result.decode("utf-8", "replace"), 200, {})
-                    elif isinstance(result, dict):
-                        import json
-
+                    elif isinstance(result, (dict, list)):
+                        # Pass raw dict/list to Rust for native serialization
+                        # This skips Python's json.dumps() entirely!
                         return (
-                            json.dumps(result),
+                            result,
                             200,
                             {"Content-Type": "application/json"},
                         )

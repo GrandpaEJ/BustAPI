@@ -11,6 +11,11 @@ mod bindings;
 mod crypto;
 mod jwt;
 
+use mimalloc::MiMalloc;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
 mod logger;
 mod rate_limiter;
 mod request;

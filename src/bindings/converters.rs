@@ -270,6 +270,8 @@ pub fn convert_py_result_to_response(
     }
 }
 
+use serde::ser::{Serialize, Serializer, SerializeMap, SerializeSeq};
+
 /// Convert Python object to response body bytes
 pub fn python_to_response_body(py: Python, obj: PyObject) -> String {
     if let Ok(bytes) = obj.downcast_bound::<PyBytes>(py) {
@@ -280,7 +282,20 @@ pub fn python_to_response_body(py: Python, obj: PyObject) -> String {
         return string.to_string();
     }
 
-    // Try JSON serialization
+    // Optimization: Zero-Allocation Serialization
+    // We implement serde::Serialize for a wrapper type that holds the PyObject
+    // This allows serde_json to write directly to the string buffer without
+    // creating an intermediate serde_json::Value DOM.
+    let obj_ref = obj.bind(py);
+    if obj_ref.is_instance_of::<PyDict>() || obj_ref.is_instance_of::<pyo3::types::PyList>() || obj_ref.is_instance_of::<pyo3::types::PyTuple>() {
+        let serializer = PyJson(obj_ref);
+        match serde_json::to_string(&serializer) {
+            Ok(s) => return s,
+            Err(e) => tracing::warn!("Native zero-copy serialization failed: {:?}", e),
+        }
+    }
+
+    // Try JSON serialization (Fallback)
     if let Ok(json_module) = py.import("json") {
         if let Ok(json_str) = json_module.call_method1("dumps", (&obj,)) {
             if let Ok(s) = json_str.extract::<String>() {
@@ -290,6 +305,73 @@ pub fn python_to_response_body(py: Python, obj: PyObject) -> String {
     }
 
     "{}".to_string()
+}
+
+// Wrapper struct for Zero-Copy Serialization
+struct PyJson<'a>(&'a Bound<'a, PyAny>);
+
+impl<'a> Serialize for PyJson<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        use pyo3::types::*;
+        let obj = self.0;
+
+        if obj.is_none() {
+            return serializer.serialize_none();
+        }
+
+        if let Ok(s) = obj.downcast::<PyString>() {
+            return serializer.serialize_str(s.to_string_lossy().as_ref());
+        }
+
+        if let Ok(b) = obj.downcast::<PyBool>() {
+            return serializer.serialize_bool(b.is_true());
+        }
+
+        if let Ok(i) = obj.downcast::<PyInt>() {
+            if let Ok(val) = i.extract::<i64>() {
+                return serializer.serialize_i64(val);
+            }
+            // Fallback for huge integers if needed, but for now i64 is reasonable
+             return serializer.serialize_str(&i.to_string());
+        }
+
+        if let Ok(f) = obj.downcast::<PyFloat>() {
+            if let Ok(val) = f.extract::<f64>() {
+                return serializer.serialize_f64(val);
+            }
+        }
+
+        if let Ok(l) = obj.downcast::<PyList>() {
+             let mut seq = serializer.serialize_seq(Some(l.len()))?;
+             for item in l {
+                 seq.serialize_element(&PyJson(&item))?;
+             }
+             return seq.end();
+        }
+
+        if let Ok(t) = obj.downcast::<PyTuple>() {
+             let mut seq = serializer.serialize_seq(Some(t.len()))?;
+             for item in t {
+                 seq.serialize_element(&PyJson(&item))?;
+             }
+             return seq.end();
+        }
+
+        if let Ok(d) = obj.downcast::<PyDict>() {
+            let mut map = serializer.serialize_map(Some(d.len()))?;
+            for (k, v) in d {
+                let key_str = k.extract::<String>().map_err(serde::ser::Error::custom)?;
+                map.serialize_entry(&key_str, &PyJson(&v))?;
+            }
+            return map.end();
+        }
+
+        // Fallback for unknown types -> String
+        serializer.serialize_str(&obj.to_string())
+    }
 }
 
 /// Convert serde_json::Value to Python object using ToPyObject trait
