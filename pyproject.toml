@@ -45,7 +45,6 @@ dev = [
     "pre-commit>=3.0",
     "black>=24.0",
     "ruff>=0.1.0",
-    "watchfiles>=0.21.0",
     "sqlmodel>=0.0.16",
 ]
 

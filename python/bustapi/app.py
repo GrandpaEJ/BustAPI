@@ -985,46 +985,26 @@ class BustAPI:
             self.before_request(_debug_start_timer)
             self.after_request(_debug_log_request)
 
-        # Handle reload using watchfiles
+        # Handle reload using Rust native reloader
         if reload or debug:
-            # Ensure we are not already in a reload process if possible (though watchfiles handles logic)
-            # But actually, if 'reload' is true, we should probably start the reloader.
-            # However, simple reloader via watchfiles.run_process is easiest.
-            import os
-            import sys
-
             if os.environ.get("BUSTAPI_RELOADER_RUN") != "true":
                 try:
-                    from watchfiles import run_process
+                    from . import bustapi_core
+
+                    # Watch the current working directory
+                    bustapi_core.enable_hot_reload(".")
+                    print(f"🔄 Rust Hot Reloader Active (watching current directory)")
+                    
+                    # Mark env to avoid duplicate watching (though Rust watcher handles logic)
+                    # Actually, Rust watcher spawns a thread in THIS process.
+                    # When it restarts, it execvps. The new process starts fresh.
+                    # We don't need BUSTAPI_RELOADER_RUN flag for execvp model 
+                    # because the whole memory is wiped.
+                    
                 except ImportError:
-                    print(
-                        "⚠️ 'watchfiles' not installed which is required for reload=True."
-                    )
-                    print(
-                        "   Install it via: `pip install watchfiles` or `pip install bustapi[dev]`"
-                    )
-                else:
-                    print(f"🔄 BustAPI reloader active (using {server})")
-                    # Set env var so subprocess knows it is being watched
-                    os.environ["BUSTAPI_RELOADER_RUN"] = "true"
-
-                    # We need to re-run the same command but as a subprocess managed by watchfiles
-                    # This is tricky because `app.run` is often called at end of script.
-                    # watchfiles.run_process(path, target)
-                    # target needs to be a callable or string command.
-
-                    # Simplest is to restart the current script.
-                    # args: python script.py
-                    import shlex
-
-                    cmd = shlex.join([sys.executable] + sys.argv)
-
-                    run_process(
-                        ".",
-                        target=cmd,
-                        target_type="command",
-                    )
-                    return
+                    print("⚠️ Native hot reload not available in this build.")
+                except Exception as e:
+                    print(f"⚠️ Failed to enable hot reload: {e}")
 
         if workers is None:
             # Default to 1 worker for debug/dev, or CPU count for prod key
