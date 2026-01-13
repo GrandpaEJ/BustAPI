@@ -2,11 +2,13 @@
 BustAPI Application class - Flask-compatible web framework
 """
 
+import os
 import inspect
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 from .core.logging import get_logger
+from .core.helpers import get_root_path
 
 # NOTE: itsdangerous is no longer used for session signing.
 # We use the Rust Signer class imported in sessions.py
@@ -56,11 +58,26 @@ class BustAPI:
             root_path: Root path for the application
         """
         self.import_name = import_name or self.__class__.__module__
-        self.static_url_path = static_url_path
-        self.static_folder = static_folder or "static"
-        self.template_folder = template_folder
-        self.instance_relative_config = instance_relative_config
+        
+        if root_path is None:
+            root_path = get_root_path(self.import_name)
         self.root_path = root_path
+
+        self.static_url_path = static_url_path
+        
+        if static_folder is None:
+            static_folder = "static"
+        if not os.path.isabs(static_folder):
+            static_folder = os.path.join(root_path, static_folder)
+        self.static_folder = static_folder
+
+        if template_folder is None:
+            template_folder = "templates"
+        if not os.path.isabs(template_folder):
+            template_folder = os.path.join(root_path, template_folder)
+        self.template_folder = template_folder
+        
+        self.instance_relative_config = instance_relative_config
         self.redirect_slashes = redirect_slashes
 
         # Configuration dictionary
