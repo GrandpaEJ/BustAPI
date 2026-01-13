@@ -14,12 +14,21 @@ pub struct StaticFileHandler {
 impl StaticFileHandler {
     /// Create a new static file handler
     pub fn new(root_path: &str, path_prefix: &str) -> Self {
-        // Resolve absolute path for security
-        let absolute_root =
-            fs::canonicalize(root_path).unwrap_or_else(|_| PathBuf::from(root_path));
+        // Resolve path relative to current working directory if it's relative
+        let path = Path::new(root_path);
+        let absolute_root = if path.is_absolute() {
+            path.to_path_buf()
+        } else {
+            std::env::current_dir()
+                .unwrap_or_else(|_| PathBuf::from("."))
+                .join(path)
+        };
+
+        // Try to canonicalize to resolve symlinks/.. but tolerate failure (e.g. if dir doesn't exist yet)
+        let resolved_root = fs::canonicalize(&absolute_root).unwrap_or(absolute_root);
 
         Self {
-            root_path: absolute_root,
+            root_path: resolved_root,
             path_prefix: path_prefix.to_string(),
         }
     }
