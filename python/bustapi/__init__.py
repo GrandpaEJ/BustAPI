@@ -22,7 +22,7 @@ import platform
 import sys
 from http import HTTPStatus
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 __author__ = "BustAPI"
 __email__ = ""
 
@@ -60,13 +60,27 @@ from .security.rate_limit import RateLimit
 # JWT and Auth
 from .jwt import JWT, jwt_optional, jwt_refresh_token_required, jwt_required, fresh_jwt_required
 from .auth import (
-    CSRFProtect,
+    # Login Management
+    LoginManager,
+    login_user,
+    logout_user,
     current_user,
-    generate_csrf_token,
-    generate_token,
-    hash_password,
+    # User Classes
+    BaseUser,
+    AnonUser,
+    # Decorators
     login_required,
+    fresh_login_required,
+    roles_required,
+    permission_required,
+    # Password
+    hash_password,
     verify_password,
+    # Tokens
+    generate_token,
+    generate_csrf_token,
+    # CSRF
+    CSRFProtect,
 )
 
 # Import testing utilities
@@ -115,18 +129,32 @@ __all__ = [
     "RedirectResponse",
     "FileResponse",
     "StreamingResponse",
-    # JWT & Auth
+    # JWT
     "JWT",
     "jwt_required",
     "jwt_optional",
     "fresh_jwt_required",
     "jwt_refresh_token_required",
+    # Auth - Login
+    "LoginManager",
+    "login_user",
+    "logout_user",
+    "current_user",
+    # Auth - User Classes
+    "BaseUser",
+    "AnonUser",
+    # Auth - Decorators
+    "login_required",
+    "fresh_login_required",
+    "roles_required",
+    "permission_required",
+    # Auth - Password
     "hash_password",
     "verify_password",
+    # Auth - Tokens
     "generate_token",
     "generate_csrf_token",
-    "login_required",
-    "current_user",
+    # Auth - CSRF
     "CSRFProtect",
 ]
 
