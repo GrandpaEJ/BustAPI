@@ -25,6 +25,7 @@ def run_server(
     """
     Run the application server.
     """
+    print(f"DEBUG: run_server called with server={server}, workers={workers}, reload={reload}")
     if debug:
         # Auto-enable Request Logging in Debug Mode
         # Note: This requires access to app.before_request/after_request
@@ -55,8 +56,51 @@ def run_server(
     # Server Dispatch
     if server == "rust":
         try:
-            # Access protected member _rust_app usually not recommended but strict refactor
-            app._rust_app.run(host, port, workers, debug)
+            if workers > 1:
+                # Use os.fork() for proper process spawning
+                # Each forked child inherits the app state and runs its own server
+                # SO_REUSEPORT (enabled in Rust) allows all processes to bind to same port
+                print(f"🚀 Starting {workers} worker processes (SO_REUSEPORT enabled)")
+                sys.stdout.flush()
+                
+                import signal
+                child_pids = []
+
+                for i in range(workers):
+                    pid = os.fork()
+                    if pid == 0:
+                        # Child process - run the server
+                        # Each child gets 1 Actix worker thread
+                        try:
+                            app._rust_app.run(host, port, 1, debug)
+                        except Exception as e:
+                            print(f"Worker {i} error: {e}")
+                        os._exit(0)
+                    else:
+                        # Parent process - track child PIDs
+                        child_pids.append(pid)
+
+                def signal_handler(sig, frame):
+                    for pid in child_pids:
+                        try:
+                            os.kill(pid, signal.SIGTERM)
+                        except ProcessLookupError:
+                            pass
+                    sys.exit(0)
+
+                signal.signal(signal.SIGINT, signal_handler)
+                signal.signal(signal.SIGTERM, signal_handler)
+
+                # Wait for all children
+                for pid in child_pids:
+                    try:
+                        os.waitpid(pid, 0)
+                    except ChildProcessError:
+                        pass
+            else:
+                # Single worker run
+                app._rust_app.run(host, port, 1, debug)
+                
         except KeyboardInterrupt:
             pass
         except Exception as e:

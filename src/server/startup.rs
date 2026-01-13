@@ -81,13 +81,38 @@ pub async fn start_server(config: ServerConfig, state: Arc<AppState>) -> std::io
     println!("{}", center_in_box(&line6, max_width));
     println!("└{}┘", horizontal_line);
 
+    // Enable SO_REUSEPORT for multi-process scalability
+    // This allows multiple processes to bind to the same port on Linux
+    let socket = socket2::Socket::new(
+        socket2::Domain::IPV4,
+        socket2::Type::STREAM,
+        Some(socket2::Protocol::TCP),
+    )?;
+
+    #[cfg(unix)]
+    {
+        if let Err(e) = socket.set_reuse_port(true) {
+            eprintln!("⚠️ Failed to set SO_REUSEPORT: {}", e);
+        }
+    }
+    socket.set_reuse_address(true)?;
+    
+    let addr: std::net::SocketAddr = format!("{}:{}", config.host, config.port)
+        .parse()
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, e))?;
+
+    socket.bind(&addr.into())?;
+    socket.listen(1024)?; // Backlog 1024
+
+    let listener: std::net::TcpListener = socket.into();
+
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(state.clone()))
             .default_service(web::route().to(super::handlers::handle_request))
     })
     .workers(config.workers)
-    .bind(&addr)?
+    .listen(listener)?
     .run()
     .await
 }
