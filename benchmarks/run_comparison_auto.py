@@ -30,7 +30,7 @@ WRK_DURATION = "5s"  # Short duration for quick check, can be increased
 
 
 WORKERS_CONFIG = {
-    "BustAPI": 1,
+    "BustAPI": 8,  # Uses os.fork() + SO_REUSEPORT for true multiprocessing
     "Flask": 4,
     "FastAPI": 4,
     "Catzilla": 1,
@@ -80,19 +80,22 @@ CODE_BUSTAPI = f"""
 from bustapi import BustAPI, jsonify
 app = BustAPI()
 
-@app.route("/")
+# Turbo routes - zero overhead (no request context, sessions, middleware)
+@app.turbo_route("/")
 def index():
     return "Hello, World!"
 
-@app.route("/json")
+@app.turbo_route("/json")
 def json_endpoint():
-    return jsonify({{"hello": "world"}})
+    return {{"hello": "world"}}
 
+# Regular route for path params (turbo doesn't support params)
 @app.route("/user/<id>")
 def user(id):
     return jsonify({{"user_id": int(id)}})
 
 if __name__ == "__main__":
+    # 8 workers with os.fork() + SO_REUSEPORT for true multiprocessing
     app.run(host="{HOST}", port={PORT}, workers={WORKERS_CONFIG["BustAPI"]}, debug=False)
 """
 
