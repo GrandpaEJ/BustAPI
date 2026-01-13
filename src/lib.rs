@@ -9,6 +9,7 @@ use pyo3::prelude::*;
 
 mod bindings;
 mod crypto;
+mod jwt;
 
 mod logger;
 mod rate_limiter;
@@ -34,7 +35,18 @@ fn bustapi_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<logger::PyFastLogger>()?;
     m.add_class::<crypto::Signer>()?;
 
-    // Add helper functions
+    // JWT support
+    m.add_class::<jwt::JWTManager>()?;
+
+    // Password hashing
+    m.add_function(wrap_pyfunction!(crypto::hash_password, m)?)?;
+    m.add_function(wrap_pyfunction!(crypto::verify_password, m)?)?;
+
+    // Token generation
+    m.add_function(wrap_pyfunction!(crypto::generate_token, m)?)?;
+    m.add_function(wrap_pyfunction!(crypto::generate_csrf_token, m)?)?;
+
+    // Helper functions
     m.add_function(wrap_pyfunction!(create_app, m)?)?;
     m.add_function(wrap_pyfunction!(enable_hot_reload, m)?)?;
 
