@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "bustapi"
-version = "0.6.0"
+version = "0.7.0"
 description = "High-performance Flask-compatible web framework with async support"
 authors = [
     {name = "GrandpaEJ", email = ""}
@@ -135,11 +135,3 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
-
-[dependency-groups]
-dev = [
-    "black>=25.12.0",
-    "pytest>=9.0.2",
-    "requests>=2.32.4",
-    "ruff>=0.14.10",
-]
