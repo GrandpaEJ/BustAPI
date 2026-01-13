@@ -57,6 +57,18 @@ from .routing.blueprints import Blueprint
 from .security.extension import Security
 from .security.rate_limit import RateLimit
 
+# JWT and Auth
+from .jwt import JWT, jwt_optional, jwt_refresh_token_required, jwt_required, fresh_jwt_required
+from .auth import (
+    CSRFProtect,
+    current_user,
+    generate_csrf_token,
+    generate_token,
+    hash_password,
+    login_required,
+    verify_password,
+)
+
 # Import testing utilities
 from .testing.client import TestClient
 
@@ -103,6 +115,19 @@ __all__ = [
     "RedirectResponse",
     "FileResponse",
     "StreamingResponse",
+    # JWT & Auth
+    "JWT",
+    "jwt_required",
+    "jwt_optional",
+    "fresh_jwt_required",
+    "jwt_refresh_token_required",
+    "hash_password",
+    "verify_password",
+    "generate_token",
+    "generate_csrf_token",
+    "login_required",
+    "current_user",
+    "CSRFProtect",
 ]
 
 # Convenience imports for common use cases
