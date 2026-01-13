@@ -13,6 +13,29 @@ if TYPE_CHECKING:
     from .app import BustAPI
 
 
+def create_turbo_wrapper(handler: Callable) -> Callable:
+    """
+    Zero-overhead wrapper for simple handlers.
+    
+    Skips: Request creation, context, sessions, middleware, parameter extraction.
+    Use for handlers that take no arguments and return dict/list/str.
+    """
+    @wraps(handler)
+    def wrapper(rust_request):
+        result = handler()
+        if isinstance(result, dict):
+            return (result, 200, {"Content-Type": "application/json"})
+        elif isinstance(result, list):
+            return (result, 200, {"Content-Type": "application/json"})
+        elif isinstance(result, str):
+            return (result, 200, {"Content-Type": "text/html; charset=utf-8"})
+        elif isinstance(result, tuple):
+            return result
+        else:
+            return (str(result), 200, {})
+    return wrapper
+
+
 def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callable:
     """Wrap handler with request context, middleware, and path param support."""
 

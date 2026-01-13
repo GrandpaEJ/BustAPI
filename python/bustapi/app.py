@@ -356,6 +356,37 @@ class BustAPI:
         """Convenience decorator for OPTIONS routes."""
         return self.route(rule, methods=["OPTIONS"], **options)
 
+    def turbo_route(self, rule: str, methods: list = None) -> Callable:
+        """
+        Ultra-fast route decorator for maximum performance.
+        
+        Skips: Request creation, context, sessions, middleware, parameter extraction.
+        Use for simple handlers that take no arguments and return dict/list/str.
+        
+        Example:
+            @app.turbo_route("/json")
+            def json_endpoint():
+                return {"hello": "world"}
+        """
+        if methods is None:
+            methods = ["GET"]
+        
+        def decorator(f: Callable) -> Callable:
+            from .dispatch import create_turbo_wrapper
+            
+            endpoint = f.__name__
+            self.view_functions[endpoint] = f
+            self.url_map[rule] = {"endpoint": endpoint, "methods": methods}
+            
+            # Register with Rust backend using turbo wrapper
+            turbo_wrapped = create_turbo_wrapper(f)
+            for method in methods:
+                self._rust_app.add_route(method, rule, turbo_wrapped)
+            
+            return f
+        
+        return decorator
+
     # Flask compatibility methods
     def shell_context_processor(self, f):
         """Register a shell context processor function."""
