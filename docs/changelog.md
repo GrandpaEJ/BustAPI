@@ -5,15 +5,62 @@ All notable changes to this project will be documented here.
 
 ## [0.7.0] - 2026-01-14
 
-### Major Features
+### Added
 
-- **Native Hot Reloading**: replaced `watchfiles` with a Rust-native watcher using the `notify` crate. This removes the `watchfiles` Python dependency and provides instant, low-overhead reloads ([#15](https://github.com/GrandpaEJ/BustAPI/issues/15))
-- **Deterministic Routing**: Implemented a scoring system for strict route matching order (Exact > Typed > Generic > Wildcard). This solves ambiguity when routes overlap (e.g. `/files/raw` vs `/files/<path:path>`).
-- **Wildcard Path Support**: Added `<path:subpath>` converter for matching multi-segment paths, crucial for correct static file nested serving.
+- **JWT Authentication (Rust-backed)**:
+  - `JWT` class for token management with HS256/HS384/HS512 algorithms.
+  - `create_access_token()` and `create_refresh_token()` methods.
+  - `decode_token()` and `verify_token()` for validation.
+  - Decorators: `@jwt_required`, `@jwt_optional`, `@fresh_jwt_required`, `@jwt_refresh_token_required`.
+  - Custom claims support and configurable expiry times.
+
+- **Session Login (Flask-Login style)**:
+  - `LoginManager` - Configure user loading and session handling.
+  - `login_user()` / `logout_user()` - Manage user sessions.
+  - `current_user` proxy - Access logged-in user anywhere.
+  - `BaseUser` / `AnonUser` - User model mixins.
+  - `@login_required`, `@fresh_login_required` - Route protection.
+  - `@roles_required`, `@permission_required` - Role-based access.
+
+- **Password Hashing (Argon2id)**:
+  - `hash_password()` - Secure password hashing using Argon2id (OWASP recommended).
+  - `verify_password()` - Constant-time password verification.
+  - PHC-formatted hashes with automatic salt generation.
+
+- **Security Utilities**:
+  - `generate_token()` - Cryptographically secure random token generation.
+  - `generate_csrf_token()` - CSRF token generation (32 bytes, hex-encoded).
+  - `CSRFProtect` class for automatic CSRF validation on forms.
+
+- **New Dependencies** (Rust):
+  - `jsonwebtoken` v9 for JWT encoding/decoding.
+  - `argon2` v0.5 for password hashing.
+  - `rand` v0.8 for secure random generation.
+
+- **CLI Tool** (`bustapi`):
+  - `bustapi new`: Scaffold new projects with `pip`, `uv`, or `poetry`.
+  - `bustapi run`: Run development server with hot reload.
+  - `bustapi routes`: List all registered routes.
+  - `bustapi info`: View system and installation details.
+
+- **Native Hot Reloading**: replaced `watchfiles` with a Rust-native watcher using the `notify` crate. This removes the `watchfiles` Python dependency and provides instant, low-overhead reloads
+
+- **Advanced Routing**:
+  - **Deterministic Matching**: Implemented scoring system (Exact > Typed > Generic > Wildcard) to resolve overlapping routes predictably.
+  - **Wildcard Paths**: Added `<path:name>` type for matching multiple URL segments (e.g. for static files).
+
+- **Examples**: `17_jwt_auth.py`, `18_session_login.py`.
+- **Tests**: `test_jwt.py`, `test_auth.py`, `test_login_manager.py`.
 
 ### Fixed
 
-- **Static Files 404**: Fixed issue where nested static files (e.g. `css/style.css`) returned 404 due to incorrect path capturing.
+- **Static File Serving**:
+  - Fixed 404 errors for nested static files (e.g. `css/style.css`) using new wildcard routing.
+  - **Robust Path Resolution**: Implemented `get_root_path` to correctly locate `templates` and `static` folders regardless of working directory.
+
+### Changed
+
+- **Refactored `bustapi.auth`** into modular package: `auth/login.py`, `auth/user.py`, `auth/decorators.py`, `auth/password.py`, `auth/tokens.py`, `auth/csrf.py`.
 
 ## [0.6.0] - 2026-01-05
 

@@ -42,6 +42,8 @@ All notable changes to this project will be documented here.
   - `bustapi routes`: List all registered routes.
   - `bustapi info`: View system and installation details.
 
+- **Native Hot Reloading**: replaced `watchfiles` with a Rust-native watcher using the `notify` crate. This removes the `watchfiles` Python dependency and provides instant, low-overhead reloads
+
 - **Advanced Routing**:
   - **Deterministic Matching**: Implemented scoring system (Exact > Typed > Generic > Wildcard) to resolve overlapping routes predictably.
   - **Wildcard Paths**: Added `<path:name>` type for matching multiple URL segments (e.g. for static files).
