@@ -85,7 +85,7 @@ Repository = "https://github.com/GrandpaEJ/bustapi.git"
 Issues = "https://github.com/GrandpaEJ/bustapi/issues"
 
 [project.scripts]
-bustapi = "bustapi.cli:main"
+bustapi = "bustapi.cli.main:main"
 
 [tool.maturin]
 module-name = "bustapi.bustapi_core"
