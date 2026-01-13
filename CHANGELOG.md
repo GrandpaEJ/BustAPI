@@ -13,6 +13,14 @@ All notable changes to this project will be documented here.
   - Decorators: `@jwt_required`, `@jwt_optional`, `@fresh_jwt_required`, `@jwt_refresh_token_required`.
   - Custom claims support and configurable expiry times.
 
+- **Session Login (Flask-Login style)**:
+  - `LoginManager` - Configure user loading and session handling.
+  - `login_user()` / `logout_user()` - Manage user sessions.
+  - `current_user` proxy - Access logged-in user anywhere.
+  - `BaseUser` / `AnonUser` - User model mixins.
+  - `@login_required`, `@fresh_login_required` - Route protection.
+  - `@roles_required`, `@permission_required` - Role-based access.
+
 - **Password Hashing (Argon2id)**:
   - `hash_password()` - Secure password hashing using Argon2id (OWASP recommended).
   - `verify_password()` - Constant-time password verification.
@@ -22,19 +30,18 @@ All notable changes to this project will be documented here.
   - `generate_token()` - Cryptographically secure random token generation.
   - `generate_csrf_token()` - CSRF token generation (32 bytes, hex-encoded).
   - `CSRFProtect` class for automatic CSRF validation on forms.
-  - `@login_required` decorator for session-based authentication.
 
 - **New Dependencies** (Rust):
   - `jsonwebtoken` v9 for JWT encoding/decoding.
   - `argon2` v0.5 for password hashing.
   - `rand` v0.8 for secure random generation.
 
-- **Examples**: `17_jwt_auth.py` demonstrating login, protected routes, and token refresh.
-- **Tests**: `test_jwt.py` (12 tests) and `test_auth.py` (12 tests).
+- **Examples**: `17_jwt_auth.py`, `18_session_login.py`.
+- **Tests**: `test_jwt.py`, `test_auth.py`, `test_login_manager.py`.
 
 ### Changed
 
-- Updated `bustapi_core` Python bindings to expose `JWTManager`, `hash_password`, `verify_password`, `generate_token`, and `generate_csrf_token`.
+- **Refactored `bustapi.auth`** into modular package: `auth/login.py`, `auth/user.py`, `auth/decorators.py`, `auth/password.py`, `auth/tokens.py`, `auth/csrf.py`.
 
 ## [0.6.0] - 2026-01-05
 
