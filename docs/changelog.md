@@ -52,6 +52,13 @@ All notable changes to this project will be documented here.
 - **Examples**: `17_jwt_auth.py`, `18_session_login.py`.
 - **Tests**: `test_jwt.py`, `test_auth.py`, `test_login_manager.py`.
 
+- **Performance Optimizations**:
+  - **Multiprocessing with SO_REUSEPORT**: Uses `os.fork()` to spawn multiple worker processes sharing the same port for true parallel scaling.
+  - **Turbo Routes**: New `@app.turbo_route()` decorator for zero-overhead routing—skips request context, sessions, and middleware for simple handlers.
+  - **mimalloc Allocator**: Rust backend uses mimalloc for faster memory allocation.
+  - **Zero-Copy JSON**: Native Rust JSON serialization with `serde_json`, bypassing Python's `json.dumps()`.
+  - **CPU-Specific Optimizations**: Build with `target-cpu=native` for maximum performance.
+
 ### Fixed
 
 - **Static File Serving**:
