@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented here.
 
+## [0.7.0] - 2026-01-13
+
+### Added
+
+- **JWT Authentication (Rust-backed)**:
+  - `JWT` class for token management with HS256/HS384/HS512 algorithms.
+  - `create_access_token()` and `create_refresh_token()` methods.
+  - `decode_token()` and `verify_token()` for validation.
+  - Decorators: `@jwt_required`, `@jwt_optional`, `@fresh_jwt_required`, `@jwt_refresh_token_required`.
+  - Custom claims support and configurable expiry times.
+
+- **Password Hashing (Argon2id)**:
+  - `hash_password()` - Secure password hashing using Argon2id (OWASP recommended).
+  - `verify_password()` - Constant-time password verification.
+  - PHC-formatted hashes with automatic salt generation.
+
+- **Security Utilities**:
+  - `generate_token()` - Cryptographically secure random token generation.
+  - `generate_csrf_token()` - CSRF token generation (32 bytes, hex-encoded).
+  - `CSRFProtect` class for automatic CSRF validation on forms.
+  - `@login_required` decorator for session-based authentication.
+
+- **New Dependencies** (Rust):
+  - `jsonwebtoken` v9 for JWT encoding/decoding.
+  - `argon2` v0.5 for password hashing.
+  - `rand` v0.8 for secure random generation.
+
+- **Examples**: `17_jwt_auth.py` demonstrating login, protected routes, and token refresh.
+- **Tests**: `test_jwt.py` (12 tests) and `test_auth.py` (12 tests).
+
+### Changed
+
+- Updated `bustapi_core` Python bindings to expose `JWTManager`, `hash_password`, `verify_password`, `generate_token`, and `generate_csrf_token`.
+
 ## [0.6.0] - 2026-01-05
 
 ### Added
