@@ -44,6 +44,7 @@ You can enforce types directly in the URL rule. If the type match fails, BustAPI
 | `<string:name>` | Accepts any text without slashes (default). |
 | `<int:id>` | Accepts positive integers only. |
 | `<float:val>` | Accepts positive floating point numbers. |
+| `<path:name>` | Accepts the rest of the path, including slashes. |
 
 ```python
 @app.route("/post/<int:post_id>")

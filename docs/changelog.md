@@ -3,6 +3,18 @@
 All notable changes to this project will be documented here.
 
 
+## [0.7.0] - 2026-01-14
+
+### Major Features
+
+- **Native Hot Reloading**: replaced `watchfiles` with a Rust-native watcher using the `notify` crate. This removes the `watchfiles` Python dependency and provides instant, low-overhead reloads ([#15](https://github.com/GrandpaEJ/BustAPI/issues/15))
+- **Deterministic Routing**: Implemented a scoring system for strict route matching order (Exact > Typed > Generic > Wildcard). This solves ambiguity when routes overlap (e.g. `/files/raw` vs `/files/<path:path>`).
+- **Wildcard Path Support**: Added `<path:subpath>` converter for matching multi-segment paths, crucial for correct static file nested serving.
+
+### Fixed
+
+- **Static Files 404**: Fixed issue where nested static files (e.g. `css/style.css`) returned 404 due to incorrect path capturing.
+
 ## [0.6.0] - 2026-01-05
 
 ### Added
