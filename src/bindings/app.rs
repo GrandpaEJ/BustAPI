@@ -132,7 +132,7 @@ impl PyBustApp {
     /// Add a secure static file route
     pub fn add_static_route(&self, path_prefix: &str, static_folder: &str) -> PyResult<()> {
         let handler = crate::static_files::StaticFileHandler::new(static_folder, path_prefix);
-        let path = format!("{}<path>", path_prefix); // Dynamic match for /static/<path>
+        let path = format!("{}<path:subpath>", path_prefix); // Dynamic match for /static/<path:subpath>
 
         let state = self.state.clone();
         let method_enum = http::Method::GET;
