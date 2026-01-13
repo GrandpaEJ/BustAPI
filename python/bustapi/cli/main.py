@@ -89,18 +89,29 @@ def cmd_new(args):
     project_name = args.name
     project_path = Path(project_name)
 
-    if project_path.exists():
-        print(f"❌ Error: Directory '{project_name}' already exists")
-        sys.exit(1)
+    # Handle "." for current directory
+    if project_name == ".":
+        project_path = Path.cwd()
+        project_name = project_path.name
+        # Check if directory already has files (except hidden)
+        existing_files = [f for f in project_path.iterdir() if not f.name.startswith('.')]
+        if existing_files and not any(f.name in ['main.py', 'app.py'] for f in existing_files):
+            # Allow if empty or only hidden files
+            pass
+    else:
+        if project_path.exists():
+            print(f"❌ Error: Directory '{project_name}' already exists")
+            sys.exit(1)
+        # Create the directory
+        project_path.mkdir(parents=True)
 
     print(f"🚀 Creating new BustAPI project: {project_name}")
 
-    # Create directories
-    project_path.mkdir(parents=True)
-    (project_path / "templates").mkdir()
-    (project_path / "static").mkdir()
-    (project_path / "static" / "css").mkdir()
-    (project_path / "static" / "js").mkdir()
+    # Create directories (ignore if exist)
+    (project_path / "templates").mkdir(exist_ok=True)
+    (project_path / "static").mkdir(exist_ok=True)
+    (project_path / "static" / "css").mkdir(exist_ok=True)
+    (project_path / "static" / "js").mkdir(exist_ok=True)
 
     # Create main.py
     main_py = '''"""
@@ -267,7 +278,8 @@ build/
         print("   └── requirements.txt")
     print()
     print("🎉 Get started:")
-    print(f"   cd {project_name}")
+    if args.name != ".":
+        print(f"   cd {project_name}")
     if args.uv:
         print("   uv sync")
         print("   uv run python main.py")
