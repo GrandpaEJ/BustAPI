@@ -6,7 +6,8 @@ Flask-Login style API for managing user sessions.
 
 from functools import wraps
 from typing import Any, Callable, Optional, Union
-from werkzeug.local import LocalProxy
+
+from ..utils import LocalProxy
 
 from .user import AnonUser
 
