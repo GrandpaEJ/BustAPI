@@ -26,7 +26,7 @@ PORT = 8000
 HOST = "127.0.0.1"
 WRK_THREADS = 4
 WRK_CONNECTIONS = 100
-WRK_DURATION = "5s"  # Short duration for quick check, can be increased
+WRK_DURATION = "3s"  # Short duration for quick check, can be increased
 
 
 WORKERS_CONFIG = {
@@ -512,6 +512,9 @@ def main():
             fw_results = benchmark_framework(fw)
             all_results.extend(fw_results)
 
+        # Generate Graph
+        generate_graph(all_results)
+
         # Generate Markdown Report
         sys_info = get_system_info()
 
@@ -595,6 +598,9 @@ def main():
             report_lines.append(f"| | | {' | '.join(['---'] * len(frameworks))} |")
 
         report_lines.append("")
+        report_lines.append("## 📊 Performance Comparison")
+        report_lines.append("![RPS Comparison](rps_comparison.png)")
+        report_lines.append("")
         report_lines.append("## ⚙️ How to Reproduce")
         report_lines.append("```bash")
         report_lines.append(
@@ -612,6 +618,56 @@ def main():
 
     finally:
         clean_server_files()
+
+
+def generate_graph(results: List[BenchmarkResult]):
+    """Generate RPS comparison graph."""
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        print("❌ matplotlib not found. Skipping graph generation.")
+        return
+
+    frameworks = sorted(list({r.framework for r in results}))
+    endpoints = sorted(list({r.endpoint for r in results}))
+    
+    # Setup plot
+    plt.figure(figsize=(10, 6))
+    
+    # Bar settings
+    bar_width = 0.15
+    opacity = 0.8
+    index = range(len(endpoints))
+    colors = ['#2ecc71', '#3498db', '#9b59b6', '#e74c3c', '#f1c40f']
+    
+    # Plot each framework
+    for i, fw in enumerate(frameworks):
+        rps_values = []
+        for ep in endpoints:
+            res = next((r for r in results if r.framework == fw and r.endpoint == ep), None)
+            rps_values.append(res.requests_sec if res else 0)
+            
+        plt.bar(
+            [x + (i * bar_width) for x in index],
+            rps_values,
+            bar_width,
+            alpha=opacity,
+            color=colors[i % len(colors)],
+            label=fw
+        )
+
+    plt.xlabel('Endpoints')
+    plt.ylabel('Requests Per Second (RPS)')
+    plt.title('Web Framework Performance Comparison')
+    plt.xticks([x + (bar_width * (len(frameworks) - 1) / 2) for x in index], endpoints)
+    plt.legend()
+    plt.tight_layout()
+    plt.grid(axis='y', linestyle='--', alpha=0.3)
+    
+    # Save graph
+    output_path = "benchmarks/rps_comparison.png"
+    plt.savefig(output_path, dpi=300)
+    print(f"\n✅ Graph saved to {output_path}")
 
 
 if __name__ == "__main__":

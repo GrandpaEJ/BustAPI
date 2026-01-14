@@ -58,6 +58,7 @@ benchmarks = [
     "httpx>=0.28.1",
     "psutil>=5.9.0",
     "robyn>=0.63.0",
+    "matplotlib>=3.10.0",
 ]
 
 docs = [
