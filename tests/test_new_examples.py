@@ -39,7 +39,7 @@ class TestNewExamples(unittest.TestCase):
 
     def test_05_templates(self):
         print("Testing 05_templates.py...")
-        proc = self.run_example("05_templates.py", 5004)
+        proc = self.run_example("templates/05_templates.py", 5004)
         try:
             r = requests.get("http://127.0.0.1:5004/")
             self.assertEqual(r.status_code, 200)
@@ -60,7 +60,7 @@ class TestNewExamples(unittest.TestCase):
 
     def test_06_blueprints(self):
         print("Testing 06_blueprints.py...")
-        proc = self.run_example("06_blueprints.py", 5005)
+        proc = self.run_example("routing/06_blueprints.py", 5005)
         try:
             # Check main page
             r = requests.get("http://127.0.0.1:5005/")
@@ -93,7 +93,7 @@ class TestNewExamples(unittest.TestCase):
         print("Testing 07_database_raw.py...")
         # Use a fresh DB file or cleanup would be nice, but it creates 'example.db' in cwd.
         # We allow it to use the default one for now.
-        proc = self.run_example("07_database_raw.py", 5006)
+        proc = self.run_example("database/07_database_raw.py", 5006)
         try:
             # Init DB
             r = requests.get("http://127.0.0.1:5006/init-db")
@@ -122,7 +122,7 @@ class TestNewExamples(unittest.TestCase):
 
     def test_08_auto_docs(self):
         print("Testing 08_auto_docs.py...")
-        proc = self.run_example("08_auto_docs.py", 5007)
+        proc = self.run_example("advanced/08_auto_docs.py", 5007)
         try:
             # Check Swagger UI
             r = requests.get("http://127.0.0.1:5007/docs")
@@ -150,7 +150,7 @@ class TestNewExamples(unittest.TestCase):
 
     def test_09_complex_routing(self):
         print("Testing 09_complex_routing.py...")
-        proc = self.run_example("09_complex_routing.py", 5008)
+        proc = self.run_example("routing/09_complex_routing.py", 5008)
         try:
             r = requests.get("http://127.0.0.1:5008/user/42/profile")
             self.assertEqual(r.status_code, 200)
@@ -176,7 +176,7 @@ class TestNewExamples(unittest.TestCase):
     def test_10_sqlmodel(self):
         print("Testing 10_database_sqlmodel.py...")
         # Note: 10_database_sqlmodel uses 'example_sqlmodel.db'
-        proc = self.run_example("10_database_sqlmodel.py", 5010)
+        proc = self.run_example("database/10_database_sqlmodel.py", 5010)
         try:
             # Init DB
             r = requests.get("http://127.0.0.1:5010/init-db")

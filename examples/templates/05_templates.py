@@ -1,7 +1,9 @@
 from bustapi import BustAPI, render_template
+import os
 
-# Initialize app with explicit template folder (optional if 'templates')
-app = BustAPI(template_folder="examples/templates")
+# Initialize app with explicit template folder relative to this script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+app = BustAPI(template_folder=os.path.join(script_dir, "templates"))
 
 
 @app.route("/")
