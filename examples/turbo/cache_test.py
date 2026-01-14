@@ -2,6 +2,7 @@
 """Test script for response caching in turbo routes."""
 
 import time
+
 from bustapi import BustAPI
 
 app = BustAPI()

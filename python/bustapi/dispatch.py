@@ -84,7 +84,6 @@ def create_typed_turbo_wrapper(handler: Callable, param_names: list) -> Callable
     return wrapper
 
 
-
 def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callable:
     """Wrap handler with request context, middleware, and path param support."""
 
