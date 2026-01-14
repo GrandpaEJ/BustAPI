@@ -1,11 +1,11 @@
-use cookie::{Cookie, CookieJar, Key};
-use pyo3::prelude::*;
-use sha2::{Digest, Sha512};
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
+use cookie::{Cookie, CookieJar, Key};
+use pyo3::prelude::*;
 use rand::{thread_rng, Rng};
+use sha2::{Digest, Sha512};
 
 #[pyclass]
 pub struct Signer {
@@ -94,8 +94,9 @@ pub fn hash_password(password: &str) -> PyResult<String> {
 ///     True if password matches, False otherwise
 #[pyfunction]
 pub fn verify_password(password: &str, hash: &str) -> PyResult<bool> {
-    let parsed_hash = PasswordHash::new(hash)
-        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid hash format: {}", e)))?;
+    let parsed_hash = PasswordHash::new(hash).map_err(|e| {
+        pyo3::exceptions::PyValueError::new_err(format!("Invalid hash format: {}", e))
+    })?;
 
     Ok(Argon2::default()
         .verify_password(password.as_bytes(), &parsed_hash)

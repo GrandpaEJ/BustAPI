@@ -16,10 +16,11 @@ if TYPE_CHECKING:
 def create_turbo_wrapper(handler: Callable) -> Callable:
     """
     Zero-overhead wrapper for simple handlers.
-    
+
     Skips: Request creation, context, sessions, middleware, parameter extraction.
     Use for handlers that take no arguments and return dict/list/str.
     """
+
     @wraps(handler)
     def wrapper(rust_request):
         result = handler()
@@ -33,6 +34,7 @@ def create_turbo_wrapper(handler: Callable) -> Callable:
             return result
         else:
             return (str(result), 200, {})
+
     return wrapper
 
 

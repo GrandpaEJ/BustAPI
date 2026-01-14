@@ -8,7 +8,6 @@ from functools import wraps
 from typing import Any, Callable, Optional, Union
 
 from ..utils import LocalProxy
-
 from .user import AnonUser
 
 

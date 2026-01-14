@@ -2,13 +2,13 @@
 BustAPI Application class - Flask-compatible web framework
 """
 
-import os
 import inspect
+import os
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
-from .core.logging import get_logger
 from .core.helpers import get_root_path
+from .core.logging import get_logger
 
 # NOTE: itsdangerous is no longer used for session signing.
 # We use the Rust Signer class imported in sessions.py
@@ -58,13 +58,13 @@ class BustAPI:
             root_path: Root path for the application
         """
         self.import_name = import_name or self.__class__.__module__
-        
+
         if root_path is None:
             root_path = get_root_path(self.import_name)
         self.root_path = root_path
 
         self.static_url_path = static_url_path
-        
+
         if static_folder is None:
             static_folder = "static"
         if not os.path.isabs(static_folder):
@@ -76,7 +76,7 @@ class BustAPI:
         if not os.path.isabs(template_folder):
             template_folder = os.path.join(root_path, template_folder)
         self.template_folder = template_folder
-        
+
         self.instance_relative_config = instance_relative_config
         self.redirect_slashes = redirect_slashes
 
@@ -105,15 +105,15 @@ class BustAPI:
 
         # Query parameter validation metadata
         # Maps (rule, param_name) -> Query validator with type hint
-        self.query_validators: Dict[tuple, tuple] = (
-            {}
-        )  # (rule, param_name) -> (Query, type)
+        self.query_validators: Dict[
+            tuple, tuple
+        ] = {}  # (rule, param_name) -> (Query, type)
 
         # Body parameter validation metadata
         # Maps (rule, param_name) -> Body validator with type hint
-        self.body_validators: Dict[tuple, tuple] = (
-            {}
-        )  # (rule, param_name) -> (Body, type)
+        self.body_validators: Dict[
+            tuple, tuple
+        ] = {}  # (rule, param_name) -> (Body, type)
 
         # Dependency injection metadata
         # Maps (rule, param_name) -> Depends instance
@@ -359,10 +359,10 @@ class BustAPI:
     def turbo_route(self, rule: str, methods: list = None) -> Callable:
         """
         Ultra-fast route decorator for maximum performance.
-        
+
         Skips: Request creation, context, sessions, middleware, parameter extraction.
         Use for simple handlers that take no arguments and return dict/list/str.
-        
+
         Example:
             @app.turbo_route("/json")
             def json_endpoint():
@@ -370,21 +370,21 @@ class BustAPI:
         """
         if methods is None:
             methods = ["GET"]
-        
+
         def decorator(f: Callable) -> Callable:
             from .dispatch import create_turbo_wrapper
-            
+
             endpoint = f.__name__
             self.view_functions[endpoint] = f
             self.url_map[rule] = {"endpoint": endpoint, "methods": methods}
-            
+
             # Register with Rust backend using turbo wrapper
             turbo_wrapped = create_turbo_wrapper(f)
             for method in methods:
                 self._rust_app.add_route(method, rule, turbo_wrapped)
-            
+
             return f
-        
+
         return decorator
 
     # Flask compatibility methods
@@ -1024,14 +1024,14 @@ class BustAPI:
 
                     # Watch the current working directory
                     bustapi_core.enable_hot_reload(".")
-                    print(f"🔄 Rust Hot Reloader Active (watching current directory)")
-                    
+                    print("🔄 Rust Hot Reloader Active (watching current directory)")
+
                     # Mark env to avoid duplicate watching (though Rust watcher handles logic)
                     # Actually, Rust watcher spawns a thread in THIS process.
                     # When it restarts, it execvps. The new process starts fresh.
-                    # We don't need BUSTAPI_RELOADER_RUN flag for execvp model 
+                    # We don't need BUSTAPI_RELOADER_RUN flag for execvp model
                     # because the whole memory is wiped.
-                    
+
                 except ImportError:
                     print("⚠️ Native hot reload not available in this build.")
                 except Exception as e:

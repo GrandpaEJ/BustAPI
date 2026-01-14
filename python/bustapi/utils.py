@@ -25,7 +25,7 @@ class LocalProxy:
         try:
             return self._get_current_object().__dict__
         except RuntimeError:
-            raise AttributeError("__dict__")
+            raise AttributeError("__dict__") from None
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._get_current_object(), name)

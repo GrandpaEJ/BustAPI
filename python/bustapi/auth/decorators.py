@@ -19,8 +19,8 @@ def login_required(fn: Callable) -> Callable:
 
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        from .login import current_user
         from ..core.exceptions import abort
+        from .login import current_user
 
         if not current_user.is_authenticated:
             # Get login manager for redirect config
@@ -51,9 +51,9 @@ def fresh_login_required(fn: Callable) -> Callable:
 
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        from .login import current_user
-        from ..http.request import request
         from ..core.exceptions import abort
+        from ..http.request import request
+        from .login import current_user
 
         if not current_user.is_authenticated:
             abort(401, "Login required")
@@ -85,8 +85,8 @@ def roles_required(*roles: str) -> Callable:
     def decorator(fn: Callable) -> Callable:
         @wraps(fn)
         def wrapper(*args, **kwargs):
-            from .login import current_user
             from ..core.exceptions import abort
+            from .login import current_user
 
             if not current_user.is_authenticated:
                 abort(401, "Login required")
@@ -125,8 +125,8 @@ def permission_required(*permissions: str) -> Callable:
     def decorator(fn: Callable) -> Callable:
         @wraps(fn)
         def wrapper(*args, **kwargs):
-            from .login import current_user
             from ..core.exceptions import abort
+            from .login import current_user
 
             if not current_user.is_authenticated:
                 abort(401, "Login required")

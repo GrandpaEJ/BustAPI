@@ -96,7 +96,7 @@ pub async fn start_server(config: ServerConfig, state: Arc<AppState>) -> std::io
         }
     }
     socket.set_reuse_address(true)?;
-    
+
     let addr: std::net::SocketAddr = format!("{}:{}", config.host, config.port)
         .parse()
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, e))?;

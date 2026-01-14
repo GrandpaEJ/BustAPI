@@ -1,5 +1,6 @@
-from bustapi import BustAPI, render_template
 import os
+
+from bustapi import BustAPI, render_template
 
 # Initialize app with explicit template folder relative to this script
 script_dir = os.path.dirname(os.path.abspath(__file__))

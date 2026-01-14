@@ -270,7 +270,7 @@ pub fn convert_py_result_to_response(
     }
 }
 
-use serde::ser::{Serialize, Serializer, SerializeMap, SerializeSeq};
+use serde::ser::{Serialize, SerializeMap, SerializeSeq, Serializer};
 
 /// Convert Python object to response body bytes
 pub fn python_to_response_body(py: Python, obj: PyObject) -> String {
@@ -287,7 +287,10 @@ pub fn python_to_response_body(py: Python, obj: PyObject) -> String {
     // This allows serde_json to write directly to the string buffer without
     // creating an intermediate serde_json::Value DOM.
     let obj_ref = obj.bind(py);
-    if obj_ref.is_instance_of::<PyDict>() || obj_ref.is_instance_of::<pyo3::types::PyList>() || obj_ref.is_instance_of::<pyo3::types::PyTuple>() {
+    if obj_ref.is_instance_of::<PyDict>()
+        || obj_ref.is_instance_of::<pyo3::types::PyList>()
+        || obj_ref.is_instance_of::<pyo3::types::PyTuple>()
+    {
         let serializer = PyJson(obj_ref);
         match serde_json::to_string(&serializer) {
             Ok(s) => return s,
@@ -335,7 +338,7 @@ impl<'a> Serialize for PyJson<'a> {
                 return serializer.serialize_i64(val);
             }
             // Fallback for huge integers if needed, but for now i64 is reasonable
-             return serializer.serialize_str(&i.to_string());
+            return serializer.serialize_str(&i.to_string());
         }
 
         if let Ok(f) = obj.downcast::<PyFloat>() {
@@ -345,19 +348,19 @@ impl<'a> Serialize for PyJson<'a> {
         }
 
         if let Ok(l) = obj.downcast::<PyList>() {
-             let mut seq = serializer.serialize_seq(Some(l.len()))?;
-             for item in l {
-                 seq.serialize_element(&PyJson(&item))?;
-             }
-             return seq.end();
+            let mut seq = serializer.serialize_seq(Some(l.len()))?;
+            for item in l {
+                seq.serialize_element(&PyJson(&item))?;
+            }
+            return seq.end();
         }
 
         if let Ok(t) = obj.downcast::<PyTuple>() {
-             let mut seq = serializer.serialize_seq(Some(t.len()))?;
-             for item in t {
-                 seq.serialize_element(&PyJson(&item))?;
-             }
-             return seq.end();
+            let mut seq = serializer.serialize_seq(Some(t.len()))?;
+            for item in t {
+                seq.serialize_element(&PyJson(&item))?;
+            }
+            return seq.end();
         }
 
         if let Ok(d) = obj.downcast::<PyDict>() {

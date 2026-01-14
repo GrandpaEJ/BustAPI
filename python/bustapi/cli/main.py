@@ -94,8 +94,12 @@ def cmd_new(args):
         project_path = Path.cwd()
         project_name = project_path.name
         # Check if directory already has files (except hidden)
-        existing_files = [f for f in project_path.iterdir() if not f.name.startswith('.')]
-        if existing_files and not any(f.name in ['main.py', 'app.py'] for f in existing_files):
+        existing_files = [
+            f for f in project_path.iterdir() if not f.name.startswith(".")
+        ]
+        if existing_files and not any(
+            f.name in ["main.py", "app.py"] for f in existing_files
+        ):
             # Allow if empty or only hidden files
             pass
     else:
@@ -136,14 +140,12 @@ def api_hello():
 
 if __name__ == "__main__":
     app.run(debug=True)
-'''.format(
-        name=project_name
-    )
+'''.format(name=project_name)
 
     (project_path / "main.py").write_text(main_py)
 
     # Create templates/index.html
-    index_html = '''<!DOCTYPE html>
+    index_html = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -161,11 +163,11 @@ if __name__ == "__main__":
     </div>
 </body>
 </html>
-'''
+"""
     (project_path / "templates" / "index.html").write_text(index_html)
 
     # Create static/css/style.css
-    style_css = '''* {
+    style_css = """* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -212,12 +214,12 @@ p {
 .links a:hover {
     transform: translateY(-2px);
 }
-'''
+"""
     (project_path / "static" / "css" / "style.css").write_text(style_css)
 
     # Create dependency file based on package manager
     if args.uv or args.poetry:
-        pyproject = f'''[project]
+        pyproject = f"""[project]
 name = "{project_name}"
 version = "0.1.0"
 description = "A BustAPI application"
@@ -228,9 +230,9 @@ dependencies = [
 
 [project.scripts]
 dev = "python main.py"
-'''
+"""
         if args.poetry:
-            pyproject = f'''[tool.poetry]
+            pyproject = f"""[tool.poetry]
 name = "{project_name}"
 version = "0.1.0"
 description = "A BustAPI application"
@@ -243,7 +245,7 @@ bustapi = "^0.7.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-'''
+"""
         (project_path / "pyproject.toml").write_text(pyproject)
     else:
         requirements = "bustapi>=0.7.0\n"
@@ -393,9 +395,9 @@ def cmd_info(args):
     try:
         from .. import bustapi_core
 
-        print(f"  Rust Core:      ✅ Loaded")
+        print("  Rust Core:      ✅ Loaded")
     except ImportError:
-        print(f"  Rust Core:      ❌ Not available")
+        print("  Rust Core:      ❌ Not available")
 
 
 if __name__ == "__main__":

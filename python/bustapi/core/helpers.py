@@ -419,22 +419,22 @@ def get_load_dotenv(default: bool = True) -> bool:
 def get_root_path(import_name: str) -> str:
     """
     Find the root path of a package or module.
-    
+
     Args:
         import_name: The name of the package or module.
-        
+
     Returns:
         The absolute path to the package or module directory.
     """
     import sys
     from importlib.util import find_spec
-    
+
     # Try to find the module spec
     try:
         spec = find_spec(import_name)
     except (ValueError, ImportError):
         spec = None
-        
+
     if spec is None:
         # If not found, trying import directly to get __file__
         try:
@@ -444,21 +444,21 @@ def get_root_path(import_name: str) -> str:
                 return os.path.dirname(os.path.abspath(mod.__file__))
         except ImportError:
             pass
-            
+
         # Fallback if name implies a submodule
         if "." in import_name:
             return get_root_path(import_name.rpartition(".")[0])
-            
+
         # Last resort: use CWD
         return os.getcwd()
-        
+
     if spec.has_location:
-         # It's a file-based module/package
-         if spec.origin:
+        # It's a file-based module/package
+        if spec.origin:
             return os.path.dirname(os.path.abspath(spec.origin))
-            
+
     if spec.submodule_search_locations:
         # It's a namespace package or directory
         return list(spec.submodule_search_locations)[0]
-        
+
     return os.getcwd()

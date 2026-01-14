@@ -25,7 +25,9 @@ def run_server(
     """
     Run the application server.
     """
-    print(f"DEBUG: run_server called with server={server}, workers={workers}, reload={reload}")
+    print(
+        f"DEBUG: run_server called with server={server}, workers={workers}, reload={reload}"
+    )
     if debug:
         # Auto-enable Request Logging in Debug Mode
         # Note: This requires access to app.before_request/after_request
@@ -62,8 +64,9 @@ def run_server(
                 # SO_REUSEPORT (enabled in Rust) allows all processes to bind to same port
                 print(f"🚀 Starting {workers} worker processes (SO_REUSEPORT enabled)")
                 sys.stdout.flush()
-                
+
                 import signal
+
                 child_pids = []
 
                 for i in range(workers):
@@ -100,7 +103,7 @@ def run_server(
             else:
                 # Single worker run
                 app._rust_app.run(host, port, 1, debug)
-                
+
         except KeyboardInterrupt:
             pass
         except Exception as e:

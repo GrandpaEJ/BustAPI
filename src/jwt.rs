@@ -253,8 +253,9 @@ impl JWTManager {
 
         let header = Header::new(self.algorithm);
 
-        encode(&header, &claims, &self.encoding_key)
-            .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("JWT encode error: {}", e)))
+        encode(&header, &claims, &self.encoding_key).map_err(|e| {
+            pyo3::exceptions::PyValueError::new_err(format!("JWT encode error: {}", e))
+        })
     }
 }
 

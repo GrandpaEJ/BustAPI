@@ -23,8 +23,8 @@ Test with:
 """
 
 from bustapi import (
-    BustAPI,
     JWT,
+    BustAPI,
     fresh_jwt_required,
     hash_password,
     jwt_refresh_token_required,

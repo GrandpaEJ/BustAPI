@@ -28,19 +28,19 @@ pub fn find_pattern_match(
         }
 
         let pat_parts: Vec<&str> = pattern.trim_matches('/').split('/').collect();
-        
+
         // Check availability of "path" wildcard which allows matching multiple segments
         let is_path_wildcard = if let Some(last) = pat_parts.last() {
-             last.starts_with("<path:") && last.ends_with('>')
+            last.starts_with("<path:") && last.ends_with('>')
         } else {
-             false
+            false
         };
 
         if is_path_wildcard {
-             // For wildcard, request must have at least as many parts as pattern
-             if req_parts.len() < pat_parts.len() {
-                 continue;
-             }
+            // For wildcard, request must have at least as many parts as pattern
+            if req_parts.len() < pat_parts.len() {
+                continue;
+            }
         } else if pat_parts.len() != req_parts.len() {
             continue;
         }

@@ -15,10 +15,8 @@ Usage:
 """
 
 # Login management
-from .login import LoginManager, current_user, login_user, logout_user
-
-# User classes
-from .user import AnonUser, BaseUser
+# CSRF protection
+from .csrf import CSRFProtect
 
 # Decorators
 from .decorators import (
@@ -27,6 +25,7 @@ from .decorators import (
     permission_required,
     roles_required,
 )
+from .login import LoginManager, current_user, login_user, logout_user
 
 # Password hashing
 from .password import hash_password, verify_password
@@ -34,8 +33,8 @@ from .password import hash_password, verify_password
 # Token generation
 from .tokens import generate_csrf_token, generate_token
 
-# CSRF protection
-from .csrf import CSRFProtect
+# User classes
+from .user import AnonUser, BaseUser
 
 __all__ = [
     # Login
