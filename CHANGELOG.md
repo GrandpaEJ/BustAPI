@@ -45,13 +45,12 @@ All notable changes to this project will be documented here.
   - Beat Sanic (41k) and BlackSheep (28k) by a massive margin.
   - Memory usage remains efficient (~152MB for 4 workers).
 
-- **Cross-Platform Multiprocessing (Issue #9)**:
-  - New `python/bustapi/multiprocess.py` with `SocketManager` class.
-  - Platform-specific implementations:
-    - **Linux**: `SO_REUSEPORT` (kernel load balancing)
-    - **macOS**: Pre-fork with inherited file descriptor
-    - **Windows**: `socket.share()`/`socket.fromshare()` via WSADuplicateSocket
-  - Added `ci-multiplatform.yml` for Windows/macOS CI testing.
+- **Cross-Platform Support (Issue #9)**:
+  - New `python/bustapi/multiprocess.py` module.
+  - Platform-specific behavior:
+    - **Linux**: Full multiprocessing with `SO_REUSEPORT` (100k+ RPS)
+    - **macOS/Windows**: Single-process fallback (Rust still blazing fast!)
+  - Added `ci-multiplatform.yml` for cross-platform testing.
 
 - **Cached Turbo Routes**:
   - New built-in caching for turbo routes: `@app.turbo_route("/", cache_ttl=60)`.
