@@ -1,7 +1,7 @@
 //! HTTP Response data structures and utilities
 
 use http::StatusCode;
-use pyo3::{types::PyAny, Py};
+use pyo3::{types::PyAny, Py, Python};
 use std::collections::HashMap;
 
 /// HTTP response data structure
@@ -12,6 +12,21 @@ pub struct ResponseData {
     pub body: Vec<u8>,
     pub file_path: Option<String>,
     pub stream_iterator: Option<Py<PyAny>>,
+}
+
+impl Clone for ResponseData {
+    fn clone(&self) -> Self {
+        Self {
+            status: self.status,
+            headers: self.headers.clone(),
+            body: self.body.clone(),
+            file_path: self.file_path.clone(),
+            // Clone Py<PyAny> requires GIL
+            stream_iterator: self.stream_iterator.as_ref().map(|py_obj| {
+                Python::attach(|py| py_obj.clone_ref(py))
+            }),
+        }
+    }
 }
 
 impl ResponseData {

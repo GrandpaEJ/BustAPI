@@ -22,7 +22,9 @@ def create_turbo_wrapper(handler: Callable) -> Callable:
     """
 
     @wraps(handler)
-    def wrapper(rust_request):
+    def wrapper(rust_request, path_params=None):
+        # path_params is passed when using PyTypedTurboHandler for caching
+        # but we ignore it since handler takes no arguments
         result = handler()
         if isinstance(result, dict):
             return (result, 200, {"Content-Type": "application/json"})

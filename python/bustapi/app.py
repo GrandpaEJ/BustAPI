@@ -356,7 +356,9 @@ class BustAPI:
         """Convenience decorator for OPTIONS routes."""
         return self.route(rule, methods=["OPTIONS"], **options)
 
-    def turbo_route(self, rule: str, methods: list = None) -> Callable:
+    def turbo_route(
+        self, rule: str, methods: list = None, cache_ttl: int = 0
+    ) -> Callable:
         """
         Ultra-fast route decorator for maximum performance.
 
@@ -365,6 +367,13 @@ class BustAPI:
         - Dynamic: `/users/<int:id>`, `/posts/<int:id>/comments/<int:cid>`
 
         Path parameters are parsed in Rust for zero Python overhead.
+
+        Args:
+            rule: Route pattern (e.g., "/users/<int:id>")
+            methods: List of HTTP methods (default: ["GET"])
+            cache_ttl: Optional cache time-to-live in seconds (default: 0 = no cache)
+                       When set, responses are cached in Rust and Python is skipped
+                       for repeated requests until TTL expires.
 
         Limitations:
             - No `request` object access (use regular @app.route for that)
@@ -380,9 +389,10 @@ class BustAPI:
             def get_user(id: int):
                 return {"id": id, "name": "Alice"}
 
-            @app.turbo_route("/calc/<int:a>/<int:b>")
-            def add(a: int, b: int):
-                return {"sum": a + b}
+            # Cached for 60 seconds
+            @app.turbo_route("/stats", cache_ttl=60)
+            def stats():
+                return {"users": 1000}
         """
         if methods is None:
             methods = ["GET"]
@@ -407,15 +417,23 @@ class BustAPI:
 
                 for method in methods:
                     self._rust_app.add_typed_turbo_route(
-                        method, rule, turbo_wrapped, param_types
+                        method, rule, turbo_wrapped, param_types, cache_ttl
                     )
             else:
-                # Static turbo route (no params)
+                # Static turbo route (no params) - also supports caching
                 from .dispatch import create_turbo_wrapper
 
                 turbo_wrapped = create_turbo_wrapper(f)
-                for method in methods:
-                    self._rust_app.add_route(method, rule, turbo_wrapped)
+
+                if cache_ttl > 0:
+                    # Use typed turbo handler for caching support
+                    for method in methods:
+                        self._rust_app.add_typed_turbo_route(
+                            method, rule, turbo_wrapped, {}, cache_ttl
+                        )
+                else:
+                    for method in methods:
+                        self._rust_app.add_route(method, rule, turbo_wrapped)
 
             return f
 

@@ -2,15 +2,38 @@
 //!
 //! Ultra-fast handler for routes with typed path parameters.
 //! Parameters are parsed and converted in Rust before calling Python.
+//! Optional response caching for maximum performance.
 
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyFloat, PyInt, PyString};
 use std::collections::HashMap;
+use std::sync::RwLock;
+use std::time::{Duration, Instant};
 
 use crate::bindings::converters::convert_py_result_to_response;
 use crate::request::RequestData;
 use crate::response::ResponseData;
 use crate::router::RouteHandler;
+
+/// Cached response with expiration time
+#[derive(Clone)]
+struct CachedResponse {
+    response: ResponseData,
+    expires_at: Instant,
+}
+
+impl CachedResponse {
+    fn new(response: ResponseData, ttl_secs: u64) -> Self {
+        Self {
+            response,
+            expires_at: Instant::now() + Duration::from_secs(ttl_secs),
+        }
+    }
+
+    fn is_expired(&self) -> bool {
+        Instant::now() > self.expires_at
+    }
+}
 
 /// Parameter type specification
 #[derive(Debug, Clone)]
@@ -41,16 +64,29 @@ pub enum TypedValue {
     Str(String),
 }
 
-/// Typed turbo route handler
+/// Typed turbo route handler with optional caching
 pub struct PyTypedTurboHandler {
     handler: Py<PyAny>,
     pattern: String,
     /// (param_name, param_type) in order of appearance in route
     param_specs: Vec<(String, ParamType)>,
+    /// Cache TTL in seconds (0 = no caching)
+    cache_ttl: u64,
+    /// Response cache: path -> cached response
+    cache: RwLock<HashMap<String, CachedResponse>>,
 }
 
 impl PyTypedTurboHandler {
     pub fn new(handler: Py<PyAny>, pattern: String, param_types: HashMap<String, String>) -> Self {
+        Self::with_cache(handler, pattern, param_types, 0)
+    }
+
+    pub fn with_cache(
+        handler: Py<PyAny>,
+        pattern: String,
+        param_types: HashMap<String, String>,
+        cache_ttl: u64,
+    ) -> Self {
         // Parse pattern to get param order
         let param_specs = Self::parse_pattern(&pattern, &param_types);
 
@@ -58,6 +94,8 @@ impl PyTypedTurboHandler {
             handler,
             pattern,
             param_specs,
+            cache_ttl,
+            cache: RwLock::new(HashMap::new()),
         }
     }
 
@@ -182,6 +220,19 @@ impl PyTypedTurboHandler {
 
 impl RouteHandler for PyTypedTurboHandler {
     fn handle(&self, req: RequestData) -> ResponseData {
+        let cache_key = req.path.clone();
+
+        // Check cache first (if caching is enabled)
+        if self.cache_ttl > 0 {
+            if let Ok(cache) = self.cache.read() {
+                if let Some(cached) = cache.get(&cache_key) {
+                    if !cached.is_expired() {
+                        return cached.response.clone();
+                    }
+                }
+            }
+        }
+
         // Extract params from path
         let params = match self.extract_params(&req.path) {
             Ok(p) => p,
@@ -190,7 +241,7 @@ impl RouteHandler for PyTypedTurboHandler {
             }
         };
 
-        Python::attach(|py| {
+        let response = Python::attach(|py| {
             // Convert to Python dict
             let py_params = match self.to_py_dict(py, &params) {
                 Ok(d) => d,
@@ -215,6 +266,18 @@ impl RouteHandler for PyTypedTurboHandler {
                     )
                 }
             }
-        })
+        });
+
+        // Store in cache (if caching is enabled and response is successful)
+        if self.cache_ttl > 0 && response.status.is_success() {
+            if let Ok(mut cache) = self.cache.write() {
+                cache.insert(
+                    cache_key,
+                    CachedResponse::new(response.clone(), self.cache_ttl),
+                );
+            }
+        }
+
+        response
     }
 }

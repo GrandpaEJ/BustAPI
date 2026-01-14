@@ -105,17 +105,21 @@ impl PyBustApp {
     ///     path: Route pattern with typed params (e.g., "/users/<int:id>")
     ///     handler: Python handler function
     ///     param_types: Dict mapping param name to type ("int", "float", "str")
+    ///     cache_ttl: Optional cache TTL in seconds (0 = no caching)
+    #[pyo3(signature = (method, path, handler, param_types, cache_ttl=0))]
     pub fn add_typed_turbo_route(
         &self,
         method: &str,
         path: &str,
         handler: Py<PyAny>,
         param_types: std::collections::HashMap<String, String>,
+        cache_ttl: u64,
     ) -> PyResult<()> {
-        let py_handler = crate::bindings::typed_turbo::PyTypedTurboHandler::new(
+        let py_handler = crate::bindings::typed_turbo::PyTypedTurboHandler::with_cache(
             handler,
             path.to_string(),
             param_types,
+            cache_ttl,
         );
 
         let state = self.state.clone();
