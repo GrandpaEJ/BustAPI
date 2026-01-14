@@ -22,9 +22,10 @@ impl Clone for ResponseData {
             body: self.body.clone(),
             file_path: self.file_path.clone(),
             // Clone Py<PyAny> requires GIL
-            stream_iterator: self.stream_iterator.as_ref().map(|py_obj| {
-                Python::attach(|py| py_obj.clone_ref(py))
-            }),
+            stream_iterator: self
+                .stream_iterator
+                .as_ref()
+                .map(|py_obj| Python::attach(|py| py_obj.clone_ref(py))),
         }
     }
 }

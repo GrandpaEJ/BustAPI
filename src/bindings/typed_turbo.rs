@@ -77,6 +77,7 @@ pub struct PyTypedTurboHandler {
 }
 
 impl PyTypedTurboHandler {
+    #[allow(dead_code)]
     pub fn new(handler: Py<PyAny>, pattern: String, param_types: HashMap<String, String>) -> Self {
         Self::with_cache(handler, pattern, param_types, 0)
     }
@@ -100,7 +101,10 @@ impl PyTypedTurboHandler {
     }
 
     /// Parse route pattern and build ordered param specs
-    fn parse_pattern(pattern: &str, param_types: &HashMap<String, String>) -> Vec<(String, ParamType)> {
+    fn parse_pattern(
+        pattern: &str,
+        param_types: &HashMap<String, String>,
+    ) -> Vec<(String, ParamType)> {
         let mut specs = Vec::new();
 
         for part in pattern.split('/') {
