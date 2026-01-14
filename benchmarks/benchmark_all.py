@@ -706,11 +706,11 @@ def main():
             fw_results = benchmark_framework(fw)
             all_results.extend(fw_results)
 
-        # Generate Graph
-        generate_graph(all_results)
-
         # Generate Markdown Report
         sys_info = get_system_info()
+        
+        # Generate Graph
+        generate_graph(all_results, sys_info)
 
         report_lines = []
         report_lines.append("# ⚡ Ultimate Web Framework Benchmark")
@@ -814,7 +814,7 @@ def main():
         clean_server_files()
 
 
-def generate_graph(results: List[BenchmarkResult]):
+def generate_graph(results: List[BenchmarkResult], sys_info: Dict):
     """Generate RPS comparison graph."""
     try:
         import matplotlib.pyplot as plt
@@ -871,9 +871,27 @@ def generate_graph(results: List[BenchmarkResult]):
     plt.tight_layout()
     plt.grid(axis='y', linestyle='--', alpha=0.3)
     
+    # Add System Info & Config Note
+    info_text = (
+        f"Device: {sys_info['cpu_model']} | {sys_info['cpu_count']} Cores | {sys_info['ram_total_gb']}GB RAM\n"
+        f"OS: {sys_info['os']} | Python: {sys_info['python']}\n"
+        f"Workers: {', '.join([f'{k}:{v}' for k, v in WORKERS_CONFIG.items() if k in frameworks])}"
+    )
+    
+    plt.figtext(
+        0.5, -0.05, 
+        info_text, 
+        ha="center", 
+        fontsize=9, 
+        bbox={"facecolor":"white", "alpha":0.8, "pad":5}
+    )
+    
+    # Adjust layout to make room for text at bottom
+    plt.subplots_adjust(bottom=0.20)
+    
     # Save graph
     output_path = "benchmarks/rps_comparison.png"
-    plt.savefig(output_path, dpi=300)
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
     print(f"\n✅ Graph saved to {output_path}")
 
 
