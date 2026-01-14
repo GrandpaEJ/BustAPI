@@ -35,7 +35,7 @@ jobs:
 
       - name: Install tools
         run: |
-          uv pip install maturin black ruff requests pytest --python $VENV_PY
+          uv pip install maturin black ruff requests pytest sqlmodel>=0.0.16 --python $VENV_PY
 
       - name: Lint Rust code
         if: matrix.python-version == '3.12'
