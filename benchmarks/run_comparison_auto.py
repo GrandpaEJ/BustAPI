@@ -89,10 +89,14 @@ def index():
 def json_endpoint():
     return {{"hello": "world"}}
 
-# Regular route for path params (turbo doesn't support params)
+# # Typed turbo route for path params (v0.8.0+)
+# @app.turbo_route("/user/<int:id>")
+# def user(id: int):
+#     return {{"user_id": id}}
+
 @app.route("/user/<id>")
 def user(id):
-    return jsonify({{"user_id": int(id)}})
+    return {{"user_id": int(id)}}
 
 if __name__ == "__main__":
     # 8 workers with os.fork() + SO_REUSEPORT for true multiprocessing
