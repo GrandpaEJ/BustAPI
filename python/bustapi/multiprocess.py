@@ -157,27 +157,27 @@ def spawn_workers_linux(rust_app, host: str, port: int, workers: int, debug: boo
 
 def spawn_workers_macos(rust_app, host: str, port: int, workers: int, debug: bool):
     """
-    Spawn worker processes on macOS using fork + inherited FD.
+    Spawn worker processes on macOS.
 
-    Parent creates and binds the socket, children inherit the FD.
+    macOS SO_REUSEPORT has poor load balancing, so we use same approach as Linux:
+    Each child binds independently with SO_REUSEADDR.
     """
     processes = []
-    print(f"[BustAPI] Starting {workers} worker processes (macOS Inherited FD)...")
-
-    # Create socket in parent
-    sock_mgr = SocketManager(host, port)
-    sock_mgr.create_listening_socket()
-    fd = sock_mgr.get_socket_fd()
+    parent_pid = os.getpid()
+    print(f"[BustAPI] Starting {workers} worker processes (macOS Multiprocessing)...")
 
     def signal_handler(sig, frame):
+        if os.getpid() != parent_pid:
+            return
         print("\n[BustAPI] Shutting down workers...")
         for p in processes:
-            if p.is_alive():
-                p.terminate()
-        sock_mgr.close()
+            try:
+                if p.is_alive():
+                    p.terminate()
+            except (AssertionError, OSError):
+                pass
         sys.exit(0)
 
-    # Only register signal handlers in main thread
     try:
         import threading
 
@@ -185,90 +185,36 @@ def spawn_workers_macos(rust_app, host: str, port: int, workers: int, debug: boo
             signal.signal(signal.SIGINT, signal_handler)
             signal.signal(signal.SIGTERM, signal_handler)
     except (ValueError, RuntimeError):
-        pass  # Not in main thread or interpreter shutting down
-
-    for _i in range(workers):
-        # Fork: child inherits the socket FD
-        pid = os.fork()
-        if pid == 0:
-            # Child process
-            # TODO: Pass FD to Rust server (requires Rust-side changes)
-            # For now, fallback to standard run (1 worker per child)
-            rust_app.run(host, port, 1, debug)
-            sys.exit(0)
-        else:
-            # Parent: track child PID
-            processes.append(pid)
-
-    # Parent waits for children
-    try:
-        for pid in processes:
-            os.waitpid(pid, 0)
-    except KeyboardInterrupt:
-        signal_handler(None, None)
-
-
-def spawn_workers_windows(rust_app, host: str, port: int, workers: int, debug: bool):
-    """
-    Spawn worker processes on Windows using socket.share().
-
-    Parent creates socket, shares serialized data with children.
-    """
-    import multiprocessing.queues
-
-    print(f"[BustAPI] Starting {workers} worker processes (Windows Socket Sharing)...")
-
-    # Create socket in parent
-    sock_mgr = SocketManager(host, port)
-    sock_mgr.create_listening_socket()
-
-    # Windows uses spawn, so we need to pass socket data via queue
-    queue = multiprocessing.Queue()
-    processes = []
-
-    def worker_main(q, rust_app_ref, host, port, debug):
-        """Worker process entry point (Windows)."""
-        # Get shared socket data from queue
-        # shared_data = q.get()
-        # sock = SocketManager.recreate_socket_from_share(shared_data)
-        # TODO: Pass socket to Rust server (requires Rust-side changes)
-        # For now, fallback to standard run
-        rust_app_ref.run(host, port, 1, debug)
+        pass
 
     for i in range(workers):
-        # Share socket for this child (need child PID, but spawn doesn't give us that easily)
-        # Fallback: just spawn independent workers
         p = multiprocessing.Process(
-            target=worker_main,
-            args=(queue, rust_app, host, port, debug),
+            target=rust_app.run,
+            args=(host, port, 1, debug),
             name=f"bustapi-worker-{i+1}",
         )
         p.start()
         processes.append(p)
-
-    def signal_handler(sig, frame):
-        print("\n[BustAPI] Shutting down workers...")
-        for p in processes:
-            if p.is_alive():
-                p.terminate()
-        sock_mgr.close()
-        sys.exit(0)
-
-    # Only register signal handlers in main thread
-    try:
-        import threading
-
-        if threading.current_thread() is threading.main_thread():
-            signal.signal(signal.SIGINT, signal_handler)
-            signal.signal(signal.SIGTERM, signal_handler)
-    except (ValueError, RuntimeError):
-        pass  # Not in main thread or interpreter shutting down
 
     try:
         for p in processes:
             p.join()
     except KeyboardInterrupt:
         signal_handler(None, None)
+
+
+def spawn_workers_windows(rust_app, host: str, port: int, workers: int, debug: bool):
+    """
+    Spawn worker processes on Windows.
+
+    Windows doesn't support SO_REUSEPORT, so we spawn independent workers.
+    Only the first worker will successfully bind; others will fail.
+    For now, fallback to single worker on Windows.
+    """
+    # Windows multiprocessing is complex - fallback to single process
+    print("[BustAPI] Starting server on Windows (single process mode)...")
+    print("[BustAPI] Note: Multi-worker mode requires SO_REUSEPORT (Linux only)")
+    rust_app.run(host, port, workers, debug)
 
 
 def spawn_workers(rust_app, host: str, port: int, workers: int, debug: bool):
