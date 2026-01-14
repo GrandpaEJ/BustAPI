@@ -57,6 +57,7 @@ benchmarks = [
     "gunicorn>=23.0.0",
     "httpx>=0.28.1",
     "psutil>=5.9.0",
+    "robyn>=0.63.0",
 ]
 
 docs = [

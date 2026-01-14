@@ -34,6 +34,7 @@ WORKERS_CONFIG = {
     "Flask": 4,
     "FastAPI": 4,
     "Catzilla": 1,
+    "Robyn": 4,
 }
 
 SERVER_FILES = {
@@ -41,6 +42,7 @@ SERVER_FILES = {
     "Flask": "benchmarks/temp_flask.py",
     "FastAPI": "benchmarks/temp_fastapi.py",
     "Catzilla": "benchmarks/temp_catzilla.py",
+    "Robyn": "benchmarks/temp_robyn.py",
 }
 
 RUN_COMMANDS = {
@@ -57,6 +59,8 @@ RUN_COMMANDS = {
         "/dev/null",
         "benchmarks.temp_flask:app",
     ],
+    "Catzilla": ["python", "benchmarks/temp_catzilla.py"],
+    "Robyn": ["python", "benchmarks/temp_robyn.py"],
     "FastAPI": [
         "python",
         "-m",
@@ -156,6 +160,27 @@ def user(request, id: int) -> Response:
 
 if __name__ == "__main__":
     app.listen(host="{HOST}", port={PORT})
+"""
+
+CODE_ROBYN = f"""
+from robyn import Robyn, jsonify
+
+app = Robyn(__file__)
+
+@app.get("/")
+def index(request):
+    return "Hello, World!"
+
+@app.get("/json")
+def json_endpoint(request):
+    return jsonify({{"hello": "world"}})
+
+@app.get("/user/:id")
+def user(request):
+    return jsonify({{"user_id": int(request.path_params["id"])}})
+
+if __name__ == "__main__":
+    app.start(host="{HOST}", port={PORT})
 """
 
 
@@ -287,6 +312,8 @@ def create_server_files():
         f.write(CODE_FASTAPI)
     with open(SERVER_FILES["Catzilla"], "w") as f:
         f.write(CODE_CATZILLA)
+    with open(SERVER_FILES["Robyn"], "w") as f:
+        f.write(CODE_ROBYN)
 
 
 def clean_server_files():
@@ -479,7 +506,7 @@ def main():
     all_results = []
 
     try:
-        frameworks = ["BustAPI", "Catzilla", "Flask", "FastAPI"]
+        frameworks = ["BustAPI", "Catzilla", "Flask", "FastAPI", "Robyn"]
 
         for fw in frameworks:
             fw_results = benchmark_framework(fw)
