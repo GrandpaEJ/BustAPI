@@ -30,10 +30,10 @@ WRK_DURATION = "3s"  # Short duration for quick check, can be increased
 
 
 WORKERS_CONFIG = {
-    "BustAPI": 1,
+    "BustAPI": 4,
     "Flask": 4,
     "FastAPI": 4,
-    "Catzilla": 1,
+    "Catzilla": 4,
     "Robyn": 4,
     "Sanic": 4,
     "Falcon": 4,
@@ -87,6 +87,25 @@ RUN_COMMANDS = {
         "--no-access-log",
     ],
     "Catzilla": ["python", "benchmarks/temp_catzilla.py"],
+    "Sanic": ["python", "benchmarks/temp_sanic.py"],
+    "Falcon": ["python", "benchmarks/temp_falcon.py"],
+    "Bottle": ["python", "benchmarks/temp_bottle.py"],
+    "Django": ["python", "benchmarks/temp_django.py"],
+    "BlackSheep": [
+        "python",
+        "-m",
+        "uvicorn",
+        "benchmarks.temp_blacksheep:app",
+        "--host",
+        HOST,
+        "--port",
+        str(PORT),
+        "--workers",
+        str(WORKERS_CONFIG["BlackSheep"]),
+        "--log-level",
+        "warning",
+        "--no-access-log",
+    ],
 }
 
 # Server Code Templates
@@ -362,9 +381,6 @@ def json_endpoint():
 @app.router.get("/user/:id")
 def user(id: int):
     return json({{"user_id": id}})
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="{HOST}", port={PORT}, workers={WORKERS_CONFIG["BlackSheep"]}, log_level="warning")
 """
 
 
@@ -681,8 +697,16 @@ def benchmark_framework(name: str):
 
     finally:
         monitor.stop()
-        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-        proc.wait()
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            proc.wait(timeout=5)
+        except:
+            print(f"   ⚠️ Force killing {name}...")
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                proc.wait(timeout=2)
+            except:
+                pass
         time.sleep(1)  # Cooldown
 
     return results
@@ -700,7 +724,18 @@ def main():
     all_results = []
 
     try:
-        frameworks = ["BustAPI", "Catzilla", "Flask", "FastAPI", "Robyn", "Sanic", "Falcon", "Bottle", "Django", "BlackSheep"]
+        frameworks = [
+            "BustAPI",
+            "Catzilla",
+            "Flask",
+            "FastAPI",
+            "Robyn",
+            "Sanic",
+            "Falcon",
+            "Bottle",
+            "Django",
+            "BlackSheep",
+        ]
 
         for fw in frameworks:
             fw_results = benchmark_framework(fw)
@@ -708,7 +743,7 @@ def main():
 
         # Generate Markdown Report
         sys_info = get_system_info()
-        
+
         # Generate Graph
         generate_graph(all_results, sys_info)
 
@@ -815,79 +850,102 @@ def main():
 
 
 def generate_graph(results: List[BenchmarkResult], sys_info: Dict):
-    """Generate RPS comparison graph."""
+    """Generate RPS comparison graph (Horizontal)."""
     try:
         import matplotlib.pyplot as plt
+        import matplotlib.ticker as ticker
     except ImportError:
         print("❌ matplotlib not found. Skipping graph generation.")
         return
 
     frameworks = sorted(list({r.framework for r in results}))
     endpoints = sorted(list({r.endpoint for r in results}))
-    
-    # Setup plot
-    plt.figure(figsize=(10, 6))
-    
-    # Define colors
+
+    # Setup Colors
     color_map = {
-        'BustAPI': '#800000',  # Khoyeri (Maroon)
-        'Catzilla': '#e67e22', # Orange
-        'Flask': '#34495e',    # Dark Blue/Grey
-        'FastAPI': '#009688',  # Teal
-        'Robyn': '#e91e63',    # Pink
-        'Sanic': '#ff0055',    # Red-Pink
-        'Falcon': '#7f8c8d',   # Grey
-        'Bottle': '#95a5a6',   # Light Grey
-        'Django': '#092e20',   # Django Green
-        'BlackSheep': '#000000' # Black
+        "BustAPI": "#800000",  # Khoyeri (Maroon)
+        "Sanic": "#ff007f",    # Bright Pink
+        "BlackSheep": "#333333",# Dark Grey
+        "Robyn": "#e91e63",    # Pink
+        "FastAPI": "#009688",  # Teal
+        "Falcon": "#607d8b",   # Blue Grey
+        "Bottle": "#9e9e9e",   # Grey
+        "Flask": "#34495e",    # Midnight Blue
+        "Django": "#0c4b33",   # Django Green
+        "Catzilla": "#e67e22", # Orange
     }
     
-    # Fallback colors
-    fallback_colors = ['#2ecc71', '#3498db', '#9b59b6', '#f1c40f']
+    # Create subplots (one for each endpoint)
+    fig, axes = plt.subplots(len(endpoints), 1, figsize=(10, 4 * len(endpoints)))
+    if len(endpoints) == 1:
+        axes = [axes]
     
-    # Plot each framework
-    for i, fw in enumerate(frameworks):
-        rps_values = []
-        for ep in endpoints:
-            res = next((r for r in results if r.framework == fw and r.endpoint == ep), None)
-            rps_values.append(res.requests_sec if res else 0)
-            
-        color = color_map.get(fw, fallback_colors[i % len(fallback_colors)])
+    for i, ep in enumerate(endpoints):
+        ax = axes[i]
         
-        plt.bar(
-            [x + (i * bar_width) for x in index],
-            rps_values,
-            bar_width,
-            alpha=opacity,
-            color=color,
-            label=fw
-        )
-
-    plt.xlabel('Endpoints')
-    plt.ylabel('Requests Per Second (RPS)')
-    plt.title('Web Framework Performance Comparison')
-    plt.xticks([x + (bar_width * (len(frameworks) - 1) / 2) for x in index], endpoints)
-    plt.legend()
+        # Get data for this endpoint, sorted by RPS ascending (for horizontal graph top-to-bottom feel)
+        ep_data = [r for r in results if r.endpoint == ep]
+        ep_data.sort(key=lambda x: x.requests_sec) # Ascending for barh (bottom is first index)
+        
+        names = [r.framework for r in ep_data]
+        values = [r.requests_sec for r in ep_data]
+        colors = [color_map.get(n, "#999999") for n in names]
+        
+        y_pos = range(len(names))
+        
+        bars = ax.barh(y_pos, values, align='center', color=colors, alpha=0.9, height=0.6)
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(names, fontsize=10, fontweight='medium')
+        ax.invert_yaxis()  # Labels read top-to-bottom -> Highest RPS at top
+        
+        # Invert data logic again for correct visual sorting (Top = High RPS)
+        # Wait, sorted ascending implies lowest at bottom. If I invert y-axis, lowest becomes top.
+        # I want Highest at Top.
+        # Sort Ascending: [Low, ..., High].
+        # Barh plots index 0 at bottom.
+        # So Index 0 = Low (Bottom), Index N = High (Top).
+        # Normal barh: High is on Top.
+        # So I do NOT need invert_yaxis?
+        # NO, usually y-axis 0 is at bottom.
+        # Let's test mental model:
+        # idx 0: Low RPS. Plot at y=0.
+        # idx N: High RPS. Plot at y=N.
+        # Result: High RPS is at the top of the chart. Low RPS at bottom.
+        # This matches the user's reference image (Long bar at top).
+        # BUT, standard text naming order (Top to Bottom) usually matches visual bars.
+        # So names should be [Low...High] to match bars.
+        # Yes.
+        
+        ax.set_xlabel('Requests Per Second (RPS)')
+        ax.set_title(f'Endpoint: {ep}', fontsize=12, fontweight='bold', pad=10)
+        ax.grid(axis='x', linestyle='--', alpha=0.3)
+        
+        # Add values on bars
+        for bar in bars:
+            width = bar.get_width()
+            ax.text(width + (max(values)*0.01), bar.get_y() + bar.get_height()/2, 
+                    f'{int(width):,}', 
+                    ha='left', va='center', fontsize=9, fontweight='bold', color='#444')
+            
     plt.tight_layout()
-    plt.grid(axis='y', linestyle='--', alpha=0.3)
     
-    # Add System Info & Config Note
+    # Add System Info & Config Note (Global Footer)
     info_text = (
         f"Device: {sys_info['cpu_model']} | {sys_info['cpu_count']} Cores | {sys_info['ram_total_gb']}GB RAM\n"
         f"OS: {sys_info['os']} | Python: {sys_info['python']}\n"
         f"Workers: {', '.join([f'{k}:{v}' for k, v in WORKERS_CONFIG.items() if k in frameworks])}"
     )
     
-    plt.figtext(
-        0.5, -0.05, 
+    # Make room for footer
+    plt.subplots_adjust(bottom=0.15) # Global adjustment
+    
+    fig.text(
+        0.5, 0.02, 
         info_text, 
         ha="center", 
         fontsize=9, 
-        bbox={"facecolor":"white", "alpha":0.8, "pad":5}
+        bbox={"facecolor":"white", "alpha":0.9, "edgecolor":"#ccc", "boxstyle":"round,pad=0.5"}
     )
-    
-    # Adjust layout to make room for text at bottom
-    plt.subplots_adjust(bottom=0.20)
     
     # Save graph
     output_path = "benchmarks/rps_comparison.png"
