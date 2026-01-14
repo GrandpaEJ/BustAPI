@@ -374,37 +374,37 @@ impl<'a> Serialize for PyJson<'a> {
     }
 }
 
-/// Convert serde_json::Value to Python object using ToPyObject trait
+/// Convert serde_json::Value to Python object
 #[allow(deprecated)]
 pub fn json_value_to_python(py: Python, value: &serde_json::Value) -> PyResult<PyObject> {
-    use pyo3::ToPyObject;
+    use pyo3::types::PyBool;
 
     match value {
-        serde_json::Value::Null => Ok(py.None()),
-        serde_json::Value::Bool(b) => Ok(b.to_object(py)),
+        serde_json::Value::Null => Ok(py.None().into()),
+        serde_json::Value::Bool(b) => Ok(PyBool::new(py, *b).to_owned().into_any().unbind()),
         serde_json::Value::Number(n) => {
             if let Some(i) = n.as_i64() {
-                Ok(i.to_object(py))
+                Ok(pyo3::types::PyInt::new(py, i).into_any().unbind())
             } else if let Some(f) = n.as_f64() {
-                Ok(f.to_object(py))
+                Ok(pyo3::types::PyFloat::new(py, f).into_any().unbind())
             } else {
-                Ok(py.None())
+                Ok(py.None().into())
             }
         }
-        serde_json::Value::String(s) => Ok(s.to_object(py)),
+        serde_json::Value::String(s) => Ok(PyString::new(py, s).into_any().unbind()),
         serde_json::Value::Array(arr) => {
             let py_list = pyo3::types::PyList::empty(py);
             for item in arr {
                 py_list.append(json_value_to_python(py, item)?)?;
             }
-            Ok(py_list.to_object(py))
+            Ok(py_list.into_any().unbind())
         }
         serde_json::Value::Object(obj) => {
             let py_dict = PyDict::new(py);
             for (key, val) in obj {
                 py_dict.set_item(key, json_value_to_python(py, val)?)?;
             }
-            Ok(py_dict.to_object(py))
+            Ok(py_dict.into_any().unbind())
         }
     }
 }

@@ -14,10 +14,10 @@ actix-rt = "2"
 actix-http = "3"
 actix-files = "0.6"
 
-# PyO3 with latest version for free-threading support
-pyo3 = { version = "0.23", features = ["extension-module"] }
-# Use pyo3-async-runtimes instead (compatible with pyo3 0.23)
-pyo3-async-runtimes = { version = "0.23", features = ["tokio-runtime"] }
+# PyO3 with latest version for Python 3.14 support
+pyo3 = { version = "0.27", features = ["extension-module"] }
+# Use pyo3-async-runtimes (compatible with pyo3 0.27)
+pyo3-async-runtimes = { version = "0.27", features = ["tokio-runtime"] }
 
 # Async runtime
 tokio = { version = "1.0", features = ["full"] }
@@ -55,7 +55,7 @@ socket2 = { version = "0.5", features = ["all"] }
 
 
 [build-dependencies]
-pyo3-build-config = "0.23"
+pyo3-build-config = "0.27"
 
 [profile.release]
 lto = true
