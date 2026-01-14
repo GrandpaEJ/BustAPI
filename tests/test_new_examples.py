@@ -17,14 +17,16 @@ env["PYTHONPATH"] = PYTHON_PATH
 class TestNewExamples(unittest.TestCase):
     def run_example(self, script, port):
         cmd = [sys.executable, f"examples/{script}"]
-        proc = subprocess.Popen(
-            cmd,
-            cwd=PROJECT_ROOT,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=env,
-            preexec_fn=os.setsid,
-        )
+        # Windows doesn't support preexec_fn/setsid
+        kwargs = {
+            "cwd": PROJECT_ROOT,
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.PIPE,
+            "env": env,
+        }
+        if sys.platform != "win32":
+            kwargs["preexec_fn"] = os.setsid
+        proc = subprocess.Popen(cmd, **kwargs)
         time.sleep(6)  # Wait for startup (6s for multiprocess apps in CI)
         if proc.poll() is not None:
             out, err = proc.communicate()
@@ -32,6 +34,16 @@ class TestNewExamples(unittest.TestCase):
             print(f"STDOUT: {out.decode()}")
             print(f"STDERR: {err.decode()}")
         return proc
+
+    def kill_process(self, proc):
+        """Kill process in a cross-platform way."""
+        try:
+            if sys.platform == "win32":
+                proc.terminate()
+            else:
+                self.kill_process(proc)
+        except (ProcessLookupError, OSError):
+            pass
 
     def request_with_retry(self, url, method="get", retries=3, delay=1):
         """Make HTTP request with retries for CI stability."""
@@ -48,8 +60,11 @@ class TestNewExamples(unittest.TestCase):
                 time.sleep(delay)
 
     def tearDown(self):
-        # Kill any lingering processes
-        subprocess.run(["pkill", "-f", "python3 examples/"], capture_output=True)
+        # Kill any lingering processes (cross-platform)
+        if sys.platform == "win32":
+            subprocess.run(["taskkill", "/F", "/IM", "python.exe"], capture_output=True)
+        else:
+            subprocess.run(["pkill", "-f", "python3 examples/"], capture_output=True)
 
     def test_05_templates(self):
         print("Testing 05_templates.py...")
@@ -61,15 +76,18 @@ class TestNewExamples(unittest.TestCase):
             self.assertIn("<li>Fast</li>", r.text)
         except Exception as e:
             print(f"Test 05 failed: {e}")
-            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            self.kill_process(proc)
             out, err = proc.communicate()
             print(f"STDOUT: {out.decode()}")
             print(f"STDERR: {err.decode()}")
             raise e
         finally:
             try:
-                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-            except ProcessLookupError:
+                if sys.platform == "win32":
+                    proc.terminate()
+                else:
+                    self.kill_process(proc)
+            except (ProcessLookupError, OSError):
                 pass
 
     def test_06_blueprints(self):
@@ -92,14 +110,14 @@ class TestNewExamples(unittest.TestCase):
             self.assertIn("Admin Dashboard", r.text)
         except Exception as e:
             print(f"Test 06 failed: {e}")
-            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            self.kill_process(proc)
             out, err = proc.communicate()
             print(f"STDOUT: {out.decode()}")
             print(f"STDERR: {err.decode()}")
             raise e
         finally:
             try:
-                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                self.kill_process(proc)
             except ProcessLookupError:
                 pass
 
@@ -121,14 +139,14 @@ class TestNewExamples(unittest.TestCase):
             self.assertEqual(data[0]["name"], "Rust")
         except Exception as e:
             print(f"Test 07 failed: {e}")
-            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            self.kill_process(proc)
             out, err = proc.communicate()
             print(f"STDOUT: {out.decode()}")
             print(f"STDERR: {err.decode()}")
             raise e
         finally:
             try:
-                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                self.kill_process(proc)
             except ProcessLookupError:
                 pass
             if os.path.exists("example.db"):
@@ -151,14 +169,14 @@ class TestNewExamples(unittest.TestCase):
             self.assertIn("/items", schema["paths"])
         except Exception as e:
             print(f"Test 08 failed: {e}")
-            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            self.kill_process(proc)
             out, err = proc.communicate()
             print(f"STDOUT: {out.decode()}")
             print(f"STDERR: {err.decode()}")
             raise e
         finally:
             try:
-                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                self.kill_process(proc)
             except ProcessLookupError:
                 pass
 
@@ -176,14 +194,14 @@ class TestNewExamples(unittest.TestCase):
             self.assertEqual(r.json()["api_version"], "v2")
         except Exception as e:
             print(f"Test 09 failed: {e}")
-            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            self.kill_process(proc)
             out, err = proc.communicate()
             print(f"STDOUT: {out.decode()}")
             print(f"STDERR: {err.decode()}")
             raise e
         finally:
             try:
-                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                self.kill_process(proc)
             except ProcessLookupError:
                 pass
 
@@ -211,14 +229,14 @@ class TestNewExamples(unittest.TestCase):
 
         except Exception as e:
             print(f"Test 10 failed: {e}")
-            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            self.kill_process(proc)
             out, err = proc.communicate()
             print(f"STDOUT: {out.decode()}")
             print(f"STDERR: {err.decode()}")
             raise e
         finally:
             try:
-                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                self.kill_process(proc)
             except ProcessLookupError:
                 pass
             if os.path.exists("example_sqlmodel.db"):
