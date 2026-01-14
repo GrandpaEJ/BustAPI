@@ -1117,50 +1117,11 @@ class BustAPI:
             import multiprocessing
             workers = 1 if debug else multiprocessing.cpu_count()
 
-        # Handle Native Multiprocessing (Linux Only - SO_REUSEPORT)
-        # If server="rust" and workers > 1, we spawn processes instead of threads
-        import platform
-        if server == "rust" and workers > 1 and platform.system() == "Linux" and not debug:
-            import multiprocessing
-            import os
-            import signal
-            import sys
-            import time
-
-            # We are the parent process (Manager)
-            # We will spawn 'workers' children
-            
-            processes = []
-            print(f"🚀 Starting {workers} worker processes (Native Multiprocessing)...")
-            
-            def signal_handler(sig, frame):
-                print("\n🛑 Shutting down workers...")
-                for p in processes:
-                    if p.is_alive():
-                        p.terminate()
-                sys.exit(0)
-
-            signal.signal(signal.SIGINT, signal_handler)
-            signal.signal(signal.SIGTERM, signal_handler)
-
-            for i in range(workers):
-                # Each child runs the rust app with 1 internal worker thread
-                # The kernel loads balances via SO_REUSEPORT
-                p = multiprocessing.Process(
-                    target=self._rust_app.run,
-                    args=(host, port, 1, False),
-                    name=f"bustapi-worker-{i+1}"
-                )
-                p.start()
-                processes.append(p)
-
-            # Wait for all
-            try:
-                for p in processes:
-                    p.join()
-            except KeyboardInterrupt:
-                signal_handler(None, None)
-            
+        # Handle Native Multiprocessing (All Platforms)
+        # If server="rust" and workers > 1, we spawn processes for true parallelism
+        if server == "rust" and workers > 1 and not debug:
+            from .multiprocess import spawn_workers
+            spawn_workers(self._rust_app, host, port, workers, debug)
             return
 
         # Server Dispatch
