@@ -113,13 +113,20 @@ def spawn_workers_linux(rust_app, host: str, port: int, workers: int, debug: boo
     Kernel handles load balancing.
     """
     processes = []
-    print(f"🚀 Starting {workers} worker processes (Linux SO_REUSEPORT)...")
+    parent_pid = os.getpid()  # Track parent PID
+    print(f"[BustAPI] Starting {workers} worker processes (Linux SO_REUSEPORT)...")
 
     def signal_handler(sig, frame):
-        print("\n🛑 Shutting down workers...")
+        # Only parent should handle signals for child management
+        if os.getpid() != parent_pid:
+            return
+        print("\n[BustAPI] Shutting down workers...")
         for p in processes:
-            if p.is_alive():
-                p.terminate()
+            try:
+                if p.is_alive():
+                    p.terminate()
+            except (AssertionError, OSError):
+                pass  # Process already dead or not our child
         sys.exit(0)
 
     # Only register signal handlers in main thread
@@ -155,7 +162,7 @@ def spawn_workers_macos(rust_app, host: str, port: int, workers: int, debug: boo
     Parent creates and binds the socket, children inherit the FD.
     """
     processes = []
-    print(f"🚀 Starting {workers} worker processes (macOS Inherited FD)...")
+    print(f"[BustAPI] Starting {workers} worker processes (macOS Inherited FD)...")
 
     # Create socket in parent
     sock_mgr = SocketManager(host, port)
@@ -163,7 +170,7 @@ def spawn_workers_macos(rust_app, host: str, port: int, workers: int, debug: boo
     fd = sock_mgr.get_socket_fd()
 
     def signal_handler(sig, frame):
-        print("\n🛑 Shutting down workers...")
+        print("\n[BustAPI] Shutting down workers...")
         for p in processes:
             if p.is_alive():
                 p.terminate()
@@ -209,7 +216,7 @@ def spawn_workers_windows(rust_app, host: str, port: int, workers: int, debug: b
     """
     import multiprocessing.queues
 
-    print(f"🚀 Starting {workers} worker processes (Windows Socket Sharing)...")
+    print(f"[BustAPI] Starting {workers} worker processes (Windows Socket Sharing)...")
 
     # Create socket in parent
     sock_mgr = SocketManager(host, port)
@@ -240,7 +247,7 @@ def spawn_workers_windows(rust_app, host: str, port: int, workers: int, debug: b
         processes.append(p)
 
     def signal_handler(sig, frame):
-        print("\n🛑 Shutting down workers...")
+        print("\n[BustAPI] Shutting down workers...")
         for p in processes:
             if p.is_alive():
                 p.terminate()
