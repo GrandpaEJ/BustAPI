@@ -142,7 +142,7 @@ impl JWTManager {
     ///
     /// Raises:
     ///     ValueError: If token is invalid or expired
-    pub fn decode_token(&self, py: Python<'_>, token: &str) -> PyResult<PyObject> {
+    pub fn decode_token(&self, py: Python<'_>, token: &str) -> PyResult<Py<PyAny>> {
         let mut validation = Validation::new(self.algorithm);
         validation.validate_exp = true;
         validation.validate_nbf = true;
@@ -268,7 +268,7 @@ fn generate_jti() -> String {
 }
 
 /// Convert serde_json::Value to PyObject
-fn json_to_pyobject(py: Python<'_>, value: &serde_json::Value) -> PyResult<PyObject> {
+fn json_to_pyobject(py: Python<'_>, value: &serde_json::Value) -> PyResult<Py<PyAny>> {
     match value {
         serde_json::Value::Null => Ok(py.None()),
         serde_json::Value::Bool(b) => Ok((*b).into_pyobject(py)?.to_owned().into_any().unbind()),
@@ -311,13 +311,13 @@ fn pyobject_to_json(obj: &Bound<'_, pyo3::PyAny>) -> PyResult<serde_json::Value>
         Ok(serde_json::json!(f))
     } else if let Ok(s) = obj.extract::<String>() {
         Ok(serde_json::Value::String(s))
-    } else if let Ok(list) = obj.downcast::<pyo3::types::PyList>() {
+    } else if let Ok(list) = obj.cast::<pyo3::types::PyList>() {
         let mut arr = Vec::new();
         for item in list.iter() {
             arr.push(pyobject_to_json(&item)?);
         }
         Ok(serde_json::Value::Array(arr))
-    } else if let Ok(dict) = obj.downcast::<PyDict>() {
+    } else if let Ok(dict) = obj.cast::<PyDict>() {
         let mut map = serde_json::Map::new();
         for (k, v) in dict.iter() {
             let key: String = k.extract()?;

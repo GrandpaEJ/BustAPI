@@ -89,7 +89,7 @@ impl PyRequest {
         self.body.clone_ref(py)
     }
 
-    pub fn json(&self, py: Python) -> PyResult<PyObject> {
+    pub fn json(&self, py: Python) -> PyResult<Py<PyAny>> {
         let body_bytes = self.body.as_bytes(py);
         let json_str = String::from_utf8_lossy(body_bytes);
         if json_str.is_empty() {

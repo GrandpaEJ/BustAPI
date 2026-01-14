@@ -11,11 +11,11 @@ use crate::router::RouteHandler;
 /// Python route handler - calls Python function for each request
 /// With Python 3.13 free-threaded mode, no GIL bottleneck!
 pub struct PyRouteHandler {
-    handler: PyObject,
+    handler: Py<PyAny>,
 }
 
 impl PyRouteHandler {
-    pub fn new(handler: PyObject) -> Self {
+    pub fn new(handler: Py<PyAny>) -> Self {
         Self { handler }
     }
 }
@@ -23,7 +23,7 @@ impl PyRouteHandler {
 impl RouteHandler for PyRouteHandler {
     fn handle(&self, req: RequestData) -> ResponseData {
         // With Python 3.13t, this runs in parallel without GIL blocking!
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             // Create request data
             let py_req = create_py_request(py, &req);
 
@@ -55,11 +55,11 @@ impl RouteHandler for PyRouteHandler {
 
 /// Async Python route handler
 pub struct PyAsyncRouteHandler {
-    handler: PyObject,
+    handler: Py<PyAny>,
 }
 
 impl PyAsyncRouteHandler {
-    pub fn new(handler: PyObject) -> Self {
+    pub fn new(handler: Py<PyAny>) -> Self {
         Self { handler }
     }
 }
@@ -67,7 +67,7 @@ impl PyAsyncRouteHandler {
 impl RouteHandler for PyAsyncRouteHandler {
     fn handle(&self, req: RequestData) -> ResponseData {
         // For async handlers, call and check if coroutine
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let py_req = create_py_request(py, &req);
 
             match py_req {

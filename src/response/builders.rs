@@ -1,7 +1,7 @@
 //! HTTP Response data structures and utilities
 
 use http::StatusCode;
-use pyo3::PyObject;
+use pyo3::{types::PyAny, Py};
 use std::collections::HashMap;
 
 /// HTTP response data structure
@@ -11,7 +11,7 @@ pub struct ResponseData {
     pub headers: HashMap<String, String>,
     pub body: Vec<u8>,
     pub file_path: Option<String>,
-    pub stream_iterator: Option<PyObject>,
+    pub stream_iterator: Option<Py<PyAny>>,
 }
 
 impl ResponseData {

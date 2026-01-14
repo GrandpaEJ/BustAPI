@@ -78,7 +78,7 @@ impl PyBustApp {
     }
 
     /// Add a route with a Python handler
-    pub fn add_route(&self, method: &str, path: &str, handler: PyObject) -> PyResult<()> {
+    pub fn add_route(&self, method: &str, path: &str, handler: Py<PyAny>) -> PyResult<()> {
         let py_handler = crate::bindings::handlers::PyRouteHandler::new(handler);
 
         // Use blocking task to add route
@@ -96,7 +96,7 @@ impl PyBustApp {
     }
 
     /// Add an async route with a Python handler
-    pub fn add_async_route(&self, method: &str, path: &str, handler: PyObject) -> PyResult<()> {
+    pub fn add_async_route(&self, method: &str, path: &str, handler: Py<PyAny>) -> PyResult<()> {
         let py_handler = crate::bindings::handlers::PyAsyncRouteHandler::new(handler);
 
         let state = self.state.clone();
@@ -180,8 +180,8 @@ impl PyBustApp {
 
         // In Python 3.13 free-threaded, we can release GIL and run full parallel!
         // In Python 3.13 free-threaded, we can release GIL and run full parallel!
-        Python::with_gil(|py| {
-            py.allow_threads(|| {
+        Python::attach(|py| {
+            py.detach(|| {
                 let sys = actix_rt::System::new();
                 sys.block_on(start_server(config, state))
             })
