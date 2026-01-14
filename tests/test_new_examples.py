@@ -25,13 +25,24 @@ class TestNewExamples(unittest.TestCase):
             env=env,
             preexec_fn=os.setsid,
         )
-        time.sleep(5)  # Wait for startup (5s for multiprocess apps)
+        time.sleep(6)  # Wait for startup (6s for multiprocess apps in CI)
         if proc.poll() is not None:
             out, err = proc.communicate()
             print(f"Process failed to start! Return code: {proc.returncode}")
             print(f"STDOUT: {out.decode()}")
             print(f"STDERR: {err.decode()}")
         return proc
+
+    def request_with_retry(self, url, method="get", retries=3, delay=1):
+        """Make HTTP request with retries for CI stability."""
+        for attempt in range(retries):
+            try:
+                return getattr(requests, method)(url, timeout=10)
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                if attempt == retries - 1:
+                    raise
+                print(f"Retry {attempt + 1}/{retries} for {url}: {e}")
+                time.sleep(delay)
 
     def tearDown(self):
         # Kill any lingering processes
@@ -41,7 +52,7 @@ class TestNewExamples(unittest.TestCase):
         print("Testing 05_templates.py...")
         proc = self.run_example("templates/05_templates.py", 5004)
         try:
-            r = requests.get("http://127.0.0.1:5004/")
+            r = self.request_with_retry("http://127.0.0.1:5004/")
             self.assertEqual(r.status_code, 200)
             self.assertIn("<h1>Welcome, Rustacean!</h1>", r.text)
             self.assertIn("<li>Fast</li>", r.text)
@@ -179,11 +190,11 @@ class TestNewExamples(unittest.TestCase):
         proc = self.run_example("database/10_database_sqlmodel.py", 5010)
         try:
             # Init DB
-            r = requests.get("http://127.0.0.1:5010/init-db")
+            r = self.request_with_retry("http://127.0.0.1:5010/init-db")
             self.assertEqual(r.status_code, 200)
 
             # List items
-            r = requests.get("http://127.0.0.1:5010/items")
+            r = self.request_with_retry("http://127.0.0.1:5010/items")
             self.assertEqual(r.status_code, 200)
             data = r.json()
             self.assertTrue(len(data) >= 2)
@@ -191,7 +202,7 @@ class TestNewExamples(unittest.TestCase):
 
             # Get Item
             item_id = data[0]["id"]
-            r = requests.get(f"http://127.0.0.1:5010/items/{item_id}")
+            r = self.request_with_retry(f"http://127.0.0.1:5010/items/{item_id}")
             self.assertEqual(r.status_code, 200)
             self.assertEqual(r.json()["name"], "Rust")
 

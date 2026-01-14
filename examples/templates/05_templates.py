@@ -20,4 +20,5 @@ def home():
 
 if __name__ == "__main__":
     print("Running templates example on http://127.0.0.1:5004")
-    app.run(port=5004, debug=True)
+    # debug=False to avoid hot-reload loops during testing
+    app.run(port=5004, debug=False)
