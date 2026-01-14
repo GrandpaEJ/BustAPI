@@ -95,6 +95,42 @@ impl PyBustApp {
         Ok(())
     }
 
+    /// Add a typed turbo route with path parameter extraction in Rust
+    ///
+    /// This is the fastest route type for dynamic paths.
+    /// Parameters are parsed and converted in Rust before calling Python.
+    ///
+    /// Args:
+    ///     method: HTTP method (GET, POST, etc.)
+    ///     path: Route pattern with typed params (e.g., "/users/<int:id>")
+    ///     handler: Python handler function
+    ///     param_types: Dict mapping param name to type ("int", "float", "str")
+    pub fn add_typed_turbo_route(
+        &self,
+        method: &str,
+        path: &str,
+        handler: Py<PyAny>,
+        param_types: std::collections::HashMap<String, String>,
+    ) -> PyResult<()> {
+        let py_handler = crate::bindings::typed_turbo::PyTypedTurboHandler::new(
+            handler,
+            path.to_string(),
+            param_types,
+        );
+
+        let state = self.state.clone();
+        let method_enum = std::str::FromStr::from_str(method)
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid HTTP method"))?;
+        let path = path.to_string();
+
+        self.runtime.block_on(async {
+            let mut routes = state.routes.write().await;
+            routes.add_route(method_enum, path, py_handler);
+        });
+
+        Ok(())
+    }
+
     /// Add an async route with a Python handler
     pub fn add_async_route(&self, method: &str, path: &str, handler: Py<PyAny>) -> PyResult<()> {
         let py_handler = crate::bindings::handlers::PyAsyncRouteHandler::new(handler);

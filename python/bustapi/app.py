@@ -360,32 +360,89 @@ class BustAPI:
         """
         Ultra-fast route decorator for maximum performance.
 
-        Skips: Request creation, context, sessions, middleware, parameter extraction.
-        Use for simple handlers that take no arguments and return dict/list/str.
+        Supports both static and dynamic routes:
+        - Static: `/health`, `/api/version`
+        - Dynamic: `/users/<int:id>`, `/posts/<int:id>/comments/<int:cid>`
+
+        Path parameters are parsed in Rust for zero Python overhead.
+
+        Limitations:
+            - No `request` object access (use regular @app.route for that)
+            - No middleware, sessions, or auth support
+            - Only supports dict/list/str returns
 
         Example:
-            @app.turbo_route("/json")
-            def json_endpoint():
-                return {"hello": "world"}
+            @app.turbo_route("/health")
+            def health():
+                return {"status": "ok"}
+
+            @app.turbo_route("/users/<int:id>")
+            def get_user(id: int):
+                return {"id": id, "name": "Alice"}
+
+            @app.turbo_route("/calc/<int:a>/<int:b>")
+            def add(a: int, b: int):
+                return {"sum": a + b}
         """
         if methods is None:
             methods = ["GET"]
 
-        def decorator(f: Callable) -> Callable:
-            from .dispatch import create_turbo_wrapper
+        # Parse route pattern for typed params
+        param_specs = self._parse_turbo_params(rule)
 
+        def decorator(f: Callable) -> Callable:
             endpoint = f.__name__
             self.view_functions[endpoint] = f
             self.url_map[rule] = {"endpoint": endpoint, "methods": methods}
 
-            # Register with Rust backend using turbo wrapper
-            turbo_wrapped = create_turbo_wrapper(f)
-            for method in methods:
-                self._rust_app.add_route(method, rule, turbo_wrapped)
+            if param_specs:
+                # Dynamic turbo route with typed params
+                from .dispatch import create_typed_turbo_wrapper
+
+                param_names = [name for name, _ in param_specs]
+                turbo_wrapped = create_typed_turbo_wrapper(f, param_names)
+
+                # Convert param_specs to dict for Rust
+                param_types = {name: typ for name, typ in param_specs}
+
+                for method in methods:
+                    self._rust_app.add_typed_turbo_route(
+                        method, rule, turbo_wrapped, param_types
+                    )
+            else:
+                # Static turbo route (no params)
+                from .dispatch import create_turbo_wrapper
+
+                turbo_wrapped = create_turbo_wrapper(f)
+                for method in methods:
+                    self._rust_app.add_route(method, rule, turbo_wrapped)
 
             return f
 
         return decorator
+
+    def _parse_turbo_params(self, rule: str) -> list:
+        """
+        Parse route pattern and extract typed parameters.
+
+        Args:
+            rule: Route pattern like "/users/<int:id>" or "/posts/<id>"
+
+        Returns:
+            List of (name, type_str) tuples, e.g., [("id", "int"), ("name", "str")]
+        """
+        import re
+
+        params = []
+        # Match <type:name> or <name> patterns
+        pattern = r"<(int|float|str|path)?:?(\w+)>"
+
+        for match in re.finditer(pattern, rule):
+            type_str = match.group(1) or "str"  # Default to str
+            name = match.group(2)
+            params.append((name, type_str))
+
+        return params
 
     # Flask compatibility methods
     def shell_context_processor(self, f):

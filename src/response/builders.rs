@@ -118,6 +118,19 @@ impl ResponseData {
         response.set_header("Content-Type", "text/plain; charset=utf-8");
         response
     }
+
+    /// Create JSON error response with structured error message
+    pub fn json_error(status: StatusCode, message: &str) -> Self {
+        let error_json = serde_json::json!({
+            "error": message,
+            "status": status.as_u16()
+        });
+
+        let mut response = Self::with_status(status);
+        response.set_body(error_json.to_string().into_bytes());
+        response.set_header("Content-Type", "application/json");
+        response
+    }
 }
 
 impl Default for ResponseData {

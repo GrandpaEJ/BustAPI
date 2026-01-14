@@ -105,21 +105,28 @@ Open `http://127.0.0.1:5000` in your browser.
 
 ## Turbo Routes
 
-For maximum performance on simple endpoints, use `@app.turbo_route()`. It skips request context, sessions, and middleware for zero-overhead handling:
+For maximum performance, use `@app.turbo_route()`. Path parameters are parsed in Rust for zero Python overhead:
 
 ```python
+# Static route
 @app.turbo_route("/health")
 def health():
     return {"status": "ok"}
 
-@app.turbo_route("/api/stats")
-def stats():
-    return {"users": 1000, "requests": 5000000}
+# Dynamic route with typed params
+@app.turbo_route("/users/<int:id>")
+def get_user(id: int):
+    return {"id": id, "name": f"User {id}"}
+
+# Multiple parameters
+@app.turbo_route("/posts/<int:pid>/comments/<int:cid>")
+def get_comment(pid: int, cid: int):
+    return {"post": pid, "comment": cid}
 ```
 
-Turbo routes are ideal for health checks, metrics, and high-frequency read endpoints.
+Supports `int`, `float`, `str`, and `path` parameter types.
 
-> ⚠️ **Note:** Turbo routes currently only support static paths. Dynamic endpoints like `/users/<int:id>` are not yet supported—use regular `@app.route()` for those.
+> ⚠️ **Note:** Turbo routes skip middleware, sessions, and request context for speed. Use `@app.route()` if you need those features.
 
 ---
 

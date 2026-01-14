@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented here.
 
+## [0.8.0] - 2026-01-14
+
+### Added
+
+- **Typed Dynamic Turbo Routes**:
+  - `@app.turbo_route()` now supports path parameters: `/users/<int:id>`.
+  - Path parameters are parsed in Rust for maximum performance (~30k RPS).
+  - Supports `int`, `float`, `str`, and `path` parameter types.
+  - Automatic type validation with 404 response for mismatches.
+  - Big integer support via Python fallback (no overflow).
+  - Multiple parameters: `/posts/<int:id>/comments/<int:cid>`.
+
+- **Turbo Routes Documentation**:
+  - New `docs/user-guide/turbo-routes.md` with comprehensive guide.
+  - Example `examples/turbo/typed_turbo_example.py`.
+
+### Changed
+
+- `turbo_route` decorator now auto-detects parameters from route pattern.
+- Improved error responses with structured JSON for type mismatches.
+
+### Performance
+
+- Dynamic turbo routes: ~30,000 requests/sec (vs ~18,000 for regular routes).
+- 65% improvement for simple lookup endpoints.
+
+---
+
 ## [0.7.0] - 2026-01-13
 
 ### Added

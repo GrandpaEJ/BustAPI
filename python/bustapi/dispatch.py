@@ -38,6 +38,51 @@ def create_turbo_wrapper(handler: Callable) -> Callable:
     return wrapper
 
 
+def create_typed_turbo_wrapper(handler: Callable, param_names: list) -> Callable:
+    """
+    Turbo wrapper for handlers with typed path parameters.
+
+    Path parameters are extracted and converted in Rust for maximum performance.
+    The handler receives params as keyword arguments.
+
+    Args:
+        handler: The user's handler function
+        param_names: List of parameter names in order (e.g., ["id", "name"])
+
+    Note:
+        - No request object available (use regular @app.route for that)
+        - No middleware, sessions, or auth support
+        - Only path params, no query params yet
+    """
+
+    @wraps(handler)
+    def wrapper(rust_request, path_params: dict):
+        # path_params already parsed and typed by Rust (e.g., {"id": 123})
+        try:
+            result = handler(**path_params)
+        except TypeError as e:
+            # Handler signature mismatch
+            return (
+                {"error": f"Handler parameter mismatch: {e}"},
+                500,
+                {"Content-Type": "application/json"},
+            )
+
+        if isinstance(result, dict):
+            return (result, 200, {"Content-Type": "application/json"})
+        elif isinstance(result, list):
+            return (result, 200, {"Content-Type": "application/json"})
+        elif isinstance(result, str):
+            return (result, 200, {"Content-Type": "text/html; charset=utf-8"})
+        elif isinstance(result, tuple):
+            return result
+        else:
+            return (str(result), 200, {})
+
+    return wrapper
+
+
+
 def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callable:
     """Wrap handler with request context, middleware, and path param support."""
 
