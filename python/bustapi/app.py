@@ -1115,8 +1115,53 @@ class BustAPI:
         if workers is None:
             # Default to 1 worker for debug/dev, or CPU count for prod key
             import multiprocessing
-
             workers = 1 if debug else multiprocessing.cpu_count()
+
+        # Handle Native Multiprocessing (Linux Only - SO_REUSEPORT)
+        # If server="rust" and workers > 1, we spawn processes instead of threads
+        import platform
+        if server == "rust" and workers > 1 and platform.system() == "Linux" and not debug:
+            import multiprocessing
+            import os
+            import signal
+            import sys
+            import time
+
+            # We are the parent process (Manager)
+            # We will spawn 'workers' children
+            
+            processes = []
+            print(f"🚀 Starting {workers} worker processes (Native Multiprocessing)...")
+            
+            def signal_handler(sig, frame):
+                print("\n🛑 Shutting down workers...")
+                for p in processes:
+                    if p.is_alive():
+                        p.terminate()
+                sys.exit(0)
+
+            signal.signal(signal.SIGINT, signal_handler)
+            signal.signal(signal.SIGTERM, signal_handler)
+
+            for i in range(workers):
+                # Each child runs the rust app with 1 internal worker thread
+                # The kernel loads balances via SO_REUSEPORT
+                p = multiprocessing.Process(
+                    target=self._rust_app.run,
+                    args=(host, port, 1, False),
+                    name=f"bustapi-worker-{i+1}"
+                )
+                p.start()
+                processes.append(p)
+
+            # Wait for all
+            try:
+                for p in processes:
+                    p.join()
+            except KeyboardInterrupt:
+                signal_handler(None, None)
+            
+            return
 
         # Server Dispatch
         if server == "rust":
@@ -1130,7 +1175,7 @@ class BustAPI:
         elif server == "uvicorn":
             try:
                 import uvicorn
-
+                
                 # We need to pass the app instance.
                 # If we are running from a script, we might not have the import path string handy easily
                 # But uvicorn.run can take an app instance directly.
