@@ -34,7 +34,6 @@ WORKERS_CONFIG = {
     "Flask": 4,
     "FastAPI": 4,
     "Catzilla": 4,
-    "Robyn": 4,
     "Sanic": 4,
     "Falcon": 4,
     "Bottle": 4,
@@ -47,7 +46,6 @@ SERVER_FILES = {
     "Flask": "benchmarks/temp_flask.py",
     "FastAPI": "benchmarks/temp_fastapi.py",
     "Catzilla": "benchmarks/temp_catzilla.py",
-    "Robyn": "benchmarks/temp_robyn.py",
     "Sanic": "benchmarks/temp_sanic.py",
     "Falcon": "benchmarks/temp_falcon.py",
     "Bottle": "benchmarks/temp_bottle.py",
@@ -86,7 +84,6 @@ RUN_COMMANDS = {
         "warning",
         "--no-access-log",
     ],
-    "Catzilla": ["python", "benchmarks/temp_catzilla.py"],
     "Sanic": ["python", "benchmarks/temp_sanic.py"],
     "Falcon": ["python", "benchmarks/temp_falcon.py"],
     "Bottle": ["python", "benchmarks/temp_bottle.py"],
@@ -191,26 +188,7 @@ if __name__ == "__main__":
     app.listen(host="{HOST}", port={PORT})
 """
 
-CODE_ROBYN = f"""
-from robyn import Robyn, jsonify
 
-app = Robyn(__file__)
-
-@app.get("/")
-def index(request):
-    return "Hello, World!"
-
-@app.get("/json")
-def json_endpoint(request):
-    return jsonify({{"hello": "world"}})
-
-@app.get("/user/:id")
-def user(request):
-    return jsonify({{"user_id": int(request.path_params["id"])}})
-
-if __name__ == "__main__":
-    app.start(host="{HOST}", port={PORT})
-"""
 
 CODE_SANIC = f"""
 from sanic import Sanic, response
@@ -360,11 +338,11 @@ if __name__ == "__main__":
     # Mute logs
     open(options["accesslog"], "w").close()
     open(options["errorlog"], "w").close()
-    
+
     StandaloneApplication(application, options).run()
 """
 
-CODE_BLACKSHEEP = f"""
+CODE_BLACKSHEEP = """
 from blacksheep import Application, json
 import uvicorn
 
@@ -376,11 +354,11 @@ def index():
 
 @app.router.get("/json")
 def json_endpoint():
-    return json({{"hello": "world"}})
+    return json({"hello": "world"})
 
 @app.router.get("/user/:id")
 def user(id: int):
-    return json({{"user_id": id}})
+    return json({"user_id": id})
 """
 
 
@@ -512,8 +490,6 @@ def create_server_files():
         f.write(CODE_FASTAPI)
     with open(SERVER_FILES["Catzilla"], "w") as f:
         f.write(CODE_CATZILLA)
-    with open(SERVER_FILES["Robyn"], "w") as f:
-        f.write(CODE_ROBYN)
     with open(SERVER_FILES["Sanic"], "w") as f:
         f.write(CODE_SANIC)
     with open(SERVER_FILES["Falcon"], "w") as f:
@@ -729,7 +705,6 @@ def main():
             "Catzilla",
             "Flask",
             "FastAPI",
-            "Robyn",
             "Sanic",
             "Falcon",
             "Bottle",
@@ -858,46 +833,49 @@ def generate_graph(results: List[BenchmarkResult], sys_info: Dict):
         print("❌ matplotlib not found. Skipping graph generation.")
         return
 
-    frameworks = sorted(list({r.framework for r in results}))
-    endpoints = sorted(list({r.endpoint for r in results}))
+    frameworks = sorted({r.framework for r in results})
+    endpoints = sorted({r.endpoint for r in results})
 
     # Setup Colors
     color_map = {
         "BustAPI": "#800000",  # Khoyeri (Maroon)
-        "Sanic": "#ff007f",    # Bright Pink
-        "BlackSheep": "#333333",# Dark Grey
-        "Robyn": "#e91e63",    # Pink
+        "Sanic": "#ff007f",  # Bright Pink
+        "BlackSheep": "#333333",  # Dark Grey
         "FastAPI": "#009688",  # Teal
-        "Falcon": "#607d8b",   # Blue Grey
-        "Bottle": "#9e9e9e",   # Grey
-        "Flask": "#34495e",    # Midnight Blue
-        "Django": "#0c4b33",   # Django Green
-        "Catzilla": "#e67e22", # Orange
+        "Falcon": "#607d8b",  # Blue Grey
+        "Bottle": "#9e9e9e",  # Grey
+        "Flask": "#34495e",  # Midnight Blue
+        "Django": "#0c4b33",  # Django Green
+        "Catzilla": "#e67e22",  # Orange
     }
-    
+
     # Create subplots (one for each endpoint)
     fig, axes = plt.subplots(len(endpoints), 1, figsize=(10, 4 * len(endpoints)))
     if len(endpoints) == 1:
         axes = [axes]
-    
+
     for i, ep in enumerate(endpoints):
         ax = axes[i]
-        
+
         # Get data for this endpoint, sorted by RPS ascending (for horizontal graph top-to-bottom feel)
         ep_data = [r for r in results if r.endpoint == ep]
-        ep_data.sort(key=lambda x: x.requests_sec) # Ascending for barh (bottom is first index)
-        
+        ep_data.sort(
+            key=lambda x: x.requests_sec
+        )  # Ascending for barh (bottom is first index)
+
         names = [r.framework for r in ep_data]
         values = [r.requests_sec for r in ep_data]
         colors = [color_map.get(n, "#999999") for n in names]
-        
+
         y_pos = range(len(names))
-        
-        bars = ax.barh(y_pos, values, align='center', color=colors, alpha=0.9, height=0.6)
+
+        bars = ax.barh(
+            y_pos, values, align="center", color=colors, alpha=0.9, height=0.6
+        )
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(names, fontsize=10, fontweight='medium')
+        ax.set_yticklabels(names, fontsize=10, fontweight="medium")
         ax.invert_yaxis()  # Labels read top-to-bottom -> Highest RPS at top
-        
+
         # Invert data logic again for correct visual sorting (Top = High RPS)
         # Wait, sorted ascending implies lowest at bottom. If I invert y-axis, lowest becomes top.
         # I want Highest at Top.
@@ -915,41 +893,54 @@ def generate_graph(results: List[BenchmarkResult], sys_info: Dict):
         # BUT, standard text naming order (Top to Bottom) usually matches visual bars.
         # So names should be [Low...High] to match bars.
         # Yes.
-        
-        ax.set_xlabel('Requests Per Second (RPS)')
-        ax.set_title(f'Endpoint: {ep}', fontsize=12, fontweight='bold', pad=10)
-        ax.grid(axis='x', linestyle='--', alpha=0.3)
-        
+
+        ax.set_xlabel("Requests Per Second (RPS)")
+        ax.set_title(f"Endpoint: {ep}", fontsize=12, fontweight="bold", pad=10)
+        ax.grid(axis="x", linestyle="--", alpha=0.3)
+
         # Add values on bars
         for bar in bars:
             width = bar.get_width()
-            ax.text(width + (max(values)*0.01), bar.get_y() + bar.get_height()/2, 
-                    f'{int(width):,}', 
-                    ha='left', va='center', fontsize=9, fontweight='bold', color='#444')
-            
+            ax.text(
+                width + (max(values) * 0.01),
+                bar.get_y() + bar.get_height() / 2,
+                f"{int(width):,}",
+                ha="left",
+                va="center",
+                fontsize=9,
+                fontweight="bold",
+                color="#444",
+            )
+
     plt.tight_layout()
-    
+
     # Add System Info & Config Note (Global Footer)
     info_text = (
         f"Device: {sys_info['cpu_model']} | {sys_info['cpu_count']} Cores | {sys_info['ram_total_gb']}GB RAM\n"
         f"OS: {sys_info['os']} | Python: {sys_info['python']}\n"
         f"Workers: {', '.join([f'{k}:{v}' for k, v in WORKERS_CONFIG.items() if k in frameworks])}"
     )
-    
+
     # Make room for footer
-    plt.subplots_adjust(bottom=0.15) # Global adjustment
-    
+    plt.subplots_adjust(bottom=0.15)  # Global adjustment
+
     fig.text(
-        0.5, 0.02, 
-        info_text, 
-        ha="center", 
-        fontsize=9, 
-        bbox={"facecolor":"white", "alpha":0.9, "edgecolor":"#ccc", "boxstyle":"round,pad=0.5"}
+        0.5,
+        0.02,
+        info_text,
+        ha="center",
+        fontsize=9,
+        bbox={
+            "facecolor": "white",
+            "alpha": 0.9,
+            "edgecolor": "#ccc",
+            "boxstyle": "round,pad=0.5",
+        },
     )
-    
+
     # Save graph
     output_path = "benchmarks/rps_comparison.png"
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
     print(f"\n✅ Graph saved to {output_path}")
 
 

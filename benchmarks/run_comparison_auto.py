@@ -34,7 +34,6 @@ WORKERS_CONFIG = {
     "Flask": 4,
     "FastAPI": 4,
     "Catzilla": 1,
-    "Robyn": 4,
 }
 
 SERVER_FILES = {
@@ -42,7 +41,6 @@ SERVER_FILES = {
     "Flask": "benchmarks/temp_flask.py",
     "FastAPI": "benchmarks/temp_fastapi.py",
     "Catzilla": "benchmarks/temp_catzilla.py",
-    "Robyn": "benchmarks/temp_robyn.py",
 }
 
 RUN_COMMANDS = {
@@ -60,7 +58,6 @@ RUN_COMMANDS = {
         "benchmarks.temp_flask:app",
     ],
     "Catzilla": ["python", "benchmarks/temp_catzilla.py"],
-    "Robyn": ["python", "benchmarks/temp_robyn.py"],
     "FastAPI": [
         "python",
         "-m",
@@ -76,7 +73,6 @@ RUN_COMMANDS = {
         "warning",
         "--no-access-log",
     ],
-    "Catzilla": ["python", "benchmarks/temp_catzilla.py"],
 }
 
 # Server Code Templates
@@ -162,26 +158,7 @@ if __name__ == "__main__":
     app.listen(host="{HOST}", port={PORT})
 """
 
-CODE_ROBYN = f"""
-from robyn import Robyn, jsonify
 
-app = Robyn(__file__)
-
-@app.get("/")
-def index(request):
-    return "Hello, World!"
-
-@app.get("/json")
-def json_endpoint(request):
-    return jsonify({{"hello": "world"}})
-
-@app.get("/user/:id")
-def user(request):
-    return jsonify({{"user_id": int(request.path_params["id"])}})
-
-if __name__ == "__main__":
-    app.start(host="{HOST}", port={PORT})
-"""
 
 
 @dataclass
@@ -312,8 +289,6 @@ def create_server_files():
         f.write(CODE_FASTAPI)
     with open(SERVER_FILES["Catzilla"], "w") as f:
         f.write(CODE_CATZILLA)
-    with open(SERVER_FILES["Robyn"], "w") as f:
-        f.write(CODE_ROBYN)
 
 
 def clean_server_files():
@@ -506,7 +481,7 @@ def main():
     all_results = []
 
     try:
-        frameworks = ["BustAPI", "Catzilla", "Flask", "FastAPI", "Robyn"]
+        frameworks = ["BustAPI", "Catzilla", "Flask", "FastAPI"]
 
         for fw in frameworks:
             fw_results = benchmark_framework(fw)
@@ -628,42 +603,44 @@ def generate_graph(results: List[BenchmarkResult]):
         print("❌ matplotlib not found. Skipping graph generation.")
         return
 
-    frameworks = sorted(list({r.framework for r in results}))
-    endpoints = sorted(list({r.endpoint for r in results}))
-    
+    frameworks = sorted({r.framework for r in results})
+    endpoints = sorted({r.endpoint for r in results})
+
     # Setup plot
     plt.figure(figsize=(10, 6))
-    
+
     # Bar settings
     bar_width = 0.15
     opacity = 0.8
     index = range(len(endpoints))
-    colors = ['#2ecc71', '#3498db', '#9b59b6', '#e74c3c', '#f1c40f']
-    
+    colors = ["#2ecc71", "#3498db", "#9b59b6", "#e74c3c", "#f1c40f"]
+
     # Plot each framework
     for i, fw in enumerate(frameworks):
         rps_values = []
         for ep in endpoints:
-            res = next((r for r in results if r.framework == fw and r.endpoint == ep), None)
+            res = next(
+                (r for r in results if r.framework == fw and r.endpoint == ep), None
+            )
             rps_values.append(res.requests_sec if res else 0)
-            
+
         plt.bar(
             [x + (i * bar_width) for x in index],
             rps_values,
             bar_width,
             alpha=opacity,
             color=colors[i % len(colors)],
-            label=fw
+            label=fw,
         )
 
-    plt.xlabel('Endpoints')
-    plt.ylabel('Requests Per Second (RPS)')
-    plt.title('Web Framework Performance Comparison')
+    plt.xlabel("Endpoints")
+    plt.ylabel("Requests Per Second (RPS)")
+    plt.title("Web Framework Performance Comparison")
     plt.xticks([x + (bar_width * (len(frameworks) - 1) / 2) for x in index], endpoints)
     plt.legend()
     plt.tight_layout()
-    plt.grid(axis='y', linestyle='--', alpha=0.3)
-    
+    plt.grid(axis="y", linestyle="--", alpha=0.3)
+
     # Save graph
     output_path = "benchmarks/rps_comparison.png"
     plt.savefig(output_path, dpi=300)
