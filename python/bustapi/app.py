@@ -1115,12 +1115,14 @@ class BustAPI:
         if workers is None:
             # Default to 1 worker for debug/dev, or CPU count for prod key
             import multiprocessing
+
             workers = 1 if debug else multiprocessing.cpu_count()
 
         # Handle Native Multiprocessing (All Platforms)
         # If server="rust" and workers > 1, we spawn processes for true parallelism
         if server == "rust" and workers > 1 and not debug:
             from .multiprocess import spawn_workers
+
             spawn_workers(self._rust_app, host, port, workers, debug)
             return
 
@@ -1136,7 +1138,7 @@ class BustAPI:
         elif server == "uvicorn":
             try:
                 import uvicorn
-                
+
                 # We need to pass the app instance.
                 # If we are running from a script, we might not have the import path string handy easily
                 # But uvicorn.run can take an app instance directly.
