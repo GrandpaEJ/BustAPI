@@ -159,48 +159,13 @@ def spawn_workers_macos(rust_app, host: str, port: int, workers: int, debug: boo
     """
     Spawn worker processes on macOS.
 
-    macOS SO_REUSEPORT has poor load balancing, so we use same approach as Linux:
-    Each child binds independently with SO_REUSEADDR.
+    macOS SO_REUSEPORT has poor load balancing.
+    For now, fallback to single process mode.
     """
-    processes = []
-    parent_pid = os.getpid()
-    print(f"[BustAPI] Starting {workers} worker processes (macOS Multiprocessing)...")
-
-    def signal_handler(sig, frame):
-        if os.getpid() != parent_pid:
-            return
-        print("\n[BustAPI] Shutting down workers...")
-        for p in processes:
-            try:
-                if p.is_alive():
-                    p.terminate()
-            except (AssertionError, OSError):
-                pass
-        sys.exit(0)
-
-    try:
-        import threading
-
-        if threading.current_thread() is threading.main_thread():
-            signal.signal(signal.SIGINT, signal_handler)
-            signal.signal(signal.SIGTERM, signal_handler)
-    except (ValueError, RuntimeError):
-        pass
-
-    for i in range(workers):
-        p = multiprocessing.Process(
-            target=rust_app.run,
-            args=(host, port, 1, debug),
-            name=f"bustapi-worker-{i+1}",
-        )
-        p.start()
-        processes.append(p)
-
-    try:
-        for p in processes:
-            p.join()
-    except KeyboardInterrupt:
-        signal_handler(None, None)
+    # macOS multiprocessing is complex without SO_REUSEPORT - fallback to single process
+    print("[BustAPI] Starting server on macOS (single process mode)...")
+    print("[BustAPI] Note: Multi-worker mode requires SO_REUSEPORT (Linux only)")
+    rust_app.run(host, port, workers, debug)
 
 
 def spawn_workers_windows(rust_app, host: str, port: int, workers: int, debug: bool):
