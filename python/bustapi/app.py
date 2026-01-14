@@ -413,7 +413,7 @@ class BustAPI:
                 turbo_wrapped = create_typed_turbo_wrapper(f, param_names)
 
                 # Convert param_specs to dict for Rust
-                param_types = {name: typ for name, typ in param_specs}
+                param_types = dict(param_specs)
 
                 for method in methods:
                     self._rust_app.add_typed_turbo_route(
