@@ -30,7 +30,7 @@ WRK_DURATION = "5s"  # Short duration for quick check, can be increased
 
 
 WORKERS_CONFIG = {
-    "BustAPI": 8,  # Uses os.fork() + SO_REUSEPORT for true multiprocessing
+    "BustAPI": 1,
     "Flask": 4,
     "FastAPI": 4,
     "Catzilla": 1,
