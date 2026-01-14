@@ -25,7 +25,7 @@ class TestNewExamples(unittest.TestCase):
             env=env,
             preexec_fn=os.setsid,
         )
-        time.sleep(3)  # Wait for startup (increased to 3s)
+        time.sleep(5)  # Wait for startup (5s for multiprocess apps)
         if proc.poll() is not None:
             out, err = proc.communicate()
             print(f"Process failed to start! Return code: {proc.returncode}")
