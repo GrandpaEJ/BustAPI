@@ -46,7 +46,9 @@ class BaseUser:
         try:
             return str(self.id)
         except AttributeError:
-            raise NotImplementedError("No `id` attribute - override `get_id()`") from None
+            raise NotImplementedError(
+                "No `id` attribute - override `get_id()`"
+            ) from None
 
 
 class AnonUser:

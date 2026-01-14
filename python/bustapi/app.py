@@ -105,15 +105,15 @@ class BustAPI:
 
         # Query parameter validation metadata
         # Maps (rule, param_name) -> Query validator with type hint
-        self.query_validators: Dict[
-            tuple, tuple
-        ] = {}  # (rule, param_name) -> (Query, type)
+        self.query_validators: Dict[tuple, tuple] = (
+            {}
+        )  # (rule, param_name) -> (Query, type)
 
         # Body parameter validation metadata
         # Maps (rule, param_name) -> Body validator with type hint
-        self.body_validators: Dict[
-            tuple, tuple
-        ] = {}  # (rule, param_name) -> (Body, type)
+        self.body_validators: Dict[tuple, tuple] = (
+            {}
+        )  # (rule, param_name) -> (Body, type)
 
         # Dependency injection metadata
         # Maps (rule, param_name) -> Depends instance
