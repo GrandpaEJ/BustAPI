@@ -58,6 +58,10 @@ All notable changes to this project will be documented here.
   - **Zero-Copy JSON**: Native Rust JSON serialization with `serde_json`, bypassing Python's `json.dumps()`.
   - **CPU-Specific Optimizations**: Build with `target-cpu=native` for maximum performance.
 
+- **Python 3.14 Support** ([#8](https://github.com/GrandpaEJ/BustAPI/issues/8)):
+  - Upgraded PyO3 from `0.23` to `0.27` to support Python 3.14.
+  - Updated deprecated APIs: `Python::with_gil` → `Python::attach`, `PyObject` → `Py<PyAny>`, `downcast` → `cast`.
+
 ### Fixed
 
 - **Static File Serving**:
