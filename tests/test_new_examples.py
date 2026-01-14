@@ -38,7 +38,10 @@ class TestNewExamples(unittest.TestCase):
         for attempt in range(retries):
             try:
                 return getattr(requests, method)(url, timeout=10)
-            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            except (
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout,
+            ) as e:
                 if attempt == retries - 1:
                     raise
                 print(f"Retry {attempt + 1}/{retries} for {url}: {e}")
