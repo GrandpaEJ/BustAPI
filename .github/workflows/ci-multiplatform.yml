@@ -41,7 +41,7 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           VENV_PY=./.venv/bin/python
-          uv pip install maturin pytest httpx --python $VENV_PY
+          uv pip install maturin pytest httpx requests --python $VENV_PY
           $VENV_PY -m maturin develop --release
           echo "VENV_PY=$VENV_PY" >> $GITHUB_ENV
 
@@ -50,7 +50,7 @@ jobs:
         shell: bash
         run: |
           VENV_PY=./.venv/Scripts/python.exe
-          uv pip install maturin pytest httpx --python $VENV_PY
+          uv pip install maturin pytest httpx requests --python $VENV_PY
           $VENV_PY -m maturin develop --release
           echo "VENV_PY=$VENV_PY" >> $GITHUB_ENV
 
