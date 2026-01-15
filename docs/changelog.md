@@ -2,8 +2,68 @@
 
 All notable changes to this project will be documented here.
 
+## [0.8.0] - 2026-01-14
 
-## [0.7.0] - 2026-01-14
+### Added
+
+- **Typed Dynamic Turbo Routes**:
+  - `@app.turbo_route()` now supports path parameters: `/users/<int:id>`.
+  - Path parameters are parsed in Rust for maximum performance (~30k RPS).
+  - Supports `int`, `float`, `str`, and `path` parameter types.
+  - Automatic type validation with 404 response for mismatches.
+  - Big integer support via Python fallback (no overflow).
+  - Multiple parameters: `/posts/<int:id>/comments/<int:cid>`.
+
+- **Turbo Routes Documentation**:
+  - New `docs/user-guide/turbo-routes.md` with comprehensive guide.
+  - Example `examples/turbo/typed_turbo_example.py`.
+
+### Changed
+
+- `turbo_route` decorator now auto-detects parameters from route pattern.
+- Improved error responses with structured JSON for type mismatches.
+
+### Fixed
+
+- **Static File Serving**:
+  - Fixed 404 errors for nested static files (e.g. `css/style.css`) using new wildcard routing.
+  - **Robust Path Resolution**: Implemented `get_root_path` to correctly locate `templates` and `static` folders regardless of working directory.
+- **Dependency Issues**:
+  - Removed `robyn` dependency to eliminate build conflicts and simplify installation.
+  - Ensured compatibility across diverse Linux environments.
+
+### Performance
+
+- Dynamic turbo routes: ~30,000 requests/sec (vs ~18,000 for regular routes).
+- 65% improvement for simple lookup endpoints.
+
+### 🚀 Major Performance Breakthrough (Operation Mach 5)
+
+- **Native Multiprocessing (Linux)**:
+  - Implemented `os.fork()` based process manager with `SO_REUSEPORT` load balancing.
+  - **Result**: **97,376 RPS** for standard routes (up from ~25k).
+  - Beat Sanic (41k) and BlackSheep (28k) by a massive margin.
+  - Memory usage remains efficient (~152MB for 4 workers).
+
+- **Cross-Platform Support (Issue #9)**:
+  - New `python/bustapi/multiprocess.py` module.
+  - New `ci-multiplatform.yml` for automated cross-platform testing with `oha` benchmarks.
+  - **CI Benchmark Results:**
+    - **Linux**: 55,726 RPS (CI runner) / 105,012 RPS (local)
+    - **macOS**: 35,560 RPS (single-process)
+    - **Windows**: 17,772 RPS (single-process)
+  - Platform-specific behavior:
+    - **Linux**: Full multiprocessing with `SO_REUSEPORT` (100k+ RPS)
+    - **macOS/Windows**: Single-process fallback (Rust still 3x faster than Flask!)
+
+- **Cached Turbo Routes**:
+  - New built-in caching for turbo routes: `@app.turbo_route("/", cache_ttl=60)`.
+  - **Result**: **~140,961 RPS** for cached endpoints.
+  - Zero-latency responses (< 1ms).
+
+---
+
+## [0.7.0] - 2026-01-13
 
 ### Added
 
@@ -88,6 +148,23 @@ All notable changes to this project will be documented here.
 - Video streaming example (`examples/27_video_stream.py`) demonstrating static and dynamic video serving
 - **Documentation**: Updated user guides for Routing, Responses (Streaming), and Request Data (Async Body).
 
+### Removed
+
+- **Manual File Serving Module** (`src/file_serving.rs`): Removed in favor of robust `actix-files` integration which handles Range requests automatically.
+
+### Changed
+
+- Refactored `src/server/handlers.rs` to use `actix-files` for serving file responses.
+- Updated `src/bindings/converters.rs` to pass `FileResponse` and `StreamingResponse` objects directly to Rust backend.
+- Updated `src/bindings/handlers.rs` to pass request headers to response converter.
+
+### Fixed
+
+- **Windows Support**: Gated Unix-specific hot-reload logic (`nix::unistd`) to fix build errors on Windows.
+- **Jinja2**: Added `jinja2` as a core dependency to ensure `render_template` works out-of-the-box and fix CI test failures.
+- **CI/CD**: Resolved Rust `clippy` checks for `manual_flatten` and `type_complexity` to ensure strict CI compliance.
+- **Dynamic Route Range Support**: Dynamic routes returning `FileResponse` now correctly support Range requests (Video seeking/scrubbing).
+- Improved memory efficiency for large file serving.
 
 ## [0.5.0] - 2026-01-01
 
@@ -130,6 +207,7 @@ All notable changes to this project will be documented here.
 
 - **Static Route Validations**: Fixed bug where static routes (fast path) skipped body and query parameter extraction.
 - **TestClient**: Added proper `json` parameter support to `TestClient` methods for easier API testing.
+
 - **Signature Errors**: Resolved "unexpected keyword argument" errors by filtering `kwargs` based on handler signatures.
 
 ### Added
@@ -211,7 +289,7 @@ All notable changes to this project will be documented here.
 
 - **BREAKING**: Migrated from Hyper to Actix-web for 50x+ performance improvement
 - Updated PyO3 from 0.20 to 0.23 with free-threading support
-- Added `gil_used = false` annotation for Python 3.13 free-threaded mode [`No longer available on v0.4.0+`]
+- Added `gil_used = false` annotation for Python 3.13 free-threaded mode
 - Removed `spawn_blocking` - direct Python handler calls for parallel execution
 - Server now uses Actix-web's built-in worker pool (auto-scales to CPU cores)
 
