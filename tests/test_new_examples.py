@@ -41,7 +41,7 @@ class TestNewExamples(unittest.TestCase):
             if sys.platform == "win32":
                 proc.terminate()
             else:
-                self.kill_process(proc)
+                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
         except (ProcessLookupError, OSError):
             pass
 
