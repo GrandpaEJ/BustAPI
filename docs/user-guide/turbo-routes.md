@@ -17,9 +17,26 @@ Regular routes go through Python's full request lifecycle:
 
 | Route Type | Requests/sec | Use Case |
 |:---|---:|:---|
-| Regular `@app.route()` | ~18,000 | Complex endpoints |
+| Regular `@app.route()` | ~25,000 | Complex endpoints |
 | Static `@app.turbo_route()` | ~34,000 | Health checks, static data |
-| **Dynamic `@app.turbo_route()`** | ~30,000 | Simple lookups by ID |
+| Dynamic `@app.turbo_route()` | ~30,000 | Simple lookups by ID |
+| **Cached `@app.turbo_route(cache_ttl=60)`** | **~140,000** | Cached responses |
+
+## Cached Turbo Routes
+
+Add `cache_ttl` for maximum performance:
+
+```python
+@app.turbo_route("/", cache_ttl=60)  # Cache for 60 seconds
+def home():
+    return {"message": "Hello, World!"}
+
+@app.turbo_route("/config", cache_ttl=300)  # Cache for 5 minutes
+def config():
+    return expensive_config_load()
+```
+
+See [Response Caching](caching.md) for details.
 
 ## Static Turbo Routes
 

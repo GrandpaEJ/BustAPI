@@ -63,13 +63,16 @@ nav:
   - Getting Started:
       - Installation: installation.md
       - Quickstart: quickstart.md
-  - General:
-      - Changelog: changelog.md
   - Core Concepts:
       - Routing: user-guide/routing.md
+      - Turbo Routes: user-guide/turbo-routes.md
       - Request Data: user-guide/request_data.md
       - Responses: user-guide/responses.md
       - Templates: user-guide/templates.md
+  - Performance:
+      - Multiprocessing: user-guide/multiprocessing.md
+      - Response Caching: user-guide/caching.md
+  - Authentication:
       - JWT Authentication: user-guide/jwt.md
       - Session Auth: user-guide/authentication.md
   - Advanced:
@@ -80,8 +83,8 @@ nav:
       - Async Support: advanced/async.md
       - Security: advanced/security.md
       - Deployment: advanced/deployment.md
-  - API Reference:
-      - All APIs: api-reference.md
+  - Reference:
+      - API Reference: api-reference.md
+      - Changelog: changelog.md
   - Examples:
       - Gallery: examples-guide.md
-
