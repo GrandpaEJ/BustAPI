@@ -132,18 +132,67 @@ Supports `int`, `float`, `str`, and `path` parameter types.
 
 ## Benchmarks
 
-Tested on Python 3.13, Intel i5-8365U (8 cores), Ubuntu Linux:
+<p align="center">
+  <img src="benchmarks/rps_97k_comparison.png" alt="BustAPI vs Other Frameworks" width="700">
+</p>
 
-| Framework | Requests/sec | Memory |
-|:----------|-------------:|-------:|
-| **BustAPI** | **18,500** | **45 MB** |
-| Catzilla | 11,170 | 1,496 MB |
-| Flask (4 workers) | 4,988 | 159 MB |
-| FastAPI (4 workers) | 2,000 | 232 MB |
+### Cross-Platform Performance (v0.8.0)
 
-BustAPI achieves **9x higher throughput** than FastAPI with **5x less memory**.
+| Platform | RPS (Root) | RPS (JSON) | Mode |
+|:---------|----------:|----------:|:-----|
+| **Linux** | **105,012** | **99,142** | Multiprocessing (SO_REUSEPORT) |
+| macOS | 35,560 | - | Single-process |
+| Windows | 17,772 | 17,844 | Single-process |
 
-> 💡 **Want more speed?** Use `@app.turbo_route()` for simple endpoints to hit **35k+ RPS**.
+### Framework Comparison (Linux, 4 workers)
+
+| Framework | Requests/sec | Avg Latency | Memory |
+|:----------|-------------:|------------:|-------:|
+| **BustAPI** | **105,012** | **1.00ms** | **105 MB** |
+| Sanic | 76,469 | 1.32ms | 243 MB |
+| BlackSheep | 41,176 | 2.48ms | 219 MB |
+| Flask | 7,806 | 12.69ms | 160 MB |
+| FastAPI | 12,723 | 7.95ms | 254 MB |
+
+> 💡 **Maximum Performance:** Use `@app.turbo_route()` with `cache_ttl` for **~140,000 RPS** on cached endpoints!
+
+<p align="center">
+  <img src="benchmarks/rps_process_comparison.png" alt="BustAPI Multiprocessing Scaling" width="600">
+</p>
+
+---
+
+## Platform Support
+
+### 🐧 Linux (Recommended for Production)
+
+Linux provides the **best performance** with native multiprocessing via `SO_REUSEPORT`:
+- **100,000+ RPS** with 4 workers
+- Kernel-level load balancing across processes
+- Optimal for production deployments
+
+```bash
+# Production deployment on Linux
+python app.py  # Automatically uses multiprocessing
+```
+
+### 🍎 macOS (Development)
+
+Fully supported for development. Single-process mode (~35k RPS):
+```bash
+pip install bustapi
+python app.py
+```
+
+### 🪟 Windows (Development)
+
+Fully supported for development. Single-process mode (~17k RPS):
+```bash
+pip install bustapi
+python app.py
+```
+
+> ⚠️ **Production Recommendation:** For maximum performance, deploy on **Linux servers**. macOS and Windows are ideal for development but lack the multiprocessing optimizations available on Linux.
 
 ---
 

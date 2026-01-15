@@ -47,10 +47,14 @@ All notable changes to this project will be documented here.
 
 - **Cross-Platform Support (Issue #9)**:
   - New `python/bustapi/multiprocess.py` module.
+  - New `ci-multiplatform.yml` for automated cross-platform testing with `oha` benchmarks.
+  - **CI Benchmark Results:**
+    - **Linux**: 55,726 RPS (CI runner) / 105,012 RPS (local)
+    - **macOS**: 35,560 RPS (single-process)
+    - **Windows**: 17,772 RPS (single-process)
   - Platform-specific behavior:
     - **Linux**: Full multiprocessing with `SO_REUSEPORT` (100k+ RPS)
-    - **macOS/Windows**: Single-process fallback (Rust still blazing fast!)
-  - Added `ci-multiplatform.yml` for cross-platform testing.
+    - **macOS/Windows**: Single-process fallback (Rust still 3x faster than Flask!)
 
 - **Cached Turbo Routes**:
   - New built-in caching for turbo routes: `@app.turbo_route("/", cache_ttl=60)`.
