@@ -1,7 +1,7 @@
 name: Multi-Platform Tests
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
   # push:
   #   branches: [main, perf/*]
   #   paths:
@@ -146,7 +146,7 @@ jobs:
           else
             echo "--- Simple HTTP Benchmark (wrk not available) ---"
             echo "Running 500 requests via Python..."
-            $VENV_PY -c "
+            cat > /tmp/bench_client.py << 'PYEOF'
 import time
 import urllib.request
 start = time.time()
@@ -159,7 +159,8 @@ for i in range(500):
 elapsed = time.time() - start
 print(f'Completed {success}/500 requests in {elapsed:.2f}s')
 print(f'RPS: {success/elapsed:.0f} req/s')
-"
+PYEOF
+            $VENV_PY /tmp/bench_client.py
           fi
           
           # Cleanup
