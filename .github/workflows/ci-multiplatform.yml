@@ -144,21 +144,35 @@ jobs:
             echo "JSON endpoint (/json):"
             wrk -t4 -c50 -d10s http://127.0.0.1:8888/json
           else
-            echo "--- Simple HTTP Benchmark (wrk not available) ---"
-            echo "Running 500 requests via Python..."
+            echo "--- Python Concurrent Benchmark (wrk not available) ---"
+            echo "Running 1000 parallel requests via Python..."
             cat > /tmp/bench_client.py << 'PYEOF'
           import time
           import urllib.request
+          from concurrent.futures import ThreadPoolExecutor, as_completed
+          
+          URL = 'http://127.0.0.1:8888/'
+          REQUESTS = 1000
+          WORKERS = 10
+          
+          def make_request(i):
+              try:
+                  urllib.request.urlopen(URL, timeout=5)
+                  return True
+              except:
+                  return False
+          
           start = time.time()
           success = 0
-          for i in range(500):
-              try:
-                  urllib.request.urlopen('http://127.0.0.1:8888/', timeout=5)
-                  success += 1
-              except: pass
+          with ThreadPoolExecutor(max_workers=WORKERS) as executor:
+              futures = [executor.submit(make_request, i) for i in range(REQUESTS)]
+              for f in as_completed(futures):
+                  if f.result():
+                      success += 1
           elapsed = time.time() - start
-          print(f'Completed {success}/500 requests in {elapsed:.2f}s')
+          print(f'Completed {success}/{REQUESTS} requests in {elapsed:.2f}s')
           print(f'RPS: {success/elapsed:.0f} req/s')
+          print(f'Workers: {WORKERS} threads')
           PYEOF
             $VENV_PY /tmp/bench_client.py
           fi
