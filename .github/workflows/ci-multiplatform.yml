@@ -147,19 +147,19 @@ jobs:
             echo "--- Simple HTTP Benchmark (wrk not available) ---"
             echo "Running 500 requests via Python..."
             cat > /tmp/bench_client.py << 'PYEOF'
-import time
-import urllib.request
-start = time.time()
-success = 0
-for i in range(500):
-    try:
-        urllib.request.urlopen('http://127.0.0.1:8888/', timeout=5)
-        success += 1
-    except: pass
-elapsed = time.time() - start
-print(f'Completed {success}/500 requests in {elapsed:.2f}s')
-print(f'RPS: {success/elapsed:.0f} req/s')
-PYEOF
+          import time
+          import urllib.request
+          start = time.time()
+          success = 0
+          for i in range(500):
+              try:
+                  urllib.request.urlopen('http://127.0.0.1:8888/', timeout=5)
+                  success += 1
+              except: pass
+          elapsed = time.time() - start
+          print(f'Completed {success}/500 requests in {elapsed:.2f}s')
+          print(f'RPS: {success/elapsed:.0f} req/s')
+          PYEOF
             $VENV_PY /tmp/bench_client.py
           fi
           
