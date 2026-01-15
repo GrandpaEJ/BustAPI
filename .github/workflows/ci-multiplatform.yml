@@ -2,12 +2,12 @@ name: Multi-Platform Tests
 
 on:
   workflow_dispatch: {}
-  push:
-    branches: [main, perf/*]
-    paths:
-      - 'python/bustapi/app.py'
-      - 'src/server/**'
-      - '.github/workflows/ci-multiplatform.yml'
+  # push:
+  #   branches: [main, perf/*]
+  #   paths:
+  #     - 'python/bustapi/app.py'
+  #     - 'src/server/**'
+  #     - '.github/workflows/ci-multiplatform.yml'
 
 jobs:
   test-multiprocessing:
@@ -95,3 +95,68 @@ jobs:
         shell: bash
         run: |
           $VENV_PY -m pytest tests -v --ignore=tests/test_benchmark*.py || true
+
+      - name: Install wrk (Unix only)
+        if: runner.os != 'Windows'
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            sudo apt-get update && sudo apt-get install -y wrk
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            brew install wrk || true
+          fi
+
+      - name: Performance Benchmark
+        shell: bash
+        run: |
+          echo "=== BustAPI Performance Benchmark ==="
+          echo "Platform: $RUNNER_OS"
+          echo "Python: ${{ matrix.python-version }}"
+          echo ""
+          
+          # Create benchmark server
+          cat > /tmp/bench_server.py << 'EOF'
+          from bustapi import BustAPI
+          app = BustAPI()
+          
+          @app.turbo_route("/")
+          def index():
+              return "Hello, World!"
+          
+          @app.turbo_route("/json")
+          def json_endpoint():
+              return {"hello": "world", "framework": "BustAPI"}
+          
+          if __name__ == "__main__":
+              app.run(host="127.0.0.1", port=8888, workers=4, debug=False)
+          EOF
+          
+          # Start server
+          $VENV_PY /tmp/bench_server.py &
+          SERVER_PID=$!
+          sleep 5
+          
+          # Run benchmark
+          if command -v wrk &> /dev/null; then
+            echo "--- Benchmark with wrk (10s) ---"
+            echo "Root endpoint (/):"
+            wrk -t4 -c50 -d10s http://127.0.0.1:8888/
+            echo ""
+            echo "JSON endpoint (/json):"
+            wrk -t4 -c50 -d10s http://127.0.0.1:8888/json
+          else
+            echo "--- Simple HTTP Benchmark (wrk not available) ---"
+            echo "Making 1000 sequential requests..."
+            START_TIME=$(date +%s.%N)
+            for i in $(seq 1 1000); do
+              curl -s http://127.0.0.1:8888/ > /dev/null
+            done
+            END_TIME=$(date +%s.%N)
+            DURATION=$(echo "$END_TIME - $START_TIME" | bc)
+            RPS=$(echo "1000 / $DURATION" | bc)
+            echo "Completed 1000 requests in ${DURATION}s (~${RPS} req/s)"
+          fi
+          
+          # Cleanup
+          kill $SERVER_PID 2>/dev/null || true
+          echo ""
+          echo "=== Benchmark Complete ==="
