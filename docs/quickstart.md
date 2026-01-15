@@ -67,8 +67,6 @@ For **maximum performance**, use `@app.turbo_route()`:
     def health():
         return {"status": "ok"}
     ```
-    
-    **Performance:** ~34,000 requests/sec
 
 === "Dynamic Route"
 
@@ -77,8 +75,6 @@ For **maximum performance**, use `@app.turbo_route()`:
     def get_user(id: int):
         return {"id": id, "name": f"User {id}"}
     ```
-    
-    **Performance:** ~30,000 requests/sec
 
 === "Cached Route"
 
@@ -87,8 +83,16 @@ For **maximum performance**, use `@app.turbo_route()`:
     def home():
         return {"message": "Cached for 60 seconds!"}
     ```
-    
-    **Performance:** ~140,000 requests/sec :fire:
+
+### Benchmark Results (v0.8.0)
+
+Tested with `oha -z 10s -c 50` on Python 3.13:
+
+| Route Type | Linux (4w) | macOS | Windows |
+|:-----------|----------:|------:|--------:|
+| Static turbo | 105,012 | 35,560 | 17,772 |
+| Dynamic turbo | 99,142 | 27,532 | 17,844 |
+| Cached turbo | ~160,000 | - | - |
 
 !!! warning "Note"
     Turbo routes skip middleware and sessions for speed. Use `@app.route()` if you need those features.
@@ -118,9 +122,16 @@ if __name__ == "__main__":
 1. :material-server: Spawns 4 worker processes for parallel request handling
 2. :material-bug-outline: Always disable debug in production!
 
-!!! tip "Linux Magic"
-    On Linux, BustAPI uses `SO_REUSEPORT` for kernel-level load balancing.
-    This achieves **100,000+ requests/sec** with 4 workers!
+### Platform Performance (v0.8.0)
+
+| Platform | Workers | RPS | Note |
+|:---------|--------:|----:|:-----|
+| :fontawesome-brands-linux: Linux | 4 | **105,012** | `SO_REUSEPORT` load balancing |
+| :fontawesome-brands-apple: macOS | 1 | 35,560 | Single-process mode |
+| :fontawesome-brands-windows: Windows | 1 | 17,772 | Single-process mode |
+
+!!! tip "Production Recommendation"
+    Deploy on **Linux** for maximum performance with kernel-level load balancing.
 
 ---
 
