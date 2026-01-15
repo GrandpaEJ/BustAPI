@@ -1,39 +1,105 @@
 site_name: BustAPI
-site_description: High-performance Flask-compatible web framework with async support
+site_description: "The fastest Python web framework. Flask-like API with Rust-powered performance. 100,000+ requests/sec."
 site_author: GrandpaEJ
-site_url:
-repo_url: https://github.com/GrandpaEJ/bustapi
-repo_name: GrandpaEJ/bustapi
+site_url: https://grandpaej.github.io/BustAPI/
+repo_url: https://github.com/GrandpaEJ/BustAPI
+repo_name: GrandpaEJ/BustAPI
+edit_uri: edit/main/docs/
 
-copyright: Copyright &copy; 2025 GrandpaEJ
+copyright: |
+  Copyright &copy; 2025 GrandpaEJ – 
+  Made with ❤️ and Rust 🦀
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/GrandpaEJ/BustAPI
+      name: BustAPI on GitHub
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/bustapi/
+      name: BustAPI on PyPI
+  generator: false
+  analytics:
+    provider: google
+    property: G-XXXXXXXXXX
+  version:
+    provider: mike
+
+extra_css:
+  - stylesheets/extra.css
 
 theme:
   name: material
+  custom_dir: docs/overrides
   logo: assets/logo.png
   favicon: assets/logo.png
+  language: en
+  
   palette:
-    - scheme: default
-      primary: indigo
-      accent: blue
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: amber
       toggle:
-        icon: material/brightness-7
+        icon: material/weather-sunny
         name: Switch to dark mode
-    - scheme: slate
-      primary: indigo
-      accent: blue
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: amber
       toggle:
-        icon: material/brightness-4
+        icon: material/weather-night
         name: Switch to light mode
+  
+  font:
+    text: Inter
+    code: JetBrains Mono
+  
+  icon:
+    repo: fontawesome/brands/github
+    admonition:
+      note: fontawesome/solid/note-sticky
+      tip: fontawesome/solid/lightbulb
+      warning: fontawesome/solid/triangle-exclamation
+      danger: fontawesome/solid/skull
+      example: fontawesome/solid/flask
+  
   features:
+    # Navigation
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.tracking
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - navigation.footer
+    
+    # Table of Contents
+    - toc.follow
     - toc.integrate
+    
+    # Search
     - search.suggest
     - search.highlight
+    - search.share
+    
+    # Content
     - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+    
+    # Header
+    - header.autohide
+    - announce.dismiss
 
 plugins:
-  - search
+  - search:
+      separator: '[\s\-\.]+'
+      lang: en
   - mkdocstrings:
       handlers:
         python:
@@ -41,41 +107,66 @@ plugins:
             show_source: true
             show_root_heading: true
             show_object_full_path: false
-            show_category_heading: true
-            show_labels: true
-            show_symbol_type_heading: true
-            show_symbol_type_toc: true
+            heading_level: 3
 
 markdown_extensions:
+  # Code Highlighting
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
+      auto_title: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  
+  # Content
   - admonition
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.smartsymbols
+  
+  # Formatting
   - attr_list
   - md_in_html
+  - tables
+  - footnotes
+  - abbr
+  - def_list
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 nav:
-  - Home: index.md
-  - Getting Started:
+  - 🏠 Home: index.md
+  - 🚀 Getting Started:
       - Installation: installation.md
       - Quickstart: quickstart.md
-  - Core Concepts:
+  - 📖 Core Concepts:
       - Routing: user-guide/routing.md
       - Turbo Routes: user-guide/turbo-routes.md
       - Request Data: user-guide/request_data.md
       - Responses: user-guide/responses.md
       - Templates: user-guide/templates.md
-  - Performance:
+  - ⚡ Performance:
       - Multiprocessing: user-guide/multiprocessing.md
       - Response Caching: user-guide/caching.md
-  - Authentication:
+  - 🔐 Authentication:
       - JWT Authentication: user-guide/jwt.md
       - Session Auth: user-guide/authentication.md
-  - Advanced:
+  - 🔧 Advanced:
       - Blueprints: advanced/blueprints.md
       - Middleware: advanced/middleware.md
       - Dependency Injection: advanced/dependency_injection.md
@@ -83,8 +174,8 @@ nav:
       - Async Support: advanced/async.md
       - Security: advanced/security.md
       - Deployment: advanced/deployment.md
-  - Reference:
+  - 📚 Reference:
       - API Reference: api-reference.md
       - Changelog: changelog.md
-  - Examples:
+  - 💡 Examples:
       - Gallery: examples-guide.md

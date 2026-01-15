@@ -1,76 +1,175 @@
 # BustAPI
 
-**The speed of Rust. The simplicity of Flask.**
+<div align="center" markdown>
 
-<div align="center">
-  <img src="assets/logo.png" alt="BustAPI Logo" width="200">
+![BustAPI Logo](assets/logo.png){ width="180" }
+
+**The fastest Python web framework.**  
+*Flask-like API. Rust-powered performance. 100,000+ requests/sec.*
+
+[:material-rocket-launch: Get Started](quickstart.md){ .md-button .md-button--primary }
+[:material-github: GitHub](https://github.com/GrandpaEJ/BustAPI){ .md-button }
+
 </div>
 
 ---
 
-## 🚀 v0.8.0 Highlights
+## :zap: Why BustAPI?
 
-| Feature | Performance |
-|:--------|------------:|
-| **Multiprocessing** | 100,000+ RPS (Linux) |
-| **Turbo Routes** | 30,000+ RPS |
-| **Cached Routes** | 140,000+ RPS |
-| **Cross-Platform** | Linux, macOS, Windows |
+<div class="grid cards" markdown>
 
-```python
-from bustapi import BustAPI
+-   :material-speedometer:{ .lg .middle } **Blazing Fast**
 
-app = BustAPI()
+    ---
 
-@app.turbo_route("/", cache_ttl=60)
-def hello():
-    return {"message": "Hello, World!"}
+    **100,000+ requests/sec** on Linux with multiprocessing.  
+    Rust core with zero-copy optimizations.
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, workers=4)
-```
+-   :material-flask-outline:{ .lg .middle } **Flask-like API**
+
+    ---
+
+    Familiar decorators and patterns.  
+    Switch from Flask in minutes, not days.
+
+-   :material-language-python:{ .lg .middle } **Pure Python**
+
+    ---
+
+    Write normal Python code.  
+    All the speed without the complexity.
+
+-   :material-shield-check:{ .lg .middle } **Production Ready**
+
+    ---
+
+    JWT auth, sessions, validation.  
+    Everything you need out of the box.
+
+</div>
 
 ---
 
-## Features
+## :stopwatch: Quick Start
 
-- **Rust-Powered Performance**: Built on **Actix-web** via PyO3. Handles 100,000+ requests/sec with 4 workers.
-- **Native Multiprocessing**: `SO_REUSEPORT` kernel load balancing on Linux for true parallelism.
-- **Turbo Routes**: Zero-overhead handlers with typed path parameters parsed in Rust.
-- **Built-in Caching**: `cache_ttl` parameter for instant cached responses.
-- **Cross-Platform**: Runs on Linux (max performance), macOS, and Windows.
+=== "Hello World"
 
-## Developer Experience
+    ```python
+    from bustapi import BustAPI
 
-```python
-from bustapi import BustAPI
-from bustapi.safe import Struct, String
+    app = BustAPI()
 
-class User(Struct):
-    name: String
-    email: String
+    @app.route("/")
+    def hello():
+        return {"message": "Hello, World!"}
 
-app = BustAPI()
+    if __name__ == "__main__":
+        app.run()
+    ```
 
-@app.turbo_route("/users/<int:id>")
-def get_user(id: int):
-    return {"id": id, "name": f"User {id}"}
+=== "Turbo Route (~90k RPS)"
 
-@app.post("/users")
-async def create_user(user: User):
-    return {"message": f"Welcome, {user.name}!"}
+    ```python
+    @app.turbo_route("/users/<int:id>")
+    def get_user(id: int):
+        return {"id": id, "name": f"User {id}"}
+    ```
+
+=== "Cached Route (~160k RPS)"
+
+    ```python
+    @app.turbo_route("/", cache_ttl=60)
+    def home():
+        return {"message": "Cached for 60 seconds!"}
+    ```
+
+=== "Multiprocessing"
+
+    ```python
+    if __name__ == "__main__":
+        app.run(
+            host="0.0.0.0",
+            port=5000,
+            workers=4  # 100k+ RPS on Linux!
+        )
+    ```
+
+---
+
+## :bar_chart: Performance
+
+???+ success "Benchmark Results (Linux, 4 workers)"
+
+    | Framework | Requests/sec | Avg Latency | Memory |
+    |:----------|-------------:|------------:|-------:|
+    | **BustAPI** | **105,012** | **1.00ms** | **105 MB** |
+    | Sanic | 76,469 | 1.32ms | 243 MB |
+    | BlackSheep | 41,176 | 2.48ms | 219 MB |
+    | FastAPI | 12,723 | 7.95ms | 254 MB |
+    | Flask | 7,806 | 12.69ms | 160 MB |
+
+    *Tested with `wrk -t4 -c50 -d10s` on Python 3.13, Intel i5-8365U*
+
+### Cross-Platform Support
+
+| Platform | RPS | Mode |
+|:---------|----:|:-----|
+| :fontawesome-brands-linux: **Linux** | **105,012** | Multiprocessing (`SO_REUSEPORT`) |
+| :fontawesome-brands-apple: macOS | 35,560 | Single-process |
+| :fontawesome-brands-windows: Windows | 17,772 | Single-process |
+
+!!! tip "Production Tip"
+    Deploy on **Linux** for maximum performance with kernel-level load balancing.
+
+---
+
+## :package: Installation
+
+```bash
+pip install bustapi
 ```
 
-## Getting Started
+**Requires:** Python 3.10 - 3.14
 
-Check out the [Quickstart](quickstart.md) or dive into the [Core Concepts](user-guide/routing.md).
+Pre-built wheels available for Linux, macOS, and Windows.
 
-### Platform Recommendations
+---
 
-| Platform | Mode | Best For |
-|:---------|:-----|:---------|
-| 🐧 **Linux** | Multiprocessing | Production (100k+ RPS) |
-| 🍎 macOS | Single-process | Development |
-| 🪟 Windows | Single-process | Development |
+## :books: Learn More
 
-> ⚠️ **Production Tip:** Deploy on Linux servers for maximum performance with `SO_REUSEPORT` load balancing.
+<div class="grid cards" markdown>
+
+-   [:material-book-open-variant: **Quickstart**](quickstart.md)
+
+    Get your first app running in 5 minutes.
+
+-   [:material-routes: **Routing Guide**](user-guide/routing.md)
+
+    Dynamic paths, blueprints, and patterns.
+
+-   [:material-lightning-bolt: **Turbo Routes**](user-guide/turbo-routes.md)
+
+    Maximum performance for simple endpoints.
+
+-   [:material-server: **Multiprocessing**](user-guide/multiprocessing.md)
+
+    Scale to 100k+ RPS with worker processes.
+
+-   [:material-shield-key: **JWT Auth**](user-guide/jwt.md)
+
+    Secure your API with token authentication.
+
+-   [:material-cached: **Caching**](user-guide/caching.md)
+
+    140k RPS with built-in response caching.
+
+</div>
+
+---
+
+## :heart: Open Source
+
+BustAPI is **MIT licensed** and open source.
+
+[:material-star: Star on GitHub](https://github.com/GrandpaEJ/BustAPI){ .md-button }
+[:material-bug: Report a Bug](https://github.com/GrandpaEJ/BustAPI/issues){ .md-button }

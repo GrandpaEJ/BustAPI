@@ -1,83 +1,127 @@
-# Installation
+# :package: Installation
 
-## Quick Install
-
-```bash
-pip install bustapi
-```
-
-**Supported Python versions:** 3.10, 3.11, 3.12, 3.13, 3.14
-
-Pre-built wheels are available for:
-
-- 🐧 **Linux** (x86_64, aarch64)
-- 🍎 **macOS** (x86_64, arm64)
-- 🪟 **Windows** (x86_64)
+Get BustAPI up and running in seconds.
 
 ---
 
-## Platform Recommendations
+## :zap: Quick Install
 
-### 🐧 Linux (Recommended for Production)
+=== ":material-language-python: pip"
 
-Linux provides the **best performance** with native multiprocessing:
+    ```bash
+    pip install bustapi
+    ```
 
-- **100,000+ RPS** with 4 workers
-- Kernel-level load balancing via `SO_REUSEPORT`
-- Optimal for production deployments
+=== ":material-package: uv (faster)"
 
-```bash
-pip install bustapi
-python app.py  # Automatically uses multiprocessing
-```
+    ```bash
+    uv pip install bustapi
+    ```
 
-### 🍎 macOS (Development)
+=== ":material-package-variant: pipx (isolated)"
 
-Fully supported for development. Runs in single-process mode (~35k RPS):
+    ```bash
+    pipx install bustapi
+    ```
 
-```bash
-pip install bustapi
-python app.py
-```
-
-### 🪟 Windows (Development)
-
-Fully supported for development. Runs in single-process mode (~17k RPS):
-
-```bash
-pip install bustapi
-python app.py
-```
-
-> ⚠️ **Production Recommendation:** For maximum performance, deploy on **Linux servers**. macOS and Windows are ideal for development but lack the multiprocessing optimizations available on Linux.
+!!! success "That's it!"
+    Pre-built wheels are available. No Rust toolchain required.
 
 ---
 
-## Development Install (From Source)
+## :white_check_mark: Requirements
 
-To build from source, you'll need Rust installed:
-
-```bash
-# Install Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-# Clone and build
-git clone https://github.com/GrandpaEJ/BustAPI.git
-cd BustAPI
-pip install maturin
-maturin develop --release
-```
+| Requirement | Versions |
+|:------------|:---------|
+| **Python** | 3.10, 3.11, 3.12, 3.13, 3.14 |
+| **OS** | Linux, macOS, Windows |
+| **Architecture** | x86_64, arm64 (Apple Silicon) |
 
 ---
 
-## Verify Installation
+## :globe_with_meridians: Platform Support
+
+<div class="grid cards" markdown>
+
+-   :fontawesome-brands-linux:{ .lg .middle } **Linux (Recommended)**
+
+    ---
+
+    **Best performance** with native multiprocessing.
+    
+    - :material-check: 100,000+ RPS with 4 workers
+    - :material-check: `SO_REUSEPORT` kernel load balancing
+    - :material-check: Optimal for production
+
+-   :fontawesome-brands-apple:{ .lg .middle } **macOS**
+
+    ---
+
+    **Fully supported** for development.
+    
+    - :material-check: ~35,000 RPS (single-process)
+    - :material-check: Apple Silicon native
+    - :material-check: Great for local development
+
+-   :fontawesome-brands-windows:{ .lg .middle } **Windows**
+
+    ---
+
+    **Fully supported** for development.
+    
+    - :material-check: ~17,000 RPS (single-process)
+    - :material-check: x64 pre-built wheels
+    - :material-check: Great for local development
+
+</div>
+
+!!! warning "Production Recommendation"
+    For maximum performance, **deploy on Linux servers**.  
+    macOS and Windows are ideal for development.
+
+---
+
+## :hammer_and_wrench: Development Install
+
+To build from source (requires Rust):
+
+=== ":fontawesome-brands-linux: Linux / macOS"
+
+    ```bash
+    # Install Rust
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    
+    # Clone and build
+    git clone https://github.com/GrandpaEJ/BustAPI.git
+    cd BustAPI
+    pip install maturin
+    maturin develop --release
+    ```
+
+=== ":fontawesome-brands-windows: Windows"
+
+    ```powershell
+    # Install Rust from https://rustup.rs
+    
+    # Clone and build
+    git clone https://github.com/GrandpaEJ/BustAPI.git
+    cd BustAPI
+    pip install maturin
+    maturin develop --release
+    ```
+
+---
+
+## :white_check_mark: Verify Installation
 
 ```python
-import bustapi
-print(bustapi.__version__)  # Should print 0.8.0
+>>> import bustapi
+>>> print(bustapi.__version__)
+0.8.0
 ```
 
-## Next Steps
+---
 
-- [Quickstart Guide](quickstart.md)
-- [Routing Guide](user-guide/routing.md)
+## :rocket: Next Steps
+
+Ready to build something? Check out the [Quickstart Guide](quickstart.md)!
