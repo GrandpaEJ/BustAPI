@@ -141,24 +141,13 @@ Supports `int`, `float`, `str`, and `path` parameter types.
 | Platform | RPS (Root) | RPS (JSON) | Mode |
 |:---------|----------:|----------:|:-----|
 | **Linux** | **105,012** | **99,142** | Multiprocessing (SO_REUSEPORT) |
-| macOS | 35,560 | - | Single-process |
+| macOS | 35,560 | 27532 | Single-process |
 | Windows | 17,772 | 17,844 | Single-process |
 
-### Framework Comparison (Linux, 4 workers)
 
-| Framework | Requests/sec | Avg Latency | Memory |
-|:----------|-------------:|------------:|-------:|
-| **BustAPI** | **105,012** | **1.00ms** | **105 MB** |
-| Sanic | 76,469 | 1.32ms | 243 MB |
-| BlackSheep | 41,176 | 2.48ms | 219 MB |
-| Flask | 7,806 | 12.69ms | 160 MB |
-| FastAPI | 12,723 | 7.95ms | 254 MB |
 
 > 💡 **Maximum Performance:** Use `@app.turbo_route()` with `cache_ttl` for **~140,000 RPS** on cached endpoints!
 
-<p align="center">
-  <img src="benchmarks/rps_process_comparison.png" alt="BustAPI Multiprocessing Scaling" width="600">
-</p>
 
 ---
 
