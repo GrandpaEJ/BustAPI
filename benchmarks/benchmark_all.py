@@ -189,7 +189,6 @@ if __name__ == "__main__":
 """
 
 
-
 CODE_SANIC = f"""
 from sanic import Sanic, response
 

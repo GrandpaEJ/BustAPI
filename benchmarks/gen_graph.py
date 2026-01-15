@@ -26,7 +26,6 @@ def generate_graph():
         {"framework": "FastAPI", "endpoint": "/", "requests_sec": 6404},
         {"framework": "FastAPI", "endpoint": "/json", "requests_sec": 7969},
         {"framework": "FastAPI", "endpoint": "/user/10", "requests_sec": 6517},
-
         # Falcon
         {"framework": "Falcon", "endpoint": "/", "requests_sec": 8631},
         {"framework": "Falcon", "endpoint": "/json", "requests_sec": 9092},

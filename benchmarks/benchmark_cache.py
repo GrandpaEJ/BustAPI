@@ -1,4 +1,3 @@
-
 import multiprocessing
 import os
 import signal
@@ -74,12 +73,14 @@ if __name__ == "__main__":
     app.run(host="{HOST}", port={PORT}, workers={WORKERS}, debug=False)
 """
 
+
 @dataclass
 class BenchmarkResult:
     name: str
     endpoint: str
     rps: float
     avg_latency_ms: float
+
 
 def create_server_files():
     print("📝 Creating temporary server files...")
@@ -88,6 +89,7 @@ def create_server_files():
     with open(SERVER_FILES["Cached"], "w") as f:
         f.write(CODE_CACHED)
 
+
 def clean_up():
     print("🧹 Cleaning up...")
     for f in SERVER_FILES.values():
@@ -95,43 +97,48 @@ def clean_up():
             os.remove(f)
     subprocess.run(f"fuser -k {PORT}/tcp", shell=True, stderr=subprocess.DEVNULL)
 
+
 def run_wrk(endpoint: str) -> dict:
     url = f"http://{HOST}:{PORT}{endpoint}"
     cmd = [
         "wrk",
-        "-t", str(WRK_THREADS),
-        "-c", str(WRK_CONNECTIONS),
-        "-d", WRK_DURATION,
+        "-t",
+        str(WRK_THREADS),
+        "-c",
+        str(WRK_CONNECTIONS),
+        "-d",
+        WRK_DURATION,
         "--latency",
-        url
+        url,
     ]
-    
+
     result = subprocess.run(cmd, capture_output=True, text=True)
     output = result.stdout
-    
+
     data = {"rps": 0.0, "latency": 0.0}
-    
+
     rps_match = re.search(r"Requests/sec:\s+([\d.]+)", output)
     if rps_match:
         data["rps"] = float(rps_match.group(1))
-        
+
     latency_match = re.search(r"Latency\s+([\d\.]+)ms", output)
     if latency_match:
         data["latency"] = float(latency_match.group(1))
-    
+
     return data
+
 
 def benchmark_variant(name: str):
     print(f"\n🚀 Benchmarking {name}...")
-    
+
     # Kill any existing on port
     subprocess.run(f"fuser -k {PORT}/tcp", shell=True, stderr=subprocess.DEVNULL)
     time.sleep(1)
-    
+
     # Start Server
     cmd = RUN_COMMANDS[name]
     print(f"   Starting: {' '.join(cmd)}")
-    
+
     proc = subprocess.Popen(
         cmd,
         cwd=os.getcwd(),
@@ -139,12 +146,12 @@ def benchmark_variant(name: str):
         stderr=subprocess.DEVNULL,
         preexec_fn=os.setsid,
     )
-    
-    time.sleep(3) # Warmup
-    
+
+    time.sleep(3)  # Warmup
+
     results = []
     endpoints = ["/", "/json", "/user/10"]
-    
+
     try:
         for ep in endpoints:
             print(f"   Measuring {ep}...", end="", flush=True)
@@ -157,8 +164,9 @@ def benchmark_variant(name: str):
             proc.wait(timeout=2)
         except:
             pass
-            
+
     return results
+
 
 def main():
     if not shutil.which("wrk"):
@@ -166,31 +174,34 @@ def main():
         return
 
     create_server_files()
-    
+
     try:
         results_no_cache = benchmark_variant("NoCache")
         results_cached = benchmark_variant("Cached")
-        
+
         # Generator Report
         report = "# ⚡ Cache vs No-Cache Benchmark\n\n"
         report += "| Endpoint | Variant | RPS | Avg Latency |\n"
         report += "| :--- | :--- | :---: | :---: |\n"
-        
+
         for nc, c in zip(results_no_cache, results_cached):
             report += f"| **{nc.endpoint}** | No Cache | {nc.rps:,.0f} | {nc.avg_latency_ms:.2f}ms |\n"
-            report += f"| | ⚡ Cached | **{c.rps:,.0f}** | **{c.avg_latency_ms:.2f}ms** |\n"
+            report += (
+                f"| | ⚡ Cached | **{c.rps:,.0f}** | **{c.avg_latency_ms:.2f}ms** |\n"
+            )
             improvement = ((c.rps - nc.rps) / nc.rps) * 100
             report += f"| | *Improvement* | *+{improvement:.1f}%* | |\n"
             report += "| | | | |\n"
-            
+
         with open("benchmarks/CACHE_BENCHMARK.md", "w") as f:
             f.write(report)
-            
+
         print("\n✅ Benchmark complete! Report saved to benchmarks/CACHE_BENCHMARK.md")
         print(report)
-        
+
     finally:
         clean_up()
+
 
 if __name__ == "__main__":
     main()
