@@ -231,6 +231,15 @@ Found a bug? Have a feature request?
 
 ---
 
+## 💰 Support the Project
+
+If you find BustAPI useful, consider supporting its development:
+
+**Binance ID:** ```1010167458```
+
+---
+
 ## License
 
-[MIT](LICENSE) © 2025 GrandpaEJ
+[MIT](LICENSE) © 2025 <strong>[GrandpaEJ](https://github.com/GrandpaEJ)</strong>
+
