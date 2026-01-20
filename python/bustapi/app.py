@@ -100,24 +100,20 @@ class BustAPI:
         self.url_map: Dict[str, Dict] = {}
 
         # Path parameter validation metadata
-        # Maps (rule, param_name) -> Path validator
-        self.path_validators: Dict[tuple, Any] = {}
+        # Maps (rule, method) -> {param_name: Path validator}
+        self.path_validators: Dict[tuple, Dict[str, Any]] = {}
 
         # Query parameter validation metadata
-        # Maps (rule, param_name) -> Query validator with type hint
-        self.query_validators: Dict[tuple, tuple] = (
-            {}
-        )  # (rule, param_name) -> (Query, type)
+        # Maps (rule, method) -> {param_name: (Query, type)}
+        self.query_validators: Dict[tuple, Dict[str, tuple]] = {}
 
         # Body parameter validation metadata
-        # Maps (rule, param_name) -> Body validator with type hint
-        self.body_validators: Dict[tuple, tuple] = (
-            {}
-        )  # (rule, param_name) -> (Body, type)
+        # Maps (rule, method) -> {param_name: (Body, type)}
+        self.body_validators: Dict[tuple, Dict[str, tuple]] = {}
 
         # Dependency injection metadata
-        # Maps (rule, param_name) -> Depends instance
-        self.dependencies: Dict[tuple, Any] = {}  # (rule, param_name) -> Depends
+        # Maps (rule, method) -> {param_name: Depends}
+        self.dependencies: Dict[tuple, Dict[str, Any]] = {}
 
         # Templating
         self.jinja_env = None
@@ -188,13 +184,14 @@ class BustAPI:
             raise RuntimeError(f"Failed to import Rust backend: {e}") from e
 
     def _register_func_params(
-        self, rule: str, func: Callable, is_top_level: bool = True
+        self, rule: str, method: str, func: Callable, is_top_level: bool = True
     ):
         """
         Recursively register (flatten) parameters from a function and its dependencies.
 
         Args:
             rule: The URL rule string
+            method: The HTTP method
             func: The function to inspect
             is_top_level: Whether this is the main view function (register dependencies)
                           or a nested dependency (only register params)
@@ -217,8 +214,10 @@ class BustAPI:
 
         for param_name, param in sig.parameters.items():
             if isinstance(param.default, Path):
-                # Store Path validator for this rule and parameter
-                self.path_validators[(rule, param_name)] = param.default
+                # Store Path validator for this rule, method, and parameter
+                if (rule, method) not in self.path_validators:
+                    self.path_validators[(rule, method)] = {}
+                self.path_validators[(rule, method)][param_name] = param.default
             elif isinstance(param.default, Query):
                 # Store Query validator with type hint for this rule and parameter
                 param_type = (
@@ -226,7 +225,9 @@ class BustAPI:
                     if param.annotation != inspect.Parameter.empty
                     else str
                 )
-                self.query_validators[(rule, param_name)] = (
+                if (rule, method) not in self.query_validators:
+                    self.query_validators[(rule, method)] = {}
+                self.query_validators[(rule, method)][param_name] = (
                     param.default,
                     param_type,
                 )
@@ -237,22 +238,40 @@ class BustAPI:
                     if param.annotation != inspect.Parameter.empty
                     else dict
                 )
-                self.body_validators[(rule, param_name)] = (
+                if (rule, method) not in self.body_validators:
+                    self.body_validators[(rule, method)] = {}
+                self.body_validators[(rule, method)][param_name] = (
                     param.default,
                     param_type,
                 )
             elif isinstance(param.default, Depends):
                 # Store Depends marker ONLY if top level
                 if is_top_level:
-                    if not hasattr(self, "dependencies"):
-                        self.dependencies = {}
-                    self.dependencies[(rule, param_name)] = param.default
+                    if (rule, method) not in self.dependencies:
+                        self.dependencies[(rule, method)] = {}
+                    self.dependencies[(rule, method)][param_name] = param.default
 
                 # RECURSIVELY register params from the dependency function
                 # Mark as NOT top level so we don't register the dependency itself again
                 self._register_func_params(
-                    rule, param.default.dependency, is_top_level=False
+                    rule, method, param.default.dependency, is_top_level=False
                 )
+            elif (
+                param.default is inspect.Parameter.empty
+                and param.annotation is not inspect.Parameter.empty
+            ):
+                # Handle implicit Body parameters (Pydantic models)
+                from .params import Body
+
+                ann = param.annotation
+                if hasattr(ann, "__fields__") or hasattr(ann, "model_fields"):
+                    # Treat as Body
+                    if (rule, method) not in self.body_validators:
+                        self.body_validators[(rule, method)] = {}
+                    self.body_validators[(rule, method)][param_name] = (
+                        Body(...),
+                        ann,
+                    )
 
     def add_url_rule(
         self,
@@ -280,7 +299,8 @@ class BustAPI:
 
         # Extract Path, Query, Body, and Depends validators from function signature
         if view_func:
-            self._register_func_params(rule, view_func, is_top_level=True)
+            for method in methods:
+                self._register_func_params(rule, method, view_func, is_top_level=True)
 
         # Store view function
         self.view_functions[endpoint] = view_func
@@ -425,15 +445,10 @@ class BustAPI:
 
                 turbo_wrapped = create_turbo_wrapper(f)
 
-                if cache_ttl > 0:
-                    # Use typed turbo handler for caching support
-                    for method in methods:
-                        self._rust_app.add_typed_turbo_route(
-                            method, rule, turbo_wrapped, {}, cache_ttl
-                        )
-                else:
-                    for method in methods:
-                        self._rust_app.add_route(method, rule, turbo_wrapped)
+                for method in methods:
+                    self._rust_app.add_typed_turbo_route(
+                        method, rule, turbo_wrapped, {}, cache_ttl
+                    )
 
             return f
 
@@ -530,9 +545,10 @@ class BustAPI:
                 pass
         return self.jinja_env
 
-    def _extract_path_params(self, rule: str, path: str):
+    def _extract_path_params(self, rule: str, method: str, path: str):
         """Extract and validate path params from a Flask-style rule like '/greet/<name>' or '/users/<int:id>'."""
-        from .params import ValidationError
+        if "<" not in rule:
+            return [], {}
 
         rule_parts = rule.strip("/").split("/")
         path_parts = path.strip("/").split("/")
@@ -540,6 +556,10 @@ class BustAPI:
         kwargs = {}
         if len(rule_parts) != len(path_parts):
             return args, kwargs
+
+        # Get validators for this rule and method once
+        validators = self.path_validators.get((rule, method), {})
+
         for rp, pp in zip(rule_parts, path_parts):
             if rp.startswith("<") and rp.endswith(">"):
                 inner = rp[1:-1]  # strip < >
@@ -563,8 +583,10 @@ class BustAPI:
                         val = pp
 
                 # Validate against Path constraints if present
-                validator = self.path_validators.get((rule, name))
+                validator = validators.get(name)
                 if validator:
+                    from .params import ValidationError
+
                     try:
                         val = validator.validate(name, val)
                     except ValidationError as e:
@@ -579,18 +601,14 @@ class BustAPI:
 
     def _extract_query_params(self, rule: str, request):
         """Extract and validate query parameters based on Query validators."""
-        from .params import ValidationError
+        # FAST PATH: If no query validators registered for this route, return empty kwargs
+        validators = self.query_validators.get((rule, request.method))
+        if not validators:
+            return {}
 
         kwargs = {}
 
-        # Get all query validators for this route
-        for (validator_rule, param_name), (
-            query_validator,
-            param_type,
-        ) in self.query_validators.items():
-            if validator_rule != rule:
-                continue
-
+        for param_name, (query_validator, param_type) in validators.items():
             # Get raw value from query string
             raw_value = request.args.get(param_name)
 
@@ -615,7 +633,7 @@ class BustAPI:
                     param_name, raw_value, param_type
                 )
                 kwargs[param_name] = validated_value
-            except ValidationError as e:
+            except Exception as e:
                 # Raise HTTP 400 error with validation message
                 from .core.helpers import abort
 
@@ -625,18 +643,14 @@ class BustAPI:
 
     def _extract_body_params(self, rule: str, request):
         """Extract and validate request body based on Body validators."""
-        from .params import ValidationError
+        # FAST PATH: If no body validators registered for this route, return empty kwargs
+        validators = self.body_validators.get((rule, request.method))
+        if not validators:
+            return {}
 
         kwargs = {}
 
-        # Get all body validators for this route
-        for (validator_rule, param_name), (
-            body_validator,
-            param_type,
-        ) in self.body_validators.items():
-            if validator_rule != rule:
-                continue
-
+        for param_name, (body_validator, param_type) in validators.items():
             # Parse JSON body
             body_data = None
             try:
@@ -658,15 +672,14 @@ class BustAPI:
 
                     abort(400, description="Missing required request body")
                 else:
-                    # Use default value if provided (but NOT the Body object itself!)
-                    # Body objects should never have a default other than ...
+                    # Use default value if provided
                     continue
 
             # Validate the body
             try:
                 validated_value = body_validator.validate(body_data, param_type)
                 kwargs[param_name] = validated_value
-            except ValidationError as e:
+            except Exception as e:
                 # Raise HTTP 400 error with validation message
                 from .core.helpers import abort
 
@@ -674,18 +687,19 @@ class BustAPI:
 
         return kwargs
 
-    def _resolve_dependencies(self, rule: str, resolved_params: dict):
+    def _resolve_dependencies(self, rule: str, method: str, resolved_params: dict):
         """Resolve dependencies for this route (sync version)."""
+        # FAST PATH: If no dependencies registered for this route, return empty kwargs
+        deps = self.dependencies.get((rule, method))
+        if not deps:
+            return {}, None
+
         from .dependencies import DependencyCache, resolve_dependency_sync
 
         kwargs = {}
         cache = DependencyCache()
 
-        # Get all dependencies for this route
-        for (dep_rule, param_name), depends in self.dependencies.items():
-            if dep_rule != rule:
-                continue
-
+        for param_name, depends in deps.items():
             # Resolve the dependency
             # Note: Don't catch abort exceptions - let them propagate
             value = resolve_dependency_sync(depends, cache, resolved_params)
@@ -694,18 +708,21 @@ class BustAPI:
         # Store cache for cleanup
         return kwargs, cache
 
-    async def _resolve_dependencies_async(self, rule: str, resolved_params: dict):
+    async def _resolve_dependencies_async(
+        self, rule: str, method: str, resolved_params: dict
+    ):
         """Resolve dependencies for this route (async version)."""
+        # FAST PATH: If no dependencies registered for this route, return empty kwargs
+        deps = self.dependencies.get((rule, method))
+        if not deps:
+            return {}, None
+
         from .dependencies import DependencyCache, resolve_dependency
 
         kwargs = {}
         cache = DependencyCache()
 
-        # Get all dependencies for this route
-        for (dep_rule, param_name), depends in self.dependencies.items():
-            if dep_rule != rule:
-                continue
-
+        for param_name, depends in deps.items():
             # Resolve the dependency
             # Note: Don't catch abort exceptions - let them propagate
             value = await resolve_dependency(depends, cache, resolved_params)

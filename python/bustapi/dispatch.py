@@ -103,201 +103,154 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
     def wrapper(rust_request):
         """Synchronous wrapper for route handlers."""
         try:
-            # Fast Path: Check optimizations
-            # Note: accessing attributes on self is fast, but local vars are faster.
-            # In a real "compile" step we would bake these, but for now dynamic checks
-            # with early exits are improved.
-
-            # Convert Rust request to Python Request object
+            # 1. Context and Request Initialization (Fast Path)
             request = Request._from_rust_request(rust_request)
             request.app = app
-
-            # Context is needed for proxies
             token = _request_ctx.set(request)
 
-            # --- SESSION HANDLING ---
-            # Only process sessions if we have a secret_key (implied valid interface)
-            # and the interface isn't a NullSession (optimization)
+            # 2. Session Initialization
             session = None
             if app.secret_key:
                 session = app.session_interface.open_session(app, request)
                 request.session = session
 
-            # --- BEFORE REQUEST ---
+            # 3. Before Request Hooks
             if app.before_request_funcs:
                 for before_func in app.before_request_funcs:
-                    result = before_func()
-                    if result is not None:
-                        response = app._make_response(result)
+                    res = before_func()
+                    if res is not None:
+                        response = app._make_response(res)
                         if session:
                             app.session_interface.save_session(app, session, response)
                         _request_ctx.reset(token)
                         return app._response_to_rust_format(response)
 
-            # --- MIDDLEWARE REQUEST ---
-            # Direct check on list length is faster than method call
+            # 4. Main Request Processing (Branching based on Middleware presence)
             if app.middleware_manager.middlewares:
+                # PATH WITH MIDDLEWARE
                 mw_response = app.middleware_manager.process_request(request)
                 if mw_response:
                     response = mw_response
                 else:
-                    args, kwargs = app._extract_path_params(rule, request.path)
-                    # Extract and merge query parameters
-                    query_kwargs = app._extract_query_params(rule, request)
-                    kwargs.update(query_kwargs)
-                    # Extract and merge body parameters (for POST/PUT/PATCH)
+                    # Parameter Extraction
+                    args, kwargs = app._extract_path_params(
+                        rule, request.method, request.path
+                    )
+                    kwargs.update(app._extract_query_params(rule, request))
                     if request.method in ("POST", "PUT", "PATCH"):
-                        body_kwargs = app._extract_body_params(rule, request)
-                        kwargs.update(body_kwargs)
-                    # Resolve dependencies
-                    dep_kwargs, dep_cache = app._resolve_dependencies(rule, kwargs)
+                        kwargs.update(app._extract_body_params(rule, request))
+
+                    dep_kwargs, dep_cache = app._resolve_dependencies(
+                        rule, request.method, kwargs
+                    )
                     kwargs.update(dep_kwargs)
 
-                    # Auto-inject missing query parameters
+                    # Auto-inject from query for compatibility
                     for name in expected_args:
                         if name not in kwargs and name in request.args:
                             kwargs[name] = request.args.get(name)
 
-                    # Filter kwargs to match handler signature
-                    if not has_kwargs:
-                        call_kwargs = {
-                            k: v for k, v in kwargs.items() if k in expected_args
-                        }
-                    else:
-                        call_kwargs = kwargs
+                    call_kwargs = (
+                        kwargs
+                        if has_kwargs
+                        else {k: v for k, v in kwargs.items() if k in expected_args}
+                    )
 
                     try:
                         result = handler(**call_kwargs)
                     finally:
-                        # Cleanup dependency generators
-                        dep_cache.cleanup_sync()
+                        if dep_cache:
+                            dep_cache.cleanup_sync()
 
-                    # Wait, let's keep the original logic for result to response but optimized
-                    if isinstance(result, tuple):
-                        response = app._make_response(*result)
-                    else:
-                        response = app._make_response(result)
+                    response = (
+                        app._make_response(result)
+                        if not isinstance(result, tuple)
+                        else app._make_response(*result)
+                    )
             else:
-                # NO MIDDLEWARE PATH (FAST)
-                # Optimization: Skip param extraction for static routes
-                # (We know it matches because Rust router sent it here)
-                if "<" not in rule:
-                    # Static route (no path params), but still need query/body/deps
-                    kwargs = {}
-                    # Extract query parameters
-                    query_kwargs = app._extract_query_params(rule, request)
-                    kwargs.update(query_kwargs)
-                    # Extract body parameters (for POST/PUT/PATCH)
-                    if request.method in ("POST", "PUT", "PATCH"):
-                        body_kwargs = app._extract_body_params(rule, request)
-                        kwargs.update(body_kwargs)
-                    # Resolve dependencies
-                    dep_kwargs, dep_cache = app._resolve_dependencies(rule, kwargs)
-                    kwargs.update(dep_kwargs)
-
-                    # Auto-inject missing query parameters
-                    for name in expected_args:
-                        if name not in kwargs and name in request.args:
-                            kwargs[name] = request.args.get(name)
-                    # Filter kwargs to match handler signature
-                    if not has_kwargs:
-                        call_kwargs = {
-                            k: v for k, v in kwargs.items() if k in expected_args
-                        }
-                    else:
-                        call_kwargs = kwargs
-
-                    try:
-                        result = handler(**call_kwargs)
-                    finally:
-                        dep_cache.cleanup_sync()
+                # PATH WITHOUT MIDDLEWARE (ULTRA-FAST)
+                if "<" not in rule and not expected_args:
+                    result = handler()
+                    dep_cache = None
                 else:
-                    args, kwargs = app._extract_path_params(rule, request.path)
-                    # Extract and merge query parameters
-                    query_kwargs = app._extract_query_params(rule, request)
-                    kwargs.update(query_kwargs)
-                    # Extract and merge body parameters (for POST/PUT/PATCH)
-                    if request.method in ("POST", "PUT", "PATCH"):
-                        body_kwargs = app._extract_body_params(rule, request)
-                        kwargs.update(body_kwargs)
-                    # Resolve dependencies
-                    dep_kwargs, dep_cache = app._resolve_dependencies(rule, kwargs)
-                    kwargs.update(dep_kwargs)
-
-                    # Auto-inject missing query parameters
-                    for name in expected_args:
-                        if name not in kwargs and name in request.args:
-                            kwargs[name] = request.args.get(name)
-
-                    # Filter kwargs to match handler signature
-                    if not has_kwargs:
-                        call_kwargs = {
-                            k: v for k, v in kwargs.items() if k in expected_args
-                        }
-                    else:
-                        call_kwargs = kwargs
-
-                    try:
-                        result = handler(**call_kwargs)
-                    finally:
-                        # Cleanup dependency generators
-                        dep_cache.cleanup_sync()
-
-                # OPTIMIZATION: Bypass Response object creation for common types
-                # Only if we don't need to save session or run after_request hooks
-                if session is None and not app.after_request_funcs:
-                    if isinstance(result, str):
-                        return (result, 200, {})
-                    elif isinstance(result, bytes):
-                        return (result.decode("utf-8", "replace"), 200, {})
-                    elif isinstance(result, (dict, list)):
-                        # Pass raw dict/list to Rust for native serialization
-                        # This skips Python's json.dumps() entirely!
-                        return (
-                            result,
-                            200,
-                            {"Content-Type": "application/json"},
+                    if "<" not in rule:
+                        kwargs = app._extract_query_params(rule, request)
+                        if request.method in ("POST", "PUT", "PATCH"):
+                            kwargs.update(app._extract_body_params(rule, request))
+                        dep_kwargs, dep_cache = app._resolve_dependencies(
+                            rule, request.method, kwargs
                         )
+                        kwargs.update(dep_kwargs)
+                    else:
+                        args, kwargs = app._extract_path_params(
+                            rule, request.method, request.path
+                        )
+                        kwargs.update(app._extract_query_params(rule, request))
+                        if request.method in ("POST", "PUT", "PATCH"):
+                            kwargs.update(app._extract_body_params(rule, request))
+                        dep_kwargs, dep_cache = app._resolve_dependencies(
+                            rule, request.method, kwargs
+                        )
+                        kwargs.update(dep_kwargs)
 
-                # Fallback for other types or tuples
-                if isinstance(result, tuple):
-                    response = app._make_response(*result)
-                else:
-                    response = app._make_response(result)
+                    for name in expected_args:
+                        if name not in kwargs and name in request.args:
+                            kwargs[name] = request.args.get(name)
 
-            # --- MIDDLEWARE RESPONSE ---
+                    call_kwargs = (
+                        kwargs
+                        if has_kwargs
+                        else {k: v for k, v in kwargs.items() if k in expected_args}
+                    )
+
+                    try:
+                        result = handler(**call_kwargs)
+                    finally:
+                        if dep_cache:
+                            dep_cache.cleanup_sync()
+
+                # Optimization: Skip Response object if possible
+                if session is None and not app.after_request_funcs:
+                    if isinstance(result, (dict, list, str, bytes)):
+                        # Pass directly to Rust. JSON serialization handled by Rust if dict/list.
+                        ct = (
+                            "application/json"
+                            if isinstance(result, (dict, list))
+                            else (
+                                "text/html"
+                                if isinstance(result, str)
+                                else "application/octet-stream"
+                            )
+                        )
+                        return (result, 200, {"Content-Type": ct})
+
+                response = (
+                    app._make_response(result)
+                    if not isinstance(result, tuple)
+                    else app._make_response(*result)
+                )
+
+            # 5. Pipeline Cleanup and Hooks
             if app.middleware_manager.middlewares:
                 response = app.middleware_manager.process_response(request, response)
-
-            # --- AFTER REQUEST ---
             if app.after_request_funcs:
                 for after_func in app.after_request_funcs:
                     response = after_func(response) or response
-
-            # --- SAVE SESSION ---
             if session is not None:
                 app.session_interface.save_session(app, session, response)
 
-            # Convert to Rust format (inline optimizations possible here?)
             return app._response_to_rust_format(response)
 
         except Exception as e:
-            error_response = app._handle_exception(e)
-            return app._response_to_rust_format(error_response)
+            return app._response_to_rust_format(app._handle_exception(e))
         finally:
-            # Optimized teardown
             if app.teardown_request_funcs:
-                for teardown_func in app.teardown_request_funcs:
+                for f in app.teardown_request_funcs:
                     try:
-                        teardown_func(None)
-                    except Exception:
+                        f(None)
+                    except:
                         pass
-
-            # Context reset
-            if "token" in locals():
-                _request_ctx.reset(token)
-            else:
-                _request_ctx.set(None)
+            _request_ctx.reset(token)
 
     return wrapper
 
@@ -320,195 +273,142 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
     @wraps(handler)
     async def wrapper(rust_request):
         try:
-            # Convert Rust request to Python Request object
             request = Request._from_rust_request(rust_request)
             request.app = app
-
             token = _request_ctx.set(request)
 
-            # Open Session
             session = None
             if app.secret_key:
                 session = app.session_interface.open_session(app, request)
                 request.session = session
 
-            # Run before request handlers
             if app.before_request_funcs:
                 for before_func in app.before_request_funcs:
-                    result = before_func()
-                    if result is not None:
-                        response = app._make_response(result)
+                    res = before_func()
+                    if res is not None:
+                        response = app._make_response(res)
                         if session:
                             app.session_interface.save_session(app, session, response)
                         _request_ctx.reset(token)
                         return app._response_to_rust_format(response)
 
-            # Middleware: Process Request
             if app.middleware_manager.middlewares:
                 mw_response = app.middleware_manager.process_request(request)
                 if mw_response:
                     response = mw_response
                 else:
-                    # Extract path params
-                    args, kwargs = app._extract_path_params(rule, request.path)
-                    # Extract and merge query parameters
-                    query_kwargs = app._extract_query_params(rule, request)
-                    kwargs.update(query_kwargs)
-                    # Extract and merge body parameters (for POST/PUT/PATCH)
+                    args, kwargs = app._extract_path_params(
+                        rule, request.method, request.path
+                    )
+                    kwargs.update(app._extract_query_params(rule, request))
                     if request.method in ("POST", "PUT", "PATCH"):
-                        body_kwargs = app._extract_body_params(rule, request)
-                        kwargs.update(body_kwargs)
-                    # Resolve dependencies (async)
+                        kwargs.update(app._extract_body_params(rule, request))
+
                     dep_kwargs, dep_cache = await app._resolve_dependencies_async(
-                        rule, kwargs
+                        rule, request.method, kwargs
                     )
                     kwargs.update(dep_kwargs)
 
-                    # Auto-inject missing query parameters
                     for name in expected_args:
                         if name not in kwargs and name in request.args:
                             kwargs[name] = request.args.get(name)
 
-                    # Filter kwargs to match handler signature
-                    if not has_kwargs:
-                        call_kwargs = {
-                            k: v for k, v in kwargs.items() if k in expected_args
-                        }
-                    else:
-                        call_kwargs = kwargs
+                    call_kwargs = (
+                        kwargs
+                        if has_kwargs
+                        else {k: v for k, v in kwargs.items() if k in expected_args}
+                    )
 
                     try:
                         result = await handler(**call_kwargs)
                     finally:
-                        # Cleanup dependency generators
-                        await dep_cache.cleanup()
+                        if dep_cache:
+                            await dep_cache.cleanup()
 
-                    if isinstance(result, tuple):
-                        response = app._make_response(*result)
-                    else:
-                        response = app._make_response(result)
+                    response = (
+                        app._make_response(result)
+                        if not isinstance(result, tuple)
+                        else app._make_response(*result)
+                    )
             else:
-                # NO MIDDLEWARE PATH (FAST)
-                if "<" not in rule:
-                    # Static route (no path params), but still need query/body/deps
-                    kwargs = {}
-                    # Extract query parameters
-                    query_kwargs = app._extract_query_params(rule, request)
-                    kwargs.update(query_kwargs)
-                    # Extract body parameters (for POST/PUT/PATCH)
-                    if request.method in ("POST", "PUT", "PATCH"):
-                        body_kwargs = app._extract_body_params(rule, request)
-                        kwargs.update(body_kwargs)
-                    # Resolve dependencies (async)
-                    dep_kwargs, dep_cache = await app._resolve_dependencies_async(
-                        rule, kwargs
-                    )
-                    kwargs.update(dep_kwargs)
-
-                    # Auto-inject missing query parameters
-                    for name in expected_args:
-                        if name not in kwargs and name in request.args:
-                            kwargs[name] = request.args.get(name)
-                    # Filter kwargs to match handler signature
-                    if not has_kwargs:
-                        call_kwargs = {
-                            k: v for k, v in kwargs.items() if k in expected_args
-                        }
-                    else:
-                        call_kwargs = kwargs
-
-                    try:
-                        result = await handler(**call_kwargs)
-                    finally:
-                        await dep_cache.cleanup()
+                if "<" not in rule and not expected_args:
+                    result = await handler()
+                    dep_cache = None
                 else:
-                    args, kwargs = app._extract_path_params(rule, request.path)
-                    # Extract and merge query parameters
-                    query_kwargs = app._extract_query_params(rule, request)
-                    kwargs.update(query_kwargs)
-                    # Extract and merge body parameters (for POST/PUT/PATCH)
-                    if request.method in ("POST", "PUT", "PATCH"):
-                        body_kwargs = app._extract_body_params(rule, request)
-                        kwargs.update(body_kwargs)
-                    # Resolve dependencies (async)
-                    dep_kwargs, dep_cache = await app._resolve_dependencies_async(
-                        rule, kwargs
-                    )
-                    kwargs.update(dep_kwargs)
-
-                    # Auto-inject missing query parameters
-                    for name in expected_args:
-                        if name not in kwargs and name in request.args:
-                            kwargs[name] = request.args.get(name)
-
-                    # Filter kwargs to match handler signature
-                    if not has_kwargs:
-                        call_kwargs = {
-                            k: v for k, v in kwargs.items() if k in expected_args
-                        }
-                    else:
-                        call_kwargs = kwargs
-
-                    try:
-                        result = await handler(**call_kwargs)
-                    finally:
-                        # Cleanup dependency generators
-                        await dep_cache.cleanup()
-
-                # OPTIMIZATION: Bypass Response object creation for common types
-                # Only if we don't need to save session or run after_request hooks
-                if session is None and not app.after_request_funcs:
-                    if isinstance(result, str):
-                        return (result, 200, {})
-                    elif isinstance(result, bytes):
-                        return (result.decode("utf-8", "replace"), 200, {})
-                    elif isinstance(result, (dict, list)):
-                        # Pass raw dict/list to Rust for native serialization
-                        # This skips Python's json.dumps() entirely!
-                        return (
-                            result,
-                            200,
-                            {"Content-Type": "application/json"},
+                    if "<" not in rule:
+                        kwargs = app._extract_query_params(rule, request)
+                        if request.method in ("POST", "PUT", "PATCH"):
+                            kwargs.update(app._extract_body_params(rule, request))
+                        dep_kwargs, dep_cache = await app._resolve_dependencies_async(
+                            rule, request.method, kwargs
                         )
+                        kwargs.update(dep_kwargs)
+                    else:
+                        args, kwargs = app._extract_path_params(
+                            rule, request.method, request.path
+                        )
+                        kwargs.update(app._extract_query_params(rule, request))
+                        if request.method in ("POST", "PUT", "PATCH"):
+                            kwargs.update(app._extract_body_params(rule, request))
+                        dep_kwargs, dep_cache = await app._resolve_dependencies_async(
+                            rule, request.method, kwargs
+                        )
+                        kwargs.update(dep_kwargs)
 
-                # Fallback for other types or tuples
-                if isinstance(result, tuple):
-                    response = app._make_response(*result)
-                else:
-                    response = app._make_response(result)
+                    for name in expected_args:
+                        if name not in kwargs and name in request.args:
+                            kwargs[name] = request.args.get(name)
 
-            # Middleware: Process Response
+                    call_kwargs = (
+                        kwargs
+                        if has_kwargs
+                        else {k: v for k, v in kwargs.items() if k in expected_args}
+                    )
+
+                    try:
+                        result = await handler(**call_kwargs)
+                    finally:
+                        if dep_cache:
+                            await dep_cache.cleanup()
+
+                if session is None and not app.after_request_funcs:
+                    if isinstance(result, (dict, list, str, bytes)):
+                        ct = (
+                            "application/json"
+                            if isinstance(result, (dict, list))
+                            else (
+                                "text/html"
+                                if isinstance(result, str)
+                                else "application/octet-stream"
+                            )
+                        )
+                        return (result, 200, {"Content-Type": ct})
+
+                response = (
+                    app._make_response(result)
+                    if not isinstance(result, tuple)
+                    else app._make_response(*result)
+                )
+
             if app.middleware_manager.middlewares:
                 response = app.middleware_manager.process_response(request, response)
-
-            # Run after request handlers
             if app.after_request_funcs:
                 for after_func in app.after_request_funcs:
                     response = after_func(response) or response
-
-            # Save Session
             if session is not None:
                 app.session_interface.save_session(app, session, response)
 
-            # Convert Python Response to dict/tuple for Rust
             return app._response_to_rust_format(response)
 
         except Exception as e:
-            # Handle errors
-            error_response = app._handle_exception(e)
-            return app._response_to_rust_format(error_response)
+            return app._response_to_rust_format(app._handle_exception(e))
         finally:
-            # Teardown handlers
             if app.teardown_request_funcs:
-                for teardown_func in app.teardown_request_funcs:
+                for f in app.teardown_request_funcs:
                     try:
-                        teardown_func(None)
-                    except Exception:
+                        f(None)
+                    except:
                         pass
-
-            if "token" in locals():
-                _request_ctx.reset(token)
-            else:
-                _request_ctx.set(None)
+            _request_ctx.reset(token)
 
     return wrapper
