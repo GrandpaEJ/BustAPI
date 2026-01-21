@@ -100,8 +100,13 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
         expected_args = set()
 
     @wraps(handler)
-    def wrapper(rust_request):
-        """Synchronous wrapper for route handlers."""
+    def wrapper(rust_request, path_params=None):
+        """Synchronous wrapper for route handlers.
+        
+        Args:
+            rust_request: The Rust request object
+            path_params: Pre-extracted path params from Rust (optional, for performance)
+        """
         try:
             # 1. Context and Request Initialization (Fast Path)
             request = Request._from_rust_request(rust_request)
@@ -132,10 +137,15 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                 if mw_response:
                     response = mw_response
                 else:
-                    # Parameter Extraction
-                    args, kwargs = app._extract_path_params(
-                        rule, request.method, request.path
-                    )
+                    # Parameter Extraction - use Rust-extracted params if available
+                    if path_params is not None:
+                        kwargs = dict(path_params)  # Use Rust-extracted params (FAST)
+                        # Still need to validate against Path constraints
+                        kwargs = app._validate_path_params(rule, request.method, kwargs)
+                    else:
+                        args, kwargs = app._extract_path_params(
+                            rule, request.method, request.path
+                        )
                     kwargs.update(app._extract_query_params(rule, request))
                     if request.method in ("POST", "PUT", "PATCH"):
                         kwargs.update(app._extract_body_params(rule, request))
@@ -169,29 +179,29 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                     )
             else:
                 # PATH WITHOUT MIDDLEWARE (ULTRA-FAST)
-                if "<" not in rule and not expected_args:
+                if "<" not in rule and not expected_args and path_params is None:
                     result = handler()
                     dep_cache = None
                 else:
-                    if "<" not in rule:
-                        kwargs = app._extract_query_params(rule, request)
-                        if request.method in ("POST", "PUT", "PATCH"):
-                            kwargs.update(app._extract_body_params(rule, request))
-                        dep_kwargs, dep_cache = app._resolve_dependencies(
-                            rule, request.method, kwargs
-                        )
-                        kwargs.update(dep_kwargs)
+                    # Use Rust-extracted params if available
+                    if path_params is not None:
+                        kwargs = dict(path_params)  # FAST PATH - Rust-extracted
+                        # Still need to validate against Path constraints
+                        kwargs = app._validate_path_params(rule, request.method, kwargs)
+                    elif "<" not in rule:
+                        kwargs = {}
                     else:
                         args, kwargs = app._extract_path_params(
                             rule, request.method, request.path
                         )
-                        kwargs.update(app._extract_query_params(rule, request))
-                        if request.method in ("POST", "PUT", "PATCH"):
-                            kwargs.update(app._extract_body_params(rule, request))
-                        dep_kwargs, dep_cache = app._resolve_dependencies(
-                            rule, request.method, kwargs
-                        )
-                        kwargs.update(dep_kwargs)
+                    
+                    kwargs.update(app._extract_query_params(rule, request))
+                    if request.method in ("POST", "PUT", "PATCH"):
+                        kwargs.update(app._extract_body_params(rule, request))
+                    dep_kwargs, dep_cache = app._resolve_dependencies(
+                        rule, request.method, kwargs
+                    )
+                    kwargs.update(dep_kwargs)
 
                     for name in expected_args:
                         if name not in kwargs and name in request.args:
