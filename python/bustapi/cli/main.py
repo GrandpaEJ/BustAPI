@@ -227,7 +227,7 @@ version = "0.1.0"
 description = "A BustAPI application"
 requires-python = ">=3.10"
 dependencies = [
-    "bustapi>=0.7.0",
+    "bustapi>={__version__}",
 ]
 
 [project.scripts]
@@ -242,7 +242,7 @@ authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-bustapi = "^0.7.0"
+bustapi = "^{__version__}"
 
 [build-system]
 requires = ["poetry-core"]
@@ -250,7 +250,7 @@ build-backend = "poetry.core.masonry.api"
 """
         (project_path / "pyproject.toml").write_text(pyproject)
     else:
-        requirements = "bustapi>=0.7.0\n"
+        requirements = f"bustapi>={__version__}\n"
         (project_path / "requirements.txt").write_text(requirements)
 
     # Create .gitignore
