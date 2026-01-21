@@ -239,6 +239,13 @@ If you find BustAPI useful, consider supporting its development:
 
 ---
 
+## 🌠 Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=GrandpaEJ/BustAPI&type=Date)](https://www.star-history.com/#GrandpaEJ/BustAPI&Date)
+
+---
+
+
 ## License
 
 [MIT](LICENSE) © 2025 <strong>[GrandpaEJ](https://github.com/GrandpaEJ)</strong>
