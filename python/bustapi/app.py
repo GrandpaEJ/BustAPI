@@ -1,28 +1,32 @@
 """
 BustAPI Application class - Flask-compatible web framework
+
+This is the main application class that coordinates all components.
+Mixins are used to keep the codebase modular and maintainable.
 """
 
 import inspect
 import os
-from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
+from .context import ContextMixin, _AppContext, _RequestContext
 from .core.helpers import get_root_path
 from .core.logging import get_logger
-
-# NOTE: itsdangerous is no longer used for session signing.
-# We use the Rust Signer class imported in sessions.py
 from .dispatch import create_async_wrapper, create_sync_wrapper
+from .extraction import ExtractionMixin
+from .hooks import HooksMixin
 from .http.request import Request, _request_ctx
 from .http.response import Response, make_response
 from .middleware import MiddlewareManager
 from .responses import HTMLResponse
 from .routing.blueprints import Blueprint
+from .routing.decorators import RoutingMixin
+from .server.wsgi import WSGIAdapter
 from .serving import run_server
 from .sessions import SecureCookieSessionInterface
 
 
-class BustAPI:
+class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapter):
     """
     Flask-compatible application class built on Rust backend.
 
@@ -96,33 +100,21 @@ class BustAPI:
         self.blueprints: Dict[str, Blueprint] = {}
 
         # URL map and rules
-        # url_map maps rule -> {endpoint, methods}
         self.url_map: Dict[str, Dict] = {}
 
-        # Path parameter validation metadata
-        # Maps (rule, method) -> {param_name: Path validator}
+        # Parameter validation metadata
         self.path_validators: Dict[tuple, Dict[str, Any]] = {}
-
-        # Query parameter validation metadata
-        # Maps (rule, method) -> {param_name: (Query, type)}
         self.query_validators: Dict[tuple, Dict[str, tuple]] = {}
-
-        # Body parameter validation metadata
-        # Maps (rule, method) -> {param_name: (Body, type)}
         self.body_validators: Dict[tuple, Dict[str, tuple]] = {}
-
-        # Dependency injection metadata
-        # Maps (rule, method) -> {param_name: Depends}
         self.dependencies: Dict[tuple, Dict[str, Any]] = {}
 
         # Templating
         self.jinja_env = None
 
-        # Initialize colorful logger
+        # Initialize logger
         try:
             self.logger = get_logger("bustapi.app")
         except Exception:
-            # Fallback if logging module has issues
             self.logger = None
 
         # Flask compatibility attributes
@@ -131,7 +123,6 @@ class BustAPI:
         self.secret_key = None
         self.permanent_session_lifetime = None
         self.use_x_sendfile = False
-        self.logger = None
         self.json_encoder = None
         self.json_decoder = None
         self.jinja_options = {}
@@ -141,8 +132,6 @@ class BustAPI:
         self.instance_path = None
         self.open_session = None
         self.save_session = None
-        self.session_interface = None
-        # self.wsgi_app = None  DO NOT SHADOW METHOD
         self.response_class = None
         self.request_class = None
         self.test_client_class = None
@@ -167,638 +156,24 @@ class BustAPI:
         try:
             from . import bustapi_core
 
-            self._rust_app = bustapi_core.PyBustApp()
+            self._rust_app = bustapi_core.create_app()
 
-            # Register static file usage
-            if self.static_folder:
-                url_path = (self.static_url_path or "/static").rstrip("/") + "/"
-                self._rust_app.add_static_route(url_path, self.static_folder)
+            # Register static file handler
+            if self.static_folder and os.path.isdir(self.static_folder):
+                self._rust_app.set_static_folder(self.static_folder)
+                static_url = self.static_url_path or "/static"
+                self._rust_app.add_static_route(static_url, self.static_folder)
 
-            if self.template_folder:
+            # Register template folder
+            if self.template_folder and os.path.isdir(self.template_folder):
                 self._rust_app.set_template_folder(self.template_folder)
 
-            # Application features
-            if hasattr(self, "redirect_slashes"):
-                self._rust_app.set_redirect_slashes(self.redirect_slashes)
         except ImportError as e:
-            raise RuntimeError(f"Failed to import Rust backend: {e}") from e
-
-    def _register_func_params(
-        self, rule: str, method: str, func: Callable, is_top_level: bool = True
-    ):
-        """
-        Recursively register (flatten) parameters from a function and its dependencies.
-
-        Args:
-            rule: The URL rule string
-            method: The HTTP method
-            func: The function to inspect
-            is_top_level: Whether this is the main view function (register dependencies)
-                          or a nested dependency (only register params)
-        """
-        from .dependencies import Depends
-        from .params import Body, Path, Query
-
-        if not func:
-            return
-
-        # Avoid infinite recursion
-        if getattr(func, "_bustapi_registered", False):
-            return
-
-        # Inspect signature
-        try:
-            sig = inspect.signature(func)
-        except (ValueError, TypeError):
-            return
-
-        for param_name, param in sig.parameters.items():
-            if isinstance(param.default, Path):
-                # Store Path validator for this rule, method, and parameter
-                if (rule, method) not in self.path_validators:
-                    self.path_validators[(rule, method)] = {}
-                self.path_validators[(rule, method)][param_name] = param.default
-            elif isinstance(param.default, Query):
-                # Store Query validator with type hint for this rule and parameter
-                param_type = (
-                    param.annotation
-                    if param.annotation != inspect.Parameter.empty
-                    else str
-                )
-                if (rule, method) not in self.query_validators:
-                    self.query_validators[(rule, method)] = {}
-                self.query_validators[(rule, method)][param_name] = (
-                    param.default,
-                    param_type,
-                )
-            elif isinstance(param.default, Body):
-                # Store Body validator with type hint for this rule and parameter
-                param_type = (
-                    param.annotation
-                    if param.annotation != inspect.Parameter.empty
-                    else dict
-                )
-                if (rule, method) not in self.body_validators:
-                    self.body_validators[(rule, method)] = {}
-                self.body_validators[(rule, method)][param_name] = (
-                    param.default,
-                    param_type,
-                )
-            elif isinstance(param.default, Depends):
-                # Store Depends marker ONLY if top level
-                if is_top_level:
-                    if (rule, method) not in self.dependencies:
-                        self.dependencies[(rule, method)] = {}
-                    self.dependencies[(rule, method)][param_name] = param.default
-
-                # RECURSIVELY register params from the dependency function
-                # Mark as NOT top level so we don't register the dependency itself again
-                self._register_func_params(
-                    rule, method, param.default.dependency, is_top_level=False
-                )
-            elif (
-                param.default is inspect.Parameter.empty
-                and param.annotation is not inspect.Parameter.empty
-            ):
-                # Handle implicit Body parameters (Pydantic models)
-                from .params import Body
-
-                ann = param.annotation
-                if hasattr(ann, "__fields__") or hasattr(ann, "model_fields"):
-                    # Treat as Body
-                    if (rule, method) not in self.body_validators:
-                        self.body_validators[(rule, method)] = {}
-                    self.body_validators[(rule, method)][param_name] = (
-                        Body(...),
-                        ann,
-                    )
-
-    def add_url_rule(
-        self,
-        rule: str,
-        endpoint: Optional[str] = None,
-        view_func: Optional[Callable] = None,
-        provide_automatic_options: Optional[bool] = None,
-        **options,
-    ) -> None:
-        """
-        Connect a URL rule. Works exactly like the route decorator.
-
-        Args:
-            rule: The URL rule string
-            endpoint: The endpoint for the registered URL rule
-            view_func: The function to call when serving a request to the provided endpoint
-            provide_automatic_options: Unused (Flask compatibility)
-            **options: The options to be forwarded to the underlying Rule object
-        """
-        if endpoint is None:
-            endpoint = view_func.__name__
-
-        options["endpoint"] = endpoint
-        methods = options.pop("methods", ["GET"])
-
-        # Extract Path, Query, Body, and Depends validators from function signature
-        if view_func:
-            for method in methods:
-                self._register_func_params(rule, method, view_func, is_top_level=True)
-
-        # Store view function
-        self.view_functions[endpoint] = view_func
-
-        # Store the rule and methods for debugging
-        self.url_map[rule] = {"endpoint": endpoint, "methods": methods}
-
-        # Register with Rust backend
-        for method in methods:
-            # Debug log suppressed for cleaner output
-            # print(f"DEBUG: Registering {rule} view_func={view_func} is_coro={inspect.iscoroutinefunction(view_func)}")
-            if inspect.iscoroutinefunction(view_func):
-                # Async handler executed synchronously via asyncio.run
-                # inside wrapper
-                self._rust_app.add_async_route(
-                    method, rule, create_async_wrapper(self, view_func, rule)
-                )
-            else:
-                # Sync handler
-                self._rust_app.add_route(
-                    method, rule, create_sync_wrapper(self, view_func, rule)
-                )
-
-    def route(self, rule: str, **options) -> Callable:
-        """
-        Flask-compatible route decorator.
-
-        Args:
-            rule: URL rule as string
-            **options: Additional options including methods, defaults, etc.
-
-        Returns:
-            Decorator function
-
-        Example:
-            @app.route('/users/<int:id>', methods=['GET', 'POST'])
-            def user(id):
-                return f'User {id}'
-        """
-
-        def decorator(f: Callable) -> Callable:
-            endpoint = options.pop("endpoint", f.__name__)
-            self.add_url_rule(rule, endpoint, f, **options)
-            return f
-
-        return decorator
-
-    def get(self, rule: str, **options) -> Callable:
-        """Convenience decorator for GET routes."""
-        return self.route(rule, methods=["GET"], **options)
-
-    def post(self, rule: str, **options) -> Callable:
-        """Convenience decorator for POST routes."""
-        return self.route(rule, methods=["POST"], **options)
-
-    def put(self, rule: str, **options) -> Callable:
-        """Convenience decorator for PUT routes."""
-        return self.route(rule, methods=["PUT"], **options)
-
-    def delete(self, rule: str, **options) -> Callable:
-        """Convenience decorator for DELETE routes."""
-        return self.route(rule, methods=["DELETE"], **options)
-
-    def patch(self, rule: str, **options) -> Callable:
-        """Convenience decorator for PATCH routes."""
-        return self.route(rule, methods=["PATCH"], **options)
-
-    def head(self, rule: str, **options) -> Callable:
-        """Convenience decorator for HEAD routes."""
-        return self.route(rule, methods=["HEAD"], **options)
-
-    def options(self, rule: str, **options) -> Callable:
-        """Convenience decorator for OPTIONS routes."""
-        return self.route(rule, methods=["OPTIONS"], **options)
-
-    def turbo_route(
-        self, rule: str, methods: list = None, cache_ttl: int = 0
-    ) -> Callable:
-        """
-        Ultra-fast route decorator for maximum performance.
-
-        Supports both static and dynamic routes:
-        - Static: `/health`, `/api/version`
-        - Dynamic: `/users/<int:id>`, `/posts/<int:id>/comments/<int:cid>`
-
-        Path parameters are parsed in Rust for zero Python overhead.
-
-        Args:
-            rule: Route pattern (e.g., "/users/<int:id>")
-            methods: List of HTTP methods (default: ["GET"])
-            cache_ttl: Optional cache time-to-live in seconds (default: 0 = no cache)
-                       When set, responses are cached in Rust and Python is skipped
-                       for repeated requests until TTL expires.
-
-        Limitations:
-            - No `request` object access (use regular @app.route for that)
-            - No middleware, sessions, or auth support
-            - Only supports dict/list/str returns
-
-        Example:
-            @app.turbo_route("/health")
-            def health():
-                return {"status": "ok"}
-
-            @app.turbo_route("/users/<int:id>")
-            def get_user(id: int):
-                return {"id": id, "name": "Alice"}
-
-            # Cached for 60 seconds
-            @app.turbo_route("/stats", cache_ttl=60)
-            def stats():
-                return {"users": 1000}
-        """
-        if methods is None:
-            methods = ["GET"]
-
-        # Parse route pattern for typed params
-        param_specs = self._parse_turbo_params(rule)
-
-        def decorator(f: Callable) -> Callable:
-            endpoint = f.__name__
-            self.view_functions[endpoint] = f
-            self.url_map[rule] = {"endpoint": endpoint, "methods": methods}
-
-            if param_specs:
-                # Dynamic turbo route with typed params
-                from .dispatch import create_typed_turbo_wrapper
-
-                param_names = [name for name, _ in param_specs]
-                turbo_wrapped = create_typed_turbo_wrapper(f, param_names)
-
-                # Convert param_specs to dict for Rust
-                param_types = dict(param_specs)
-
-                for method in methods:
-                    self._rust_app.add_typed_turbo_route(
-                        method, rule, turbo_wrapped, param_types, cache_ttl
-                    )
-            else:
-                # Static turbo route (no params) - also supports caching
-                from .dispatch import create_turbo_wrapper
-
-                turbo_wrapped = create_turbo_wrapper(f)
-
-                for method in methods:
-                    self._rust_app.add_typed_turbo_route(
-                        method, rule, turbo_wrapped, {}, cache_ttl
-                    )
-
-            return f
-
-        return decorator
-
-    def _parse_turbo_params(self, rule: str) -> list:
-        """
-        Parse route pattern and extract typed parameters.
-
-        Args:
-            rule: Route pattern like "/users/<int:id>" or "/posts/<id>"
-
-        Returns:
-            List of (name, type_str) tuples, e.g., [("id", "int"), ("name", "str")]
-        """
-        import re
-
-        params = []
-        # Match <type:name> or <name> patterns
-        pattern = r"<(int|float|str|path)?:?(\w+)>"
-
-        for match in re.finditer(pattern, rule):
-            type_str = match.group(1) or "str"  # Default to str
-            name = match.group(2)
-            params.append((name, type_str))
-
-        return params
-
-    # Flask compatibility methods
-    def shell_context_processor(self, f):
-        """Register a shell context processor function."""
-        self.shell_context_processors.append(f)
-        return f
-
-    def make_shell_context(self):
-        """Create shell context."""
-        context = {"app": self}
-        for processor in self.shell_context_processors:
-            context.update(processor())
-        return context
-
-    def app_context(self):
-        """Create application context."""
-        return _AppContext(self)
-
-    def request_context(self, environ_or_request):
-        """Create request context."""
-        return _RequestContext(self, environ_or_request)
-
-    def test_request_context(self, *args, **kwargs):
-        """Create test request context."""
-        return _RequestContext(self, None)
-
-    def preprocess_request(self):
-        """Preprocess request."""
-        for func in self.before_request_funcs:
-            result = func()
-            if result is not None:
-                return result
-
-    def process_response(self, response):
-        """Process response."""
-        for func in self.after_request_funcs:
-            response = func(response)
-        return response
-
-    def do_teardown_request(self, exc=None):
-        """Teardown request."""
-        for func in self.teardown_request_funcs:
-            func(exc)
-
-    def do_teardown_appcontext(self, exc=None):
-        """Teardown app context."""
-        for func in self.teardown_appcontext_funcs:
-            func(exc)
-
-    def make_default_options_response(self):
-        """Make default OPTIONS response."""
-        from .response import Response
-
-        return Response("", 200, {"Allow": "GET,HEAD,POST,OPTIONS"})
-
-    def create_jinja_environment(self):
-        """Create Jinja2 environment."""
-        if self.jinja_env is None:
-            try:
-                from jinja2 import Environment, FileSystemLoader
-
-                template_folder = self.template_folder or "templates"
-                self.jinja_env = Environment(
-                    loader=FileSystemLoader(template_folder), **self.jinja_options
-                )
-            except ImportError:
-                pass
-        return self.jinja_env
-
-    def _extract_path_params(self, rule: str, method: str, path: str):
-        """Extract and validate path params from a Flask-style rule like '/greet/<name>' or '/users/<int:id>'."""
-        if "<" not in rule:
-            return [], {}
-
-        rule_parts = rule.strip("/").split("/")
-        path_parts = path.strip("/").split("/")
-        args = []
-        kwargs = {}
-        if len(rule_parts) != len(path_parts):
-            return args, kwargs
-
-        # Get validators for this rule and method once
-        validators = self.path_validators.get((rule, method), {})
-
-        for rp, pp in zip(rule_parts, path_parts):
-            if rp.startswith("<") and rp.endswith(">"):
-                inner = rp[1:-1]  # strip < >
-                if ":" in inner:
-                    typ, name = inner.split(":", 1)
-                    typ = typ.strip()
-                    name = name.strip()
-                else:
-                    typ = "str"
-                    name = inner.strip()
-                val = pp
-                if typ == "int":
-                    try:
-                        val = int(pp)
-                    except ValueError:
-                        val = pp
-                elif typ == "float":
-                    try:
-                        val = float(pp)
-                    except ValueError:
-                        val = pp
-
-                # Validate against Path constraints if present
-                validator = validators.get(name)
-                if validator:
-                    from .params import ValidationError
-
-                    try:
-                        val = validator.validate(name, val)
-                    except ValidationError as e:
-                        # Raise HTTP 400 error with validation message
-                        from .core.helpers import abort
-
-                        abort(400, description=str(e))
-
-                # Only populate kwargs to avoid duplicate positional+keyword arguments
-                kwargs[name] = val
-        return args, kwargs
-
-    def _extract_query_params(self, rule: str, request):
-        """Extract and validate query parameters based on Query validators."""
-        # FAST PATH: If no query validators registered for this route, return empty kwargs
-        validators = self.query_validators.get((rule, request.method))
-        if not validators:
-            return {}
-
-        kwargs = {}
-
-        for param_name, (query_validator, param_type) in validators.items():
-            # Get raw value from query string
-            raw_value = request.args.get(param_name)
-
-            # Handle required vs optional
-            if raw_value is None:
-                if query_validator.default is ...:
-                    # Required parameter is missing
-                    from .core.helpers import abort
-
-                    abort(
-                        400,
-                        description=f"Missing required query parameter: {param_name}",
-                    )
-                else:
-                    # Use default value
-                    kwargs[param_name] = query_validator.default
-                    continue
-
-            # Validate and coerce the value
-            try:
-                validated_value = query_validator.validate(
-                    param_name, raw_value, param_type
-                )
-                kwargs[param_name] = validated_value
-            except Exception as e:
-                # Raise HTTP 400 error with validation message
-                from .core.helpers import abort
-
-                abort(400, description=str(e))
-
-        return kwargs
-
-    def _extract_body_params(self, rule: str, request):
-        """Extract and validate request body based on Body validators."""
-        # FAST PATH: If no body validators registered for this route, return empty kwargs
-        validators = self.body_validators.get((rule, request.method))
-        if not validators:
-            return {}
-
-        kwargs = {}
-
-        for param_name, (body_validator, param_type) in validators.items():
-            # Parse JSON body
-            body_data = None
-            try:
-                if request.is_json:
-                    body_data = request.get_json()
-                elif request.data:
-                    # If not JSON, try to parse as JSON anyway
-                    import json
-
-                    body_data = json.loads(request.data.decode("utf-8"))
-            except Exception:
-                pass  # body_data remains None
-
-            # Handle missing body
-            if body_data is None:
-                # If body is required, abort
-                if body_validator.default is ...:
-                    from .core.helpers import abort
-
-                    abort(400, description="Missing required request body")
-                else:
-                    # Use default value if provided
-                    continue
-
-            # Validate the body
-            try:
-                validated_value = body_validator.validate(body_data, param_type)
-                kwargs[param_name] = validated_value
-            except Exception as e:
-                # Raise HTTP 400 error with validation message
-                from .core.helpers import abort
-
-                abort(400, description=str(e))
-
-        return kwargs
-
-    def _resolve_dependencies(self, rule: str, method: str, resolved_params: dict):
-        """Resolve dependencies for this route (sync version)."""
-        # FAST PATH: If no dependencies registered for this route, return empty kwargs
-        deps = self.dependencies.get((rule, method))
-        if not deps:
-            return {}, None
-
-        from .dependencies import DependencyCache, resolve_dependency_sync
-
-        kwargs = {}
-        cache = DependencyCache()
-
-        for param_name, depends in deps.items():
-            # Resolve the dependency
-            # Note: Don't catch abort exceptions - let them propagate
-            value = resolve_dependency_sync(depends, cache, resolved_params)
-            kwargs[param_name] = value
-
-        # Store cache for cleanup
-        return kwargs, cache
-
-    async def _resolve_dependencies_async(
-        self, rule: str, method: str, resolved_params: dict
-    ):
-        """Resolve dependencies for this route (async version)."""
-        # FAST PATH: If no dependencies registered for this route, return empty kwargs
-        deps = self.dependencies.get((rule, method))
-        if not deps:
-            return {}, None
-
-        from .dependencies import DependencyCache, resolve_dependency
-
-        kwargs = {}
-        cache = DependencyCache()
-
-        for param_name, depends in deps.items():
-            # Resolve the dependency
-            # Note: Don't catch abort exceptions - let them propagate
-            value = await resolve_dependency(depends, cache, resolved_params)
-            kwargs[param_name] = value
-
-        # Store cache for cleanup
-        return kwargs, cache
-
-    def before_request(self, f: Callable) -> Callable:
-        """
-        Register function to run before each request.
-
-        Args:
-            f: Function to run before request
-
-        Returns:
-            The original function
-        """
-        self.before_request_funcs.append(f)
-        return f
-
-    def after_request(self, f: Callable) -> Callable:
-        """
-        Register function to run after each request.
-
-        Args:
-            f: Function to run after request
-
-        Returns:
-            The original function
-        """
-        self.after_request_funcs.append(f)
-        return f
-
-    def teardown_request(self, f: Callable) -> Callable:
-        """
-        Register function to run after each request, even if an exception occurred.
-
-        Args:
-            f: Function to run on teardown
-
-        Returns:
-            The original function
-        """
-        self.teardown_request_funcs.append(f)
-        return f
-
-    def teardown_appcontext(self, f: Callable) -> Callable:
-        """
-        Register function to run when application context is torn down.
-
-        Args:
-            f: Function to run on app context teardown
-
-        Returns:
-            The original function
-        """
-        self.teardown_appcontext_funcs.append(f)
-        return f
-
-    def errorhandler(self, code_or_exception: Union[int, Type[Exception]]) -> Callable:
-        """
-        Register error handler for HTTP status codes or exceptions.
-
-        Args:
-            code_or_exception: HTTP status code or exception class
-
-        Returns:
-            Decorator function
-        """
-
-        def decorator(f: Callable) -> Callable:
-            self.error_handler_spec[code_or_exception] = f
-            return f
-
-        return decorator
+            raise RuntimeError(
+                f"BustAPI requires the Rust backend. Build with: maturin develop\n{e}"
+            )
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize Rust backend: {e}")
 
     def register_blueprint(self, blueprint: Blueprint, **options) -> None:
         """
@@ -818,14 +193,12 @@ class BustAPI:
             if url_prefix:
                 rule = url_prefix.rstrip("/") + "/" + rule.lstrip("/")
 
-            # Create route with blueprint endpoint
             full_endpoint = f"{blueprint.name}.{endpoint}"
             self.view_functions[full_endpoint] = view_func
 
             # Register with Rust backend
             for method in methods:
                 if inspect.iscoroutinefunction(view_func):
-                    # Async handler executed synchronously via asyncio.run inside wrapper
                     self._rust_app.add_async_route(
                         method, rule, create_async_wrapper(self, view_func, rule)
                     )
@@ -838,9 +211,22 @@ class BustAPI:
         """Convert various return types to Response objects."""
         return make_response(*args)
 
-    # --- Templating helpers ---
+    def create_jinja_environment(self):
+        """Create Jinja2 environment."""
+        if self.jinja_env is None:
+            try:
+                from jinja2 import Environment, FileSystemLoader
+
+                template_folder = self.template_folder or "templates"
+                self.jinja_env = Environment(
+                    loader=FileSystemLoader(template_folder), **self.jinja_options
+                )
+            except ImportError:
+                pass
+        return self.jinja_env
+
     def create_jinja_env(self):
-        """Create and cache a Jinja2 environment using the application's template_folder."""
+        """Create and cache a Jinja2 environment."""
         if self.jinja_env is None:
             try:
                 from .templating import create_jinja_env as _create_env
@@ -854,7 +240,6 @@ class BustAPI:
         """Render a template using the native Rust engine."""
         import json
 
-        # Prevent recursive json usage if context is already json (not typical but safe)
         html_content = self._rust_app.render_template(
             template_name, json.dumps(context)
         )
@@ -862,7 +247,6 @@ class BustAPI:
 
     def _handle_exception(self, exception: Exception) -> Response:
         """Handle exceptions and return appropriate error responses."""
-        # Check for registered error handlers
         for exc_class_or_code, handler in self.error_handler_spec.items():
             if isinstance(exc_class_or_code, type) and isinstance(
                 exception, exc_class_or_code
@@ -872,24 +256,17 @@ class BustAPI:
                 if hasattr(exception, "code") and exception.code == exc_class_or_code:
                     return self._make_response(handler(exception))
 
-        # Default error response
-        if hasattr(exception, "code"):
-            status = getattr(exception, "code", 500)
-        else:
-            status = 500
-
+        status = getattr(exception, "code", 500) if hasattr(exception, "code") else 500
         return Response(f"Internal Server Error: {str(exception)}", status=status)
 
     def _response_to_rust_format(self, response: Response) -> Union[tuple, Response]:
         """Convert Python Response object to format expected by Rust."""
-        # Optimization: verify if it is a FileResponse (has path attribute)
+        # Check for FileResponse (has path attribute)
         if hasattr(response, "path"):
             return response
 
-        # Optimization: verify if it is a StreamingResponse (has content attribute which is an iterator)
-        # We rely on the class type or just existence of content/iterator.
+        # Check for StreamingResponse (has content attribute)
         if hasattr(response, "content"):
-            # It's likely a StreamingResponse (Response base has no 'content' attr, it uses 'response' or '_data')
             return response
 
         # Return (body, status_code, headers) tuple
@@ -906,152 +283,6 @@ class BustAPI:
 
         return (body.decode("utf-8", errors="replace"), status_code, headers_dict)
 
-    def wsgi_app(self, environ, start_response):
-        """
-        WSGI compatibility entry point.
-        """
-        path = environ.get("PATH_INFO", "")
-        method = environ.get("REQUEST_METHOD", "GET")
-        query_string = environ.get("QUERY_STRING", "")
-
-        # Read headers
-        headers = {}
-        for key, value in environ.items():
-            if key.startswith("HTTP_"):
-                header_name = key[5:].replace("_", "-").lower()
-                headers[header_name] = value
-            elif key in ("CONTENT_TYPE", "CONTENT_LENGTH"):
-                header_name = key.replace("_", "-").lower()
-                headers[header_name] = value
-
-        # Read body
-        try:
-            content_length = int(environ.get("CONTENT_LENGTH", 0))
-        except (ValueError, TypeError):
-            content_length = 0
-
-        body = b""
-        if content_length > 0:
-            stream = environ.get("wsgi.input")
-            if stream:
-                body = stream.read(content_length)
-
-        # Call Rust backend
-        # We handle this synchronously because WSGI is synchronous
-        body_str, status_code, headers_map = self._rust_app.handle_request(
-            method, path, query_string, headers, body
-        )
-
-        # Convert status code to string
-        status_line = f"{status_code} {self._get_status_text(status_code)}"
-
-        # Convert headers
-        response_headers = list(headers_map.items())
-
-        start_response(status_line, response_headers)
-        return [body_str.encode("utf-8")]
-
-    def _get_status_text(self, code):
-        from http import HTTPStatus
-
-        try:
-            return HTTPStatus(code).phrase
-        except ValueError:
-            return "UNKNOWN"
-
-    async def asgi_app(self, scope, receive, send):
-        """
-        ASGI compatibility entry point.
-        """
-        if scope["type"] != "http":
-            return
-
-        path = scope.get("path", "")
-        method = scope.get("method", "GET")
-        query_string = scope.get("query_string", b"").decode("utf-8")
-
-        # Parse headers
-        headers = {}
-        for k, v in scope.get("headers", []):
-            headers[k.decode("utf-8").lower()] = v.decode("utf-8")
-
-        # Read body
-        body = b""
-        more_body = True
-        while more_body:
-            message = await receive()
-            body += message.get("body", b"")
-            more_body = message.get("more_body", False)
-
-        # Call Rust backend logic
-        # Since Rust handle_request blocks on a runtime, and we are in an async loop here (ASGI),
-        # we should ideally run this in a thread to avoid blocking the ASGI loop if the Rust part isn't purely async-aware in this binding.
-        # But our handle_request uses block_on internally. Calling block_on inside an async runtime is bad.
-        # However, pyo3 releases GIL if we ask it? handle_request keeps GIL?
-        # Check bindings: handle_request takes `&self` and does `runtime.block_on`.
-        # `runtime.block_on` will panic if called from within a tokio runtime (which uvicorn uses).
-        # So we MUST run this in a separate thread.
-        import asyncio
-        from functools import partial
-
-        loop = asyncio.get_running_loop()
-
-        # We need to wrap the call to run in executor
-        # handle_request is exposed to Python, so we can pass it to run_in_executor
-        body_str, status_code, headers_map = await loop.run_in_executor(
-            None,
-            partial(
-                self._rust_app.handle_request, method, path, query_string, headers, body
-            ),
-        )
-
-        # Send response start
-        await send(
-            {
-                "type": "http.response.start",
-                "status": status_code,
-                "headers": [
-                    (k.encode("utf-8"), v.encode("utf-8"))
-                    for k, v in headers_map.items()
-                ],
-            }
-        )
-
-        # Send response body
-        await send(
-            {
-                "type": "http.response.body",
-                "body": body_str.encode("utf-8"),
-            }
-        )
-
-    def __call__(self, scope_or_environ, start_response=None, send=None):
-        """
-        Dual-mode dispatch: behaves like WSGI if 2 args, ASGI if 3 (or if first arg is scope dict).
-        """
-        if send is None and callable(start_response):
-            # WSGI
-            return self.wsgi_app(scope_or_environ, start_response)
-        else:
-            # ASGI
-            # scope, receive, send = scope_or_environ, start_response, send
-            # But wait, ASGI is async def __call__(scope, receive, send).
-            # We can't easily make __call__ both sync and async.
-            # Best practice: __call__ is WSGI. expose .asgi as ASGI app property or separate method.
-            # But standardized "app" variable often expected to just "work".
-            # For now, let's keep __call__ purely WSGI to satisfy Gunicorn/standard WSGI servers.
-            # Uvicorn will look for 'app' and if it's an object, it tries to call it.
-            # If we want ASGI support on the same object, we might need a wrapper or just rely on `app.asgi_app`.
-
-            # Allow explicit usage:
-            # uvicorn main:app.asgi_app
-            # gunicorn main:app
-
-            # However, if user passes `app` to uvicorn, uvicorn expects an ASGI callable.
-            # If we make __call__ async, WSGI breaks.
-            # Let's just implement WSGI here.
-            return self.wsgi_app(scope_or_environ, start_response)
-
     def run(
         self,
         host: str = "127.0.0.1",
@@ -1060,7 +291,7 @@ class BustAPI:
         load_dotenv: bool = True,
         workers: Optional[int] = None,
         reload: bool = False,
-        server: str = "rust",  # 'rust', 'uvicorn', 'gunicorn', 'hypercorn'
+        server: str = "rust",
         **options,
     ) -> None:
         """
@@ -1072,210 +303,171 @@ class BustAPI:
             debug: Enable debug mode
             load_dotenv: Load environment variables from .env file
             workers: Number of worker threads
-            reload: Enable auto-reload on code changes (development only)
-            server: Server backend to use ('rust', 'uvicorn', 'gunicorn', 'hypercorn')
+            reload: Enable auto-reload on code changes
+            server: Server backend ('rust', 'uvicorn', 'gunicorn', 'hypercorn')
             **options: Additional server options
         """
         if debug:
             self.config["DEBUG"] = True
+            self._setup_debug_logging()
 
-            # Auto-enable Request Logging in Debug Mode
-            def _debug_start_timer():
-                try:
-                    import time
-
-                    from bustapi import request
-
-                    request.start_time = time.time()
-                except ImportError:
-                    pass
-
-            def _debug_log_request(response):
-                try:
-                    import time
-
-                    from bustapi import logging, request
-
-                    start_time = getattr(request, "start_time", time.time())
-                    duration = time.time() - start_time
-                    logging.log_request(
-                        request.method, request.path, response.status_code, duration
-                    )
-                except ImportError:
-                    pass
-                return response
-
-            self.before_request(_debug_start_timer)
-            self.after_request(_debug_log_request)
-
-        # Handle reload using Rust native reloader
+        # Handle hot reload
         if reload or debug:
-            if os.environ.get("BUSTAPI_RELOADER_RUN") != "true":
-                try:
-                    from . import bustapi_core
-
-                    # Watch the current working directory
-                    bustapi_core.enable_hot_reload(".")
-                    print("🔄 Rust Hot Reloader Active (watching current directory)")
-
-                    # Mark env to avoid duplicate watching (though Rust watcher handles logic)
-                    # Actually, Rust watcher spawns a thread in THIS process.
-                    # When it restarts, it execvps. The new process starts fresh.
-                    # We don't need BUSTAPI_RELOADER_RUN flag for execvp model
-                    # because the whole memory is wiped.
-
-                except ImportError:
-                    print("⚠️ Native hot reload not available in this build.")
-                except Exception as e:
-                    print(f"⚠️ Failed to enable hot reload: {e}")
+            self._enable_hot_reload()
 
         if workers is None:
-            # Default to 1 worker for debug/dev, or CPU count for prod key
             import multiprocessing
-
             workers = 1 if debug else multiprocessing.cpu_count()
 
-        # Handle Native Multiprocessing (All Platforms)
-        # If server="rust" and workers > 1, we spawn processes for true parallelism
-        if server == "rust" and workers > 1 and not debug:
-            from .multiprocess import spawn_workers
+        # Dispatch to appropriate server
+        if server == "rust":
+            self._run_rust_server(host, port, workers, debug)
+        elif server == "uvicorn":
+            self._run_uvicorn(host, port, workers, debug, **options)
+        elif server == "gunicorn":
+            self._run_gunicorn(host, port, workers, debug, **options)
+        elif server == "hypercorn":
+            self._run_hypercorn(host, port, workers, debug, **options)
 
+    def _setup_debug_logging(self):
+        """Setup request logging for debug mode."""
+        def _debug_start_timer():
+            try:
+                import time
+                from bustapi import request
+                request.start_time = time.time()
+            except ImportError:
+                pass
+
+        def _debug_log_request(response):
+            try:
+                import time
+                from bustapi import logging, request
+                start_time = getattr(request, "start_time", time.time())
+                duration = time.time() - start_time
+                logging.log_request(
+                    request.method, request.path, response.status_code, duration
+                )
+            except ImportError:
+                pass
+            return response
+
+        self.before_request(_debug_start_timer)
+        self.after_request(_debug_log_request)
+
+    def _enable_hot_reload(self):
+        """Enable Rust-native hot reload."""
+        if os.environ.get("BUSTAPI_RELOADER_RUN") != "true":
+            try:
+                from . import bustapi_core
+                bustapi_core.enable_hot_reload(".")
+                print("🔄 Rust Hot Reloader Active (watching current directory)")
+            except ImportError:
+                print("⚠️ Native hot reload not available in this build.")
+            except Exception as e:
+                print(f"⚠️ Failed to enable hot reload: {e}")
+
+    def _run_rust_server(self, host, port, workers, debug):
+        """Run the native Rust HTTP server."""
+        if workers > 1 and not debug:
+            from .multiprocess import spawn_workers
             spawn_workers(self._rust_app, host, port, workers, debug)
             return
 
-        # Server Dispatch
-        if server == "rust":
-            try:
-                self._rust_app.run(host, port, workers, debug)
-            except KeyboardInterrupt:
-                pass
-            except Exception as e:
-                print(f"❌ Server error: {e}")
+        try:
+            self._rust_app.run(host, port, workers, debug)
+        except KeyboardInterrupt:
+            pass
+        except Exception as e:
+            print(f"❌ Server error: {e}")
 
-        elif server == "uvicorn":
-            try:
-                import uvicorn
+    def _run_uvicorn(self, host, port, workers, debug, **options):
+        """Run with Uvicorn ASGI server."""
+        try:
+            import uvicorn
 
-                # We need to pass the app instance.
-                # If we are running from a script, we might not have the import path string handy easily
-                # But uvicorn.run can take an app instance directly.
-                # However, reload=True in uvicorn requires an import string.
-                # Since we handled reload above with watchfiles manually, we can just pass the app here.
-
-                # Using app.asgi_app for ASGI support
-                config = uvicorn.Config(
-                    app=self.asgi_app,
-                    host=host,
-                    port=port,
-                    workers=workers,
-                    log_level="debug" if debug else "info",
-                    interface="asgi3",
-                    **options,
-                )
-                server_instance = uvicorn.Server(config)
-                # We run synchronously since app.run is sync
-                server_instance.run()
-
-            except ImportError:
-                print(
-                    "❌ 'uvicorn' not installed. Install it via `pip install uvicorn`."
-                )
-            except Exception as e:
-                print(f"❌ Uvicorn error: {e}")
-
-        elif server == "gunicorn":
-            print("⚠️ Gunicorn is typically run via command line: `gunicorn module:app`")
-            print(
-                "   Starting Gunicorn programmatically via subprocess as a convenience..."
+            config = uvicorn.Config(
+                app=self.asgi_app,
+                host=host,
+                port=port,
+                workers=workers,
+                log_level="debug" if debug else "info",
+                interface="asgi3",
+                **options,
             )
+            server = uvicorn.Server(config)
+            server.run()
+        except ImportError:
+            print("❌ 'uvicorn' not installed. Install via `pip install uvicorn`.")
+        except Exception as e:
+            print(f"❌ Uvicorn error: {e}")
 
-            import subprocess
-            import sys
+    def _run_gunicorn(self, host, port, workers, debug, **options):
+        """Run with Gunicorn WSGI server."""
+        try:
+            from gunicorn.app.base import BaseApplication
 
-            # Try to guess the module:app name
-            # This is hard. We'll ask user to provide it or just give instructions?
-            # But if user says app.run(server='gunicorn'), they expect it to run.
-            # We can use our WSGI app interface.
-            # But gunicorn really wants a WSGI Application object.
-            # We can implementation a custom Gunicorn Application class.
+            class StandaloneApplication(BaseApplication):
+                def __init__(self, app, opts=None):
+                    self.application = app
+                    self.options = opts or {}
+                    super().__init__()
 
-            try:
-                from gunicorn.app.base import BaseApplication
+                def load_config(self):
+                    config = {
+                        key: value
+                        for key, value in self.options.items()
+                        if key in self.cfg.settings and value is not None
+                    }
+                    for key, value in config.items():
+                        self.cfg.set(key.lower(), value)
 
-                class StandaloneApplication(BaseApplication):
-                    def __init__(self, app, options=None):
-                        self.application = app
-                        self.options = options or {}
-                        super().__init__()
+                def load(self):
+                    return self.application
 
-                    def load_config(self):
-                        config = {
-                            key: value
-                            for key, value in self.options.items()
-                            if key in self.cfg.settings and value is not None
-                        }
-                        for key, value in config.items():
-                            self.cfg.set(key.lower(), value)
+            gunicorn_options = {
+                "bind": f"{host}:{port}",
+                "workers": workers,
+                "loglevel": "debug" if debug else "info",
+                **options,
+            }
 
-                    def load(self):
-                        return self.application
+            StandaloneApplication(self, gunicorn_options).run()
+        except ImportError:
+            print("❌ 'gunicorn' not installed. Install via `pip install gunicorn`.")
+        except Exception as e:
+            print(f"❌ Gunicorn error: {e}")
 
-                options = {
-                    "bind": f"{host}:{port}",
-                    "workers": workers,
-                    "loglevel": "debug" if debug else "info",
-                    # Add other options here
-                    **options,
-                }
+    def _run_hypercorn(self, host, port, workers, debug, **options):
+        """Run with Hypercorn ASGI server."""
+        try:
+            import asyncio
+            from hypercorn.asyncio import serve
+            from hypercorn.config import Config
 
-                StandaloneApplication(self, options).run()
+            config = Config()
+            config.bind = [f"{host}:{port}"]
+            config.workers = workers
+            config.loglevel = "debug" if debug else "info"
 
-            except ImportError:
-                print(
-                    "❌ 'gunicorn' not installed. Install it via `pip install gunicorn`."
-                )
-            except Exception as e:
-                print(f"❌ Gunicorn error: {e}")
-
-        elif server == "hypercorn":
-            try:
-                import asyncio
-
-                from hypercorn.asyncio import serve
-                from hypercorn.config import Config
-
-                config = Config()
-                config.bind = [f"{host}:{port}"]
-                config.workers = workers
-                config.loglevel = "debug" if debug else "info"
-                # Add other options
-
-                # Hypercorn is async, so we need an event loop
-                asyncio.run(serve(self.asgi_app, config))
-
-            except ImportError:
-                print(
-                    "❌ 'hypercorn' not installed. Install it via `pip install hypercorn`."
-                )
-            except Exception as e:
-                print(f"❌ Hypercorn error: {e}")
+            asyncio.run(serve(self.asgi_app, config))
+        except ImportError:
+            print("❌ 'hypercorn' not installed. Install via `pip install hypercorn`.")
+        except Exception as e:
+            print(f"❌ Hypercorn error: {e}")
 
     async def run_async(
         self, host: str = "127.0.0.1", port: int = 5000, debug: bool = False, **options
     ) -> None:
-        """
-        Run the application server asynchronously.
-
-        Args:
-            host: Hostname to bind to
-            port: Port to bind to
-            debug: Enable debug mode
-            **options: Additional server options
-        """
+        """Run the application server asynchronously."""
         if debug:
             self.config["DEBUG"] = True
+            self._setup_debug_logging()
 
-        await self._rust_app.run_async(host, port)
+        try:
+            await self._rust_app.run_async(host, port, debug)
+        except Exception as e:
+            print(f"❌ Async server error: {e}")
 
     def test_client(self, use_cookies: bool = True, **kwargs):
         """
@@ -1291,61 +483,3 @@ class BustAPI:
         from .testing import TestClient
 
         return TestClient(self, use_cookies=use_cookies, **kwargs)
-
-
-class _AppContext:
-    """Placeholder for application context."""
-
-    def __init__(self, app):
-        self.app = app
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        pass
-
-
-class _RequestContext:
-    """Request context context manager."""
-
-    def __init__(self, app, environ):
-        self.app = app
-        self.environ = environ
-        self.token = None
-
-    def __enter__(self):
-        # Create a dummy request if environ is None (for testing)
-        if self.environ is None:
-            # Minimal mock request for testing
-            class MockRequest:
-                def __init__(self):
-                    self.method = "GET"
-                    self.path = "/"
-                    self.args = {}
-                    self.form = {}
-                    self.json = {}
-                    self.headers = {}
-                    self.cookies = {}
-
-            # Use the actual Request class if possible, but it needs a Rust request
-            # For now, let's just set a mock that satisfies the verification script
-            # Or better, try to instantiate Request with None and mock properties
-            from .http.request import Request
-
-            request_obj = Request(None)
-            # Mock the caches to avoid accessing None _rust_request
-            request_obj._args_cache = {}
-            request_obj._form_cache = {}
-            request_obj._json_cache = {}
-
-            self.token = _request_ctx.set(request_obj)
-        else:
-            # In real usage, this would use the environ to create a Request
-            # But here we are just fixing test_request_context
-            pass
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if self.token:
-            _request_ctx.reset(self.token)
