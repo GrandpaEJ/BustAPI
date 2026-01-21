@@ -15,6 +15,28 @@ pub struct PyBustApp {
     template_env: crate::templating::TemplateEnv,
 }
 
+// Helper methods (not exposed to Python)
+impl PyBustApp {
+    /// Extract param types from Flask-style route pattern
+    fn extract_param_types_from_pattern(pattern: &str) -> std::collections::HashMap<String, String> {
+        let mut types = std::collections::HashMap::new();
+        
+        for part in pattern.split('/') {
+            if part.starts_with('<') && part.ends_with('>') {
+                let inner = &part[1..part.len() - 1];
+                let (type_str, name) = if let Some((t, n)) = inner.split_once(':') {
+                    (t.trim(), n.trim())
+                } else {
+                    ("str", inner.trim())
+                };
+                types.insert(name.to_string(), type_str.to_string());
+            }
+        }
+        
+        types
+    }
+}
+
 #[pymethods]
 impl PyBustApp {
     #[new]
@@ -78,8 +100,22 @@ impl PyBustApp {
     }
 
     /// Add a route with a Python handler
+    /// Now with automatic Rust-side path param extraction!
     pub fn add_route(&self, method: &str, path: &str, handler: Py<PyAny>) -> PyResult<()> {
-        let py_handler = crate::bindings::handlers::PyRouteHandler::new(handler);
+        // Parse param types from path pattern
+        let param_types = Self::extract_param_types_from_pattern(path);
+        
+        let py_handler = if param_types.is_empty() {
+            // No path params - use simple handler
+            crate::bindings::handlers::PyRouteHandler::new(handler)
+        } else {
+            // Has path params - use pattern-aware handler
+            crate::bindings::handlers::PyRouteHandler::with_pattern(
+                handler,
+                path.to_string(),
+                param_types,
+            )
+        };
 
         // Use blocking task to add route
         let state = self.state.clone();
