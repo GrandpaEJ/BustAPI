@@ -129,11 +129,32 @@ Supports `int`, `float`, `str`, and `path` parameter types.
 > ⚠️ **Note:** Turbo routes skip middleware, sessions, and request context for speed. Use `@app.route()` if you need those features.
 
 ---
+## Benchmarks 
 
-## Benchmarks
+```python
+@app.route()
+```
 
+| Run         | Requests/sec  |
+| :---------- | :------------ |
+| Run 1       | 29,548.52     |
+| Run 2       | 22,752.84     |
+| Run 3       | 24,053.13     |
+| Run 4       | 23,588.68     |
+| Run 5       | 24,299.84     |
+| **Average** | **24,848.60** |
+| **Peak**    | **29,548.52** |
+
+
+## Benchmarks Turbo
+
+```python
+@app.turbo_route()
+```
+
+<strong><b> Last benchmark </b></strong>
 <p align="center">
-  <img src="benchmarks/rps_97k_comparison.png" alt="BustAPI vs Other Frameworks" width="700">
+  <img src="benchmarks/rps_comparison.png" alt="BustAPI vs Other Frameworks" width="700">
 </p>
 
 ### Cross-Platform Performance (v0.8.0)
