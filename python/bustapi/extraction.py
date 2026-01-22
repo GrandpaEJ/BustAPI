@@ -66,26 +66,28 @@ class ExtractionMixin:
 
     def _validate_path_params(self, rule: str, method: str, params: dict) -> dict:
         """Validate pre-extracted path params against Path constraints.
-        
+
         Used when params are extracted by Rust for performance, but still
         need Python-side validation (ge, le, regex, etc).
         """
         validators = self.path_validators.get((rule, method), {})
         if not validators:
             return params  # No validators, return as-is
-        
+
         validated = {}
         for name, val in params.items():
             validator = validators.get(name)
             if validator:
                 from .params import ValidationError
+
                 try:
                     val = validator.validate(name, val)
                 except ValidationError as e:
                     from .core.helpers import abort
+
                     abort(400, description=str(e))
             validated[name] = val
-        
+
         return validated
 
     def _extract_query_params(self, rule: str, request):
@@ -224,8 +226,8 @@ class ExtractionMixin:
         """
         import inspect
 
-        from .params import Body, Path, Query
         from .dependencies import Depends
+        from .params import Body, Path, Query
 
         try:
             sig = inspect.signature(func)

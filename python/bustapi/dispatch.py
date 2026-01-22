@@ -102,7 +102,7 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
     @wraps(handler)
     def wrapper(rust_request, path_params=None):
         """Synchronous wrapper for route handlers.
-        
+
         Args:
             rust_request: The Rust request object
             path_params: Pre-extracted path params from Rust (optional, for performance)
@@ -194,7 +194,7 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                         args, kwargs = app._extract_path_params(
                             rule, request.method, request.path
                         )
-                    
+
                     kwargs.update(app._extract_query_params(rule, request))
                     if request.method in ("POST", "PUT", "PATCH"):
                         kwargs.update(app._extract_body_params(rule, request))

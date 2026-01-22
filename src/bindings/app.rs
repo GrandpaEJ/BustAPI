@@ -245,7 +245,7 @@ impl PyBustApp {
         if debug {
             // Debug mode: Show debug logs but suppress framework noise
             let _ = tracing_subscriber::fmt()
-                .with_env_filter("debug,actix_server=error,actix_web=error")
+                .with_env_filter("debug,actix_server=error,actix_web=error,notify=error")
                 .try_init();
         } else {
             // Clean mode: Suppress Actix startup noise
