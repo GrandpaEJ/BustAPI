@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented here.
 
+## [0.9.0] - 2026-01-22
+
+### Major Features
+
+- **Video Streaming & Range Requests**:
+  - Full support for HTTP `Range` requests (seeking, scrubbing) via `FileResponse` and static files.
+  - Implemented `HEAD` method support for all routes to handle browser pre-flight checks correctly.
+  - Video streaming is now production-ready (verified with browser tests).
+
+- **Rust-Core Request Logging**:
+  - Migrated logging logic from Python to Rust for 100% request coverage.
+  - Now captures **404 Not Found**, **Static Files**, and **Fast Routes** which were previously invisible to Python middleware.
+  - High-performance, zero-allocation logging with accurate Rust-level latency timings.
+  - Removed duplicate logging hooks from Python side.
+
+- **Rust-Based Path Parameter Extraction**:
+  - Moved regex parsing and parameter extraction to the Rust backend.
+  - Significant performance boost for dynamic routes.
+  - Supports `int`, `float`, `path`, and strict validation rules entirely in Rust.
+
+- **Developer Experience**:
+  - Enhanced Hot-Reloader: Cleaner output, suppresses internal noise, and clearly shows changed files.
+  - `bustapi.logging`: New customizable logging module for users.
+
+### Refactoring
+
+- **Modular Application Structure**:
+  - Refactored `app.py` into a Mixin-based architecture (`RoutingMixin`, `ExtractionMixin`, `ContextMixin`, `HooksMixin`) for better maintainability.
+  - Improved WSGI/ASGI compatibility with `WSGIAdapter` mixin.
+
+### Fixed
+
+- **Static Route Registration**: Fixed a bug where static route patterns were generated without a leading slash.
+- **Example Fixes**: Updated `27_video_stream.py` to correctly resolve static folders relative to the script directory.
+- **Process Management**: Fixed a recursion bug in `kill_process` utility.
+
+### Performance
+
+- **Optimized Route Matching**: Deterministic scoring system and Rust-side optimizations.
+
 ## [0.8.0] - 2026-01-14
 
 ### Added
