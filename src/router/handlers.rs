@@ -87,51 +87,98 @@ impl Router {
         let mut response_data = if let Some(handler) = self.routes.get(&key) {
             handler.handle(req_data.clone())
         } else {
-            // Try pattern matching for dynamic routes
-            if let Some(handler) = self.find_pattern_match(&req_data) {
+            // Check for HEAD -> GET fallback
+            let mut handler_found = None;
+
+            if req_data.method == Method::HEAD {
+                let get_key = (Method::GET, req_data.path.clone());
+                if let Some(handler) = self.routes.get(&get_key) {
+                    handler_found = Some(handler.clone());
+                }
+            }
+
+            if let Some(handler) = handler_found {
                 handler.handle(req_data.clone())
             } else {
-                // Not found. Check for redirect if enabled
-                let mut redirect_path: Option<String> = None;
-
-                if self.redirect_slashes {
-                    let path = &req_data.path;
-                    let method = &req_data.method;
-
-                    if path.ends_with('/') {
-                        // Case: /foo/ -> check /foo
-                        let trimmed = &path[..path.len() - 1];
-                        if self
-                            .routes
-                            .contains_key(&(method.clone(), trimmed.to_string()))
-                        {
-                            redirect_path = Some(trimmed.to_string());
-                        }
+                // Try pattern matching for dynamic routes
+                let match_result = self.find_pattern_match(&req_data).or_else(|| {
+                    // If HEAD request, try matching against GET routes
+                    if req_data.method == Method::HEAD {
+                        // Create temporary request data with GET method for matching
+                        let mut get_req = req_data.clone();
+                        get_req.method = Method::GET;
+                        self.find_pattern_match(&get_req)
                     } else {
-                        // Case: /foo -> check /foo/
-                        let slashed = format!("{}/", path);
-                        if self.routes.contains_key(&(method.clone(), slashed.clone())) {
-                            redirect_path = Some(slashed);
+                        None
+                    }
+                });
+
+                if let Some(handler) = match_result {
+                    handler.handle(req_data.clone())
+                } else {
+                    // Not found. Check for redirect if enabled
+                    let mut redirect_path: Option<String> = None;
+
+                    if self.redirect_slashes {
+                        let path = &req_data.path;
+                        let method = &req_data.method;
+
+                        // Check redirect for current method
+                        if path.ends_with('/') {
+                            let trimmed = &path[..path.len() - 1];
+                            if self
+                                .routes
+                                .contains_key(&(method.clone(), trimmed.to_string()))
+                            {
+                                redirect_path = Some(trimmed.to_string());
+                            }
+                        } else {
+                            let slashed = format!("{}/", path);
+                            if self.routes.contains_key(&(method.clone(), slashed.clone())) {
+                                redirect_path = Some(slashed);
+                            }
+                        }
+
+                        // Check redirect for GET (fallback for HEAD)
+                        if redirect_path.is_none() && *method == Method::HEAD {
+                            let get_method = Method::GET;
+                            if path.ends_with('/') {
+                                let trimmed = &path[..path.len() - 1];
+                                if self
+                                    .routes
+                                    .contains_key(&(get_method.clone(), trimmed.to_string()))
+                                {
+                                    redirect_path = Some(trimmed.to_string());
+                                }
+                            } else {
+                                let slashed = format!("{}/", path);
+                                if self
+                                    .routes
+                                    .contains_key(&(get_method.clone(), slashed.clone()))
+                                {
+                                    redirect_path = Some(slashed);
+                                }
+                            }
                         }
                     }
-                }
 
-                if let Some(new_path) = redirect_path {
-                    // Create 307 Temporary Redirect response
-                    let mut resp = ResponseData::new();
-                    resp.status = http::StatusCode::TEMPORARY_REDIRECT;
+                    if let Some(new_path) = redirect_path {
+                        // Create 307 Temporary Redirect response
+                        let mut resp = ResponseData::new();
+                        resp.status = http::StatusCode::TEMPORARY_REDIRECT;
 
-                    // Preserve query string
-                    let location = if !req_data.query_string.is_empty() {
-                        format!("{}?{}", new_path, req_data.query_string)
+                        // Preserve query string
+                        let location = if !req_data.query_string.is_empty() {
+                            format!("{}?{}", new_path, req_data.query_string)
+                        } else {
+                            new_path
+                        };
+
+                        resp.headers.insert("Location".to_string(), location);
+                        resp
                     } else {
-                        new_path
-                    };
-
-                    resp.headers.insert("Location".to_string(), location);
-                    resp
-                } else {
-                    ResponseData::error(http::StatusCode::NOT_FOUND, Some("Not Found"))
+                        ResponseData::error(http::StatusCode::NOT_FOUND, Some("Not Found"))
+                    }
                 }
             }
         };

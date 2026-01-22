@@ -78,7 +78,7 @@ impl StaticFileHandler {
 
 impl RouteHandler for StaticFileHandler {
     fn handle(&self, req: RequestData) -> ResponseData {
-        if req.method != http::Method::GET {
+        if req.method != http::Method::GET && req.method != http::Method::HEAD {
             return ResponseData::error(StatusCode::METHOD_NOT_ALLOWED, Some("Method Not Allowed"));
         }
 
