@@ -217,8 +217,9 @@ class BustAPILogger:
             try:
                 from .. import bustapi_core
 
-                self._fast_logger = bustapi_core.FastLogger()
-            except (ImportError, AttributeError):
+                self._fast_logger = bustapi_core.FastLogger(use_colors=self.use_colors)
+            except (ImportError, AttributeError, TypeError):
+                # TypeError handles case where user has old shared object without new signature
                 self._fast_logger = False  # Mark as unavailable
 
         if self._fast_logger:

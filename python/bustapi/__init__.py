@@ -28,6 +28,7 @@ __email__ = ""
 
 # Import core modules
 # Import core classes and functions
+from . import logging
 from .app import BustAPI
 from .auth import (
     AnonUser,
@@ -52,7 +53,6 @@ from .auth import (
     roles_required,
     verify_password,
 )
-from .core import logging
 from .core.helpers import abort, redirect, render_template, send_file, url_for
 from .dependencies import Depends
 from .documentation.generator import BustAPIDocs
@@ -102,6 +102,7 @@ __all__ = [
     "send_file",
     "abort",
     "Blueprint",
+    "logging",
     "Path",
     "Query",
     "Body",

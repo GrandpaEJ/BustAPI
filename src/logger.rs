@@ -3,19 +3,39 @@ use colored::*;
 use pyo3::prelude::*;
 
 #[pyclass(name = "FastLogger")]
-pub struct PyFastLogger;
+pub struct PyFastLogger {
+    use_colors: bool,
+}
 
 #[pymethods]
 impl PyFastLogger {
     #[new]
-    fn new() -> Self {
-        PyFastLogger
+    #[pyo3(signature = (use_colors=true))]
+    fn new(use_colors: bool) -> Self {
+        PyFastLogger { use_colors }
     }
 
     fn log_request(&self, method: &str, path: &str, status: u16, duration: f64) {
         // Format timestamp
         let now = Local::now();
         let timestamp = now.format("%H:%M:%S").to_string();
+        
+        // If colors are disabled, print plain log
+        if !self.use_colors {
+            let duration_str = if duration >= 1.0 {
+                format!("{:.3}s", duration)
+            } else if duration >= 0.001 {
+                format!("{:.3}ms", duration * 1000.0)
+            } else if duration >= 0.000001 {
+                format!("{:.3}μs", duration * 1_000_000.0)
+            } else {
+                format!("{:.3}ns", duration * 1_000_000_000.0)
+            };
+            
+            println!("{} | {:<7} | {:<10} | {:<7} | {}", timestamp, status, duration_str, method, path);
+            return;
+        }
+
         let timestamp_colored = timestamp.white();
 
         // Format method
