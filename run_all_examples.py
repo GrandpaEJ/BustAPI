@@ -41,7 +41,7 @@ def main():
         if filename == "__init__.py" or filename.startswith("__"):
             continue
 
-        print(f"\n{'='*50}")
+        print(f"\n{'=' * 50}")
         print(f"Processing {filename}")
 
         with open(file_path, "r") as f:
@@ -86,9 +86,9 @@ def main():
                 for i in range(2):
                     try:
                         response = httpx.get(url, timeout=5)
-                        print(f"  Attempt {i+1}: Status {response.status_code}")
+                        print(f"  Attempt {i + 1}: Status {response.status_code}")
                     except Exception as e:
-                        print(f"  Attempt {i+1}: Failed - {e}")
+                        print(f"  Attempt {i + 1}: Failed - {e}")
 
         except Exception as e:
             print(f"Error running {filename}: {e}")

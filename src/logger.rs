@@ -19,7 +19,7 @@ impl PyFastLogger {
         // Format timestamp
         let now = Local::now();
         let timestamp = now.format("%H:%M:%S").to_string();
-        
+
         // If colors are disabled, print plain log
         if !self.use_colors {
             let duration_str = if duration >= 1.0 {
@@ -31,8 +31,11 @@ impl PyFastLogger {
             } else {
                 format!("{:.3}ns", duration * 1_000_000_000.0)
             };
-            
-            println!("{} | {:<7} | {:<10} | {:<7} | {}", timestamp, status, duration_str, method, path);
+
+            println!(
+                "{} | {:<7} | {:<10} | {:<7} | {}",
+                timestamp, status, duration_str, method, path
+            );
             return;
         }
 

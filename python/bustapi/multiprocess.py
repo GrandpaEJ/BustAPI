@@ -143,7 +143,7 @@ def spawn_workers_linux(rust_app, host: str, port: int, workers: int, debug: boo
         p = multiprocessing.Process(
             target=rust_app.run,
             args=(host, port, 1, debug),
-            name=f"bustapi-worker-{i+1}",
+            name=f"bustapi-worker-{i + 1}",
         )
         p.start()
         processes.append(p)

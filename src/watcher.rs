@@ -33,7 +33,7 @@ pub fn enable_hot_reload(path_str: String) {
                     // Filter out non-python files if needed, but for now watch all
                     // Simple debounce: Wait a bit to avoid multiple restarts for one save
                     if let Some(path) = paths.first() {
-                         println!("Using: {}", path.display());
+                        println!("Using: {}", path.display());
                     }
                     println!("🔄 Restarting...");
                     restart_process();

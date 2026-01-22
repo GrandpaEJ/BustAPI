@@ -24,10 +24,14 @@ pub struct PyRouteHandler {
 
 impl PyRouteHandler {
     /// Create handler with pattern for path param extraction
-    pub fn with_pattern(handler: Py<PyAny>, pattern: String, param_types: HashMap<String, String>) -> Self {
+    pub fn with_pattern(
+        handler: Py<PyAny>,
+        pattern: String,
+        param_types: HashMap<String, String>,
+    ) -> Self {
         let param_specs = Self::parse_pattern(&pattern, &param_types);
-        Self { 
-            handler, 
+        Self {
+            handler,
             pattern,
             param_specs,
         }
@@ -35,17 +39,20 @@ impl PyRouteHandler {
 
     /// Legacy constructor (no path params)
     pub fn new(handler: Py<PyAny>) -> Self {
-        Self { 
-            handler, 
+        Self {
+            handler,
             pattern: String::new(),
             param_specs: Vec::new(),
         }
     }
 
     /// Parse route pattern to extract param specs
-    fn parse_pattern(pattern: &str, param_types: &HashMap<String, String>) -> Vec<(String, ParamType)> {
+    fn parse_pattern(
+        pattern: &str,
+        param_types: &HashMap<String, String>,
+    ) -> Vec<(String, ParamType)> {
         let mut specs = Vec::new();
-        
+
         for part in pattern.split('/') {
             if part.starts_with('<') && part.ends_with('>') {
                 let inner = &part[1..part.len() - 1];
@@ -54,17 +61,17 @@ impl PyRouteHandler {
                 } else {
                     ("str", inner.trim())
                 };
-                
+
                 // Use explicit type from registration, or infer from pattern
                 let param_type = param_types
                     .get(name)
                     .map(|t| ParamType::from_str(t))
                     .unwrap_or_else(|| ParamType::from_str(type_hint));
-                
+
                 specs.push((name.to_string(), param_type));
             }
         }
-        
+
         specs
     }
 
@@ -76,7 +83,7 @@ impl PyRouteHandler {
 
         let pattern_parts: Vec<&str> = self.pattern.trim_matches('/').split('/').collect();
         let path_parts: Vec<&str> = path.trim_matches('/').split('/').collect();
-        
+
         if pattern_parts.len() != path_parts.len() {
             return None;
         }
@@ -107,12 +114,10 @@ impl PyRouteHandler {
                             }
                         }
                     }
-                    ParamType::Float => {
-                        match value.parse::<f64>() {
-                            Ok(n) => TypedValue::Float(n),
-                            Err(_) => return None,
-                        }
-                    }
+                    ParamType::Float => match value.parse::<f64>() {
+                        Ok(n) => TypedValue::Float(n),
+                        Err(_) => return None,
+                    },
                     ParamType::Str | ParamType::Path => TypedValue::Str(value.to_string()),
                 };
 
@@ -126,7 +131,7 @@ impl PyRouteHandler {
     /// Convert params to Python dict
     fn to_py_dict(&self, py: Python, params: &HashMap<String, TypedValue>) -> PyResult<Py<PyDict>> {
         let dict = PyDict::new(py);
-        
+
         for (name, value) in params {
             match value {
                 TypedValue::Int(n) => {
@@ -145,7 +150,7 @@ impl PyRouteHandler {
                 }
             }
         }
-        
+
         Ok(dict.into())
     }
 }
@@ -161,12 +166,10 @@ impl RouteHandler for PyRouteHandler {
                     // Extract path params in Rust (fast path)
                     let py_params = if !self.param_specs.is_empty() {
                         match self.extract_params(&req.path) {
-                            Some(params) => {
-                                match self.to_py_dict(py, &params) {
-                                    Ok(dict) => Some(dict),
-                                    Err(_) => None,
-                                }
-                            }
+                            Some(params) => match self.to_py_dict(py, &params) {
+                                Ok(dict) => Some(dict),
+                                Err(_) => None,
+                            },
                             None => None,
                         }
                     } else {

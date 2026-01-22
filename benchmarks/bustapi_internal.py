@@ -245,7 +245,7 @@ def main():
 
         print(f"\n📈 Average Normal Route:  {normal_avg:>12,.0f} req/sec")
         print(f"📈 Average Turbo Route:   {turbo_avg:>12,.0f} req/sec")
-        print(f"⚡ Turbo Speedup:         {turbo_avg/normal_avg:>12.2f}x faster")
+        print(f"⚡ Turbo Speedup:         {turbo_avg / normal_avg:>12.2f}x faster")
 
     finally:
         # Cleanup
