@@ -5,8 +5,7 @@ app = BustAPI(static_folder="static")
 
 @app.route("/")
 def index():
-    return HTMLResponse(
-        """
+    return HTMLResponse("""
     <!DOCTYPE html>
     <html>
     <body>
@@ -27,8 +26,7 @@ def index():
         </video>
     </body>
     </html>
-    """
-    )
+    """)
 
 
 @app.route("/video/dynamic")
