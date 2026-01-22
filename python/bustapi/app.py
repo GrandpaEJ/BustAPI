@@ -311,7 +311,7 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
         """
         if debug:
             self.config["DEBUG"] = True
-            self._setup_debug_logging()
+            # self._setup_debug_logging()  # Handled by Rust backend now for better coverage
 
         # Handle hot reload
         if reload or debug:

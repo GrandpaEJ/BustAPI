@@ -262,6 +262,12 @@ impl PyBustApp {
 
         // In Python 3.13 free-threaded, we can release GIL and run full parallel!
         // In Python 3.13 free-threaded, we can release GIL and run full parallel!
+
+        // Update debug state
+        self.state
+            .debug
+            .store(debug, std::sync::atomic::Ordering::Relaxed);
+
         Python::attach(|py| {
             py.detach(|| {
                 let sys = actix_rt::System::new();

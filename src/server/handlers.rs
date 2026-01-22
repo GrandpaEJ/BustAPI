@@ -8,6 +8,7 @@ use tokio::sync::RwLock;
 
 use crate::request::RequestData;
 use crate::router::{RouteHandler, Router};
+use std::time::Instant;
 
 /// Configuration for the BustAPI server
 #[derive(Debug, Clone)]
@@ -60,15 +61,19 @@ impl RouteHandler for FastRouteHandler {
     }
 }
 
+use std::sync::atomic::{AtomicBool, Ordering};
+
 /// Shared application state
 pub struct AppState {
     pub routes: RwLock<Router>,
+    pub debug: AtomicBool,
 }
 
 impl AppState {
     pub fn new() -> Self {
         Self {
             routes: RwLock::new(Router::new()),
+            debug: AtomicBool::new(false),
         }
     }
 }
@@ -85,6 +90,7 @@ pub async fn handle_request(
     mut payload: web::Payload,
     state: web::Data<Arc<AppState>>,
 ) -> HttpResponse {
+    let start_time = Instant::now();
     // 1. Convert Actix Request to generic RequestData
     let mut headers = std::collections::HashMap::new();
     for (key, value) in req.headers() {
@@ -179,6 +185,16 @@ pub async fn handle_request(
         for (k, v) in response_data.headers {
             builder.insert_header((k.as_str(), v.as_str()));
         }
+
+        if state.debug.load(Ordering::Relaxed) {
+            crate::logger::log_request_optimized(
+                &req.method().to_string(),
+                &req.path().to_string(),
+                response_data.status.as_u16(),
+                start_time.elapsed().as_secs_f64(),
+                true,
+            );
+        }
         return builder.streaming(stream);
     }
 
@@ -201,9 +217,28 @@ pub async fn handle_request(
                         );
                     }
 
+                    if state.debug.load(Ordering::Relaxed) {
+                        crate::logger::log_request_optimized(
+                            &req.method().to_string(),
+                            &req.path().to_string(),
+                            response.status().as_u16(),
+                            start_time.elapsed().as_secs_f64(),
+                            true,
+                        );
+                    }
+
                     return response;
                 }
                 Err(_) => {
+                    if state.debug.load(Ordering::Relaxed) {
+                        crate::logger::log_request_optimized(
+                            &req.method().to_string(),
+                            &req.path().to_string(),
+                            500,
+                            start_time.elapsed().as_secs_f64(),
+                            true,
+                        );
+                    }
                     return HttpResponse::InternalServerError().body("File Open Error");
                 }
             }
@@ -214,6 +249,16 @@ pub async fn handle_request(
 
     for (k, v) in response_data.headers {
         builder.insert_header((k.as_str(), v.as_str()));
+    }
+
+    if state.debug.load(Ordering::Relaxed) {
+        crate::logger::log_request_optimized(
+            &req.method().to_string(),
+            &req.path().to_string(),
+            response_data.status.as_u16(),
+            start_time.elapsed().as_secs_f64(),
+            true,
+        );
     }
 
     builder.body(response_data.body)
