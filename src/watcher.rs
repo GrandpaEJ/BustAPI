@@ -20,7 +20,7 @@ pub fn enable_hot_reload(path_str: String) {
             return;
         }
 
-        println!("👀 Rust Hot-Reloader Active: Watching '{}'", path_str);
+        println!("🔃 Hot-Reload: Active");
 
         // Wait for events
         loop {
@@ -32,8 +32,10 @@ pub fn enable_hot_reload(path_str: String) {
                 })) => {
                     // Filter out non-python files if needed, but for now watch all
                     // Simple debounce: Wait a bit to avoid multiple restarts for one save
-                    let _ = paths;
-                    println!("🔄 Change detected! Restarting...");
+                    if let Some(path) = paths.first() {
+                         println!("Using: {}", path.display());
+                    }
+                    println!("🔄 Restarting...");
                     restart_process();
                 }
                 Ok(Err(e)) => eprintln!("watch error: {:?}", e),

@@ -171,9 +171,9 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
         except ImportError as e:
             raise RuntimeError(
                 f"BustAPI requires the Rust backend. Build with: maturin develop\n{e}"
-            )
+            ) from e
         except Exception as e:
-            raise RuntimeError(f"Failed to initialize Rust backend: {e}")
+            raise RuntimeError(f"Failed to initialize Rust backend: {e}") from e
 
     def register_blueprint(self, blueprint: Blueprint, **options) -> None:
         """
@@ -317,6 +317,7 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
 
         if workers is None:
             import multiprocessing
+
             workers = 1 if debug else multiprocessing.cpu_count()
 
         # Dispatch to appropriate server
@@ -331,10 +332,13 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
 
     def _setup_debug_logging(self):
         """Setup request logging for debug mode."""
+
         def _debug_start_timer():
             try:
                 import time
+
                 from bustapi import request
+
                 request.start_time = time.time()
             except ImportError:
                 pass
@@ -342,7 +346,9 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
         def _debug_log_request(response):
             try:
                 import time
+
                 from bustapi import logging, request
+
                 start_time = getattr(request, "start_time", time.time())
                 duration = time.time() - start_time
                 logging.log_request(
@@ -360,8 +366,8 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
         if os.environ.get("BUSTAPI_RELOADER_RUN") != "true":
             try:
                 from . import bustapi_core
+
                 bustapi_core.enable_hot_reload(".")
-                print("🔄 Rust Hot Reloader Active (watching current directory)")
             except ImportError:
                 print("⚠️ Native hot reload not available in this build.")
             except Exception as e:
@@ -371,6 +377,7 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
         """Run the native Rust HTTP server."""
         if workers > 1 and not debug:
             from .multiprocess import spawn_workers
+
             spawn_workers(self._rust_app, host, port, workers, debug)
             return
 
@@ -442,6 +449,7 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
         """Run with Hypercorn ASGI server."""
         try:
             import asyncio
+
             from hypercorn.asyncio import serve
             from hypercorn.config import Config
 
