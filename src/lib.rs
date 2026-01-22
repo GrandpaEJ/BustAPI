@@ -25,6 +25,7 @@ mod server;
 mod static_files;
 pub mod templating;
 mod watcher;
+pub mod websocket;
 
 pub use request::RequestData;
 pub use response::ResponseData;
@@ -42,6 +43,10 @@ fn bustapi_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // JWT support
     m.add_class::<jwt::JWTManager>()?;
+
+    // WebSocket support
+    m.add_class::<bindings::PyWebSocketConnection>()?;
+    m.add_class::<bindings::PyWebSocketHandler>()?;
 
     // Password hashing
     m.add_function(wrap_pyfunction!(crypto::hash_password, m)?)?;

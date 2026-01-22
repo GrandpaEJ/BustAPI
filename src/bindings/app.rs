@@ -190,7 +190,35 @@ impl PyBustApp {
         Ok(())
     }
 
-    /// Add a fast Rust-only route (maximum performance, no Python)
+    /// Add a WebSocket route with a Python handler
+    pub fn add_websocket_route(&self, path: &str, handler: Py<PyAny>) -> PyResult<()> {
+        let state = self.state.clone();
+        let path = path.to_string();
+
+        self.runtime.block_on(async {
+            let mut ws_handlers = state.websocket_handlers.write().await;
+            ws_handlers.insert(path, handler);
+        });
+
+        Ok(())
+    }
+
+    /// Add a Turbo WebSocket route - pure Rust, maximum performance
+    /// The response_prefix is prepended to each received message
+    pub fn add_turbo_websocket_route(&self, path: &str, response_prefix: String) -> PyResult<()> {
+        let handler = std::sync::Arc::new(crate::websocket::TurboWebSocketHandler::new(
+            response_prefix,
+        ));
+        let state = self.state.clone();
+        let path = path.to_string();
+
+        self.runtime.block_on(async {
+            let mut turbo_handlers = state.turbo_websocket_handlers.write().await;
+            turbo_handlers.insert(path, handler);
+        });
+
+        Ok(())
+    }
     pub fn add_fast_route(&self, method: &str, path: &str, response_body: String) -> PyResult<()> {
         let fast_handler = FastRouteHandler::new(response_body);
 

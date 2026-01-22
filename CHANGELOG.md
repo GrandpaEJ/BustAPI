@@ -6,6 +6,16 @@ All notable changes to this project will be documented here.
 
 ### Major Features
 
+- **WebSocket Support**:
+  - Full WebSocket support with `@app.websocket()` decorator.
+  - Integration with `actix-ws` for heavy lifting in Rust.
+  - Python-side API compatible with popular async frameworks.
+
+- **Turbo WebSocket (Performance)**:
+  - New `@app.turbo_websocket()` decorator for ultra-high performance.
+  - **Pure Rust Message Handling**: Messages are processed entirely in Rust (no Python GIL, no callbacks) for maximum throughput.
+  - **~74% Performance Boost**: Benchmarks show ~17k msg/sec vs ~10k msg/sec for standard mode.
+
 - **Video Streaming & Range Requests**:
   - Full support for HTTP `Range` requests (seeking, scrubbing) via `FileResponse` and static files.
   - Implemented `HEAD` method support for all routes to handle browser pre-flight checks correctly.
@@ -25,6 +35,13 @@ All notable changes to this project will be documented here.
 - **Developer Experience**:
   - Enhanced Hot-Reloader: Cleaner output, suppresses internal noise, and clearly shows changed files.
   - `bustapi.logging`: New customizable logging module for users.
+
+### Added
+
+- `src/websocket/mod.rs` and `session.rs` for core WebSocket logic.
+- `src/websocket/turbo.rs` for optimized Rust-only handling.
+- `examples/advanced/28_websocket.py` and `29_turbo_websocket.py`.
+- `benchmarks/ws_benchmark.py` for testing WebSocket performance.
 
 ### Refactoring
 

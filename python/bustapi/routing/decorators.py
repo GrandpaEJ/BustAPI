@@ -198,3 +198,87 @@ class RoutingMixin:
             params.append((name, type_str))
 
         return params
+
+    def websocket(self, rule: str) -> Callable:
+        """
+        WebSocket route decorator for real-time bidirectional communication.
+
+        Args:
+            rule: URL path for the WebSocket endpoint
+
+        Example:
+            @app.websocket("/ws")
+            async def ws_handler(ws):
+                await ws.send("Welcome!")
+                async for msg in ws:
+                    await ws.send(f"Echo: {msg}")
+        """
+        from ..websocket import WebSocketHandler
+
+        def decorator(f: Callable) -> Callable:
+            endpoint = f.__name__
+            handler = WebSocketHandler(f)
+            f._websocket_handler = handler
+            f._websocket_path = rule
+
+            # Store for later registration during server startup
+            if not hasattr(self, "_websocket_routes"):
+                self._websocket_routes = {}
+            self._websocket_routes[rule] = handler
+
+            self.view_functions[endpoint] = f
+            self.url_map[rule] = {
+                "endpoint": endpoint,
+                "methods": ["GET"],
+                "websocket": True,
+            }
+
+            # Register WebSocket handler with Rust backend
+            if hasattr(self, "_rust_app"):
+                self._rust_app.add_websocket_route(rule, handler)
+
+            return f
+
+        return decorator
+
+    def turbo_websocket(self, rule: str, response_prefix: str = "Echo: ") -> Callable:
+        """
+        Turbo WebSocket route - pure Rust, maximum performance.
+
+        Unlike regular @app.websocket(), this handler runs entirely in Rust.
+        The response_prefix is prepended to every received message.
+
+        Args:
+            rule: URL path for the WebSocket endpoint
+            response_prefix: String to prepend to each echoed message
+
+        Example:
+            @app.turbo_websocket("/ws/fast")
+            def fast_echo():
+                pass  # Handler body is ignored, all processing is in Rust
+
+            # Or with custom prefix:
+            @app.turbo_websocket("/ws/fast", response_prefix="Server: ")
+            def fast_echo():
+                pass
+        """
+
+        def decorator(f: Callable) -> Callable:
+            endpoint = f.__name__
+            f._turbo_websocket_path = rule
+            f._turbo_websocket_prefix = response_prefix
+
+            self.view_functions[endpoint] = f
+            self.url_map[rule] = {
+                "endpoint": endpoint,
+                "methods": ["GET"],
+                "turbo_websocket": True,
+            }
+
+            # Register Turbo WebSocket handler with Rust backend
+            if hasattr(self, "_rust_app"):
+                self._rust_app.add_turbo_websocket_route(rule, response_prefix)
+
+            return f
+
+        return decorator

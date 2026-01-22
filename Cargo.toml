@@ -13,6 +13,7 @@ actix-web = "4"
 actix-rt = "2"
 actix-http = "3"
 actix-files = "0.6"
+actix-ws = "0.3"
 
 # PyO3 with latest version for Python 3.14 support
 pyo3 = { version = "0.27", features = ["extension-module"] }

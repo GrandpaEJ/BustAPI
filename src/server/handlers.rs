@@ -61,12 +61,18 @@ impl RouteHandler for FastRouteHandler {
     }
 }
 
+use pyo3::prelude::*;
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
+
+use crate::websocket::TurboWebSocketHandler;
 
 /// Shared application state
 pub struct AppState {
     pub routes: RwLock<Router>,
     pub debug: AtomicBool,
+    pub websocket_handlers: RwLock<HashMap<String, Py<PyAny>>>,
+    pub turbo_websocket_handlers: RwLock<HashMap<String, Arc<TurboWebSocketHandler>>>,
 }
 
 impl AppState {
@@ -74,6 +80,8 @@ impl AppState {
         Self {
             routes: RwLock::new(Router::new()),
             debug: AtomicBool::new(false),
+            websocket_handlers: RwLock::new(HashMap::new()),
+            turbo_websocket_handlers: RwLock::new(HashMap::new()),
         }
     }
 }
@@ -91,6 +99,54 @@ pub async fn handle_request(
     state: web::Data<Arc<AppState>>,
 ) -> HttpResponse {
     let start_time = Instant::now();
+
+    // Check for WebSocket upgrade request
+    let is_websocket = req
+        .headers()
+        .get("upgrade")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.to_lowercase() == "websocket")
+        .unwrap_or(false);
+
+    if is_websocket {
+        let path = req.path().to_string();
+
+        // Check for Turbo WebSocket handlers first (pure Rust, maximum performance)
+        {
+            let turbo_handlers = state.turbo_websocket_handlers.read().await;
+            if let Some(handler) = turbo_handlers.get(&path) {
+                let handler_clone = handler.clone();
+                drop(turbo_handlers);
+
+                match crate::websocket::handle_turbo_websocket(req, payload, handler_clone).await {
+                    Ok(response) => return response,
+                    Err(e) => {
+                        return HttpResponse::InternalServerError()
+                            .body(format!("Turbo WebSocket error: {}", e));
+                    }
+                }
+            }
+        }
+
+        // Fall back to Python WebSocket handlers
+        let ws_handlers = state.websocket_handlers.read().await;
+
+        if let Some(handler) = ws_handlers.get(&path) {
+            let handler_clone = Python::attach(|py| handler.clone_ref(py));
+            drop(ws_handlers);
+
+            match crate::websocket::handle_websocket(req, payload, handler_clone).await {
+                Ok(response) => return response,
+                Err(e) => {
+                    return HttpResponse::InternalServerError()
+                        .body(format!("WebSocket error: {}", e));
+                }
+            }
+        }
+        // If no WS handler registered for this path, fall through to normal handling
+        drop(ws_handlers);
+    }
+
     // 1. Convert Actix Request to generic RequestData
     let mut headers = std::collections::HashMap::new();
     for (key, value) in req.headers() {
