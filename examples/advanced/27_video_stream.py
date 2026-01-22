@@ -1,6 +1,7 @@
+import os
 from bustapi import BustAPI, FileResponse, HTMLResponse
 
-app = BustAPI(static_folder="static")
+app = BustAPI(static_folder="static", root_path=os.getcwd())
 
 
 @app.route("/")
