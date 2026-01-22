@@ -159,9 +159,11 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
             self._rust_app = bustapi_core.create_app()
 
             # Register static file handler
+            # print(f"DEBUG: static_folder={self.static_folder}, isdir={os.path.isdir(self.static_folder) if self.static_folder else 'None'}")
             if self.static_folder and os.path.isdir(self.static_folder):
-                self._rust_app.set_static_folder(self.static_folder)
+                # self._rust_app.set_static_folder(self.static_folder)  # Not implemented in Rust
                 static_url = self.static_url_path or "/static"
+                # print(f"DEBUG: Adding static route {static_url} -> {self.static_folder}")
                 self._rust_app.add_static_route(static_url, self.static_folder)
 
             # Register template folder

@@ -18,9 +18,11 @@ pub struct PyBustApp {
 // Helper methods (not exposed to Python)
 impl PyBustApp {
     /// Extract param types from Flask-style route pattern
-    fn extract_param_types_from_pattern(pattern: &str) -> std::collections::HashMap<String, String> {
+    fn extract_param_types_from_pattern(
+        pattern: &str,
+    ) -> std::collections::HashMap<String, String> {
         let mut types = std::collections::HashMap::new();
-        
+
         for part in pattern.split('/') {
             if part.starts_with('<') && part.ends_with('>') {
                 let inner = &part[1..part.len() - 1];
@@ -32,7 +34,7 @@ impl PyBustApp {
                 types.insert(name.to_string(), type_str.to_string());
             }
         }
-        
+
         types
     }
 }
@@ -104,7 +106,7 @@ impl PyBustApp {
     pub fn add_route(&self, method: &str, path: &str, handler: Py<PyAny>) -> PyResult<()> {
         // Parse param types from path pattern
         let param_types = Self::extract_param_types_from_pattern(path);
-        
+
         let py_handler = if param_types.is_empty() {
             // No path params - use simple handler
             crate::bindings::handlers::PyRouteHandler::new(handler)
@@ -208,7 +210,11 @@ impl PyBustApp {
     /// Add a secure static file route
     pub fn add_static_route(&self, path_prefix: &str, static_folder: &str) -> PyResult<()> {
         let handler = crate::static_files::StaticFileHandler::new(static_folder, path_prefix);
-        let path = format!("{}<path:subpath>", path_prefix); // Dynamic match for /static/<path:subpath>
+        let path = if path_prefix.ends_with('/') {
+            format!("{}<path:subpath>", path_prefix)
+        } else {
+            format!("{}/<path:subpath>", path_prefix)
+        };
 
         let state = self.state.clone();
         let method_enum = http::Method::GET;
