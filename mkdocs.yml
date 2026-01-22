@@ -18,6 +18,9 @@ extra:
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/bustapi/
       name: BustAPI on PyPI
+    - icon: fontawesome/solid/heart
+      link: https://ej.grandpaacademy.org/
+      name: Sponsor BustAPI
   generator: false
   analytics:
     provider: google
