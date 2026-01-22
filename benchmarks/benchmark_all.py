@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Automated Framework Comparison Benchmark
-BustAPI vs Flask vs FastAPI vs Catzilla
+BustAPI vs Flask vs FastAPI vs Sanic vs Falcon vs Bottle vs Django vs BlackSheep
 
 Requires: wrk, uv
 """
@@ -33,7 +33,6 @@ WORKERS_CONFIG = {
     "BustAPI": 4,
     "Flask": 4,
     "FastAPI": 4,
-    "Catzilla": 4,
     "Sanic": 4,
     "Falcon": 4,
     "Bottle": 4,
@@ -45,7 +44,6 @@ SERVER_FILES = {
     "BustAPI": "benchmarks/temp_bustapi.py",
     "Flask": "benchmarks/temp_flask.py",
     "FastAPI": "benchmarks/temp_fastapi.py",
-    "Catzilla": "benchmarks/temp_catzilla.py",
     "Sanic": "benchmarks/temp_sanic.py",
     "Falcon": "benchmarks/temp_falcon.py",
     "Bottle": "benchmarks/temp_bottle.py",
@@ -67,7 +65,6 @@ RUN_COMMANDS = {
         "/dev/null",
         "benchmarks.temp_flask:app",
     ],
-    "Catzilla": ["python", "benchmarks/temp_catzilla.py"],
     "Robyn": ["python", "benchmarks/temp_robyn.py"],
     "FastAPI": [
         "python",
@@ -166,26 +163,6 @@ def json_endpoint():
 @app.get("/user/{id}")
 def user(id: int):
     return JSONResponse({"user_id": id})
-"""
-
-CODE_CATZILLA = f"""
-from catzilla import Catzilla, Request, Response, JSONResponse
-app = Catzilla(production=True, log_requests=False)
-
-@app.get("/")
-def index(request: Request) -> Response:
-    return Response("Hello, World!")
-
-@app.get("/json")
-def json_endpoint(request: Request) -> Response:
-    return JSONResponse({{"hello": "world"}})
-
-@app.get("/user/{{id}}")
-def user(request, id: int) -> Response:
-    return JSONResponse({{"user_id": id}})
-
-if __name__ == "__main__":
-    app.listen(host="{HOST}", port={PORT})
 """
 
 
@@ -487,8 +464,6 @@ def create_server_files():
         f.write(CODE_FLASK)
     with open(SERVER_FILES["FastAPI"], "w") as f:
         f.write(CODE_FASTAPI)
-    with open(SERVER_FILES["Catzilla"], "w") as f:
-        f.write(CODE_CATZILLA)
     with open(SERVER_FILES["Sanic"], "w") as f:
         f.write(CODE_SANIC)
     with open(SERVER_FILES["Falcon"], "w") as f:
@@ -701,7 +676,6 @@ def main():
     try:
         frameworks = [
             "BustAPI",
-            "Catzilla",
             "Flask",
             "FastAPI",
             "Sanic",
@@ -845,7 +819,6 @@ def generate_graph(results: List[BenchmarkResult], sys_info: Dict):
         "Bottle": "#9e9e9e",  # Grey
         "Flask": "#34495e",  # Midnight Blue
         "Django": "#0c4b33",  # Django Green
-        "Catzilla": "#e67e22",  # Orange
     }
 
     # Create subplots (one for each endpoint)
