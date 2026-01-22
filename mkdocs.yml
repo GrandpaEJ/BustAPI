@@ -159,6 +159,8 @@ nav:
       - Turbo Routes: user-guide/turbo-routes.md
       - Request Data: user-guide/request_data.md
       - Responses: user-guide/responses.md
+      - Logging: user-guide/logging.md
+      - Video Streaming: user-guide/video-streaming.md
       - Templates: user-guide/templates.md
   - ⚡ Performance:
       - Multiprocessing: user-guide/multiprocessing.md

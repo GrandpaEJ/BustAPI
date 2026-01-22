@@ -11,7 +11,7 @@ Regular routes go through Python's full request lifecycle:
 - Middleware execution
 - Parameter extraction
 
-**Turbo routes skip all of this.** Path parameters are parsed in Rust and passed directly to your handler.
+**Turbo routes skip all of this.** Path parameters are parsed and extracted entirely in Rust (new in **v0.9.0**) and passed directly to your handler. This results in zero Python-side regex overhead.
 
 ## Performance
 
