@@ -63,6 +63,9 @@ All notable changes to this project will be documented here.
 
 - **Session Logout Bug**: Fixed issue where `session.pop()` failures to persist changes to the session cookie ([#17](https://github.com/GrandpaEJ/BustAPI/issues/17)).
 - **Template Headers**: `render_template` now correctly returns an `HTMLResponse` ensuring `Content-Type: text/html` is set instead of relying on implicit string handling ([#17](https://github.com/GrandpaEJ/BustAPI/issues/17)).
+- **Template Loading**: Fixed `TemplateNotFound` errors when initializing `BustAPI` without arguments by auto-detecting the caller's module path ([#15](https://github.com/GrandpaEJ/BustAPI/issues/15)).
+- **CI Expansion**: Added `aarch64` (ARM64) support for both GNU/glibc and musl/Alpine in release and CI workflows. Now supports practically all Linux distributions including Raspberry Pi and AWS Graviton.
+
 
 ## [0.8.0] - 2026-01-14
 

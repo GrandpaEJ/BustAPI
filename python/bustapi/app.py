@@ -61,7 +61,14 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
             instance_relative_config: Enable instance relative config
             root_path: Root path for the application
         """
-        self.import_name = import_name or self.__class__.__module__
+        if import_name is None:
+            import inspect
+            # Auto-detect the caller's module name
+            frame = inspect.stack()[1]
+            module = inspect.getmodule(frame[0])
+            import_name = module.__name__ if module else self.__class__.__module__
+
+        self.import_name = import_name
 
         if root_path is None:
             root_path = get_root_path(self.import_name)

@@ -9,84 +9,74 @@ on:
         default: "v0.1.0"
 
 jobs:
-  build:
-    name: Build with Maturin
-    runs-on: ${{ matrix.os }}
+  linux:
+    name: Linux
+    runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
-
+        target: [x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl]
+        include:
+          - target: x86_64-unknown-linux-gnu
+            manylinux: auto
+          - target: x86_64-unknown-linux-musl
+            manylinux: musllinux_1_1
+          - target: aarch64-unknown-linux-gnu
+            manylinux: auto
+          - target: aarch64-unknown-linux-musl
+            manylinux: musllinux_1_1
     steps:
       - uses: actions/checkout@v4
+      - uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux }}
+          args: --release --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-linux-${{ matrix.target }}
+          path: dist/*.whl
 
-      # Ensure Python is installed
-      - name: Set up Python
-        uses: actions/setup-python@v5
+  windows:
+    name: Windows
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        target: [x86_64-pc-windows-msvc]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-
-      # Ensure Rust is installed
-      - name: Install Rust
-        run: |
-          if ! command -v rustc &> /dev/null
-          then
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-            source $HOME/.cargo/env
-          fi
-          rustc --version
-          cargo --version
-
-      # Cache cargo dependencies
-      - name: Cache cargo
-        uses: actions/cache@v3
+      - uses: PyO3/maturin-action@v1
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      # Install Maturin into a venv and build wheel using the selected interpreter
-      - name: Create venv and install maturin (Unix)
-        if: runner.os != 'Windows'
-        run: |
-          python -m venv .venv
-          VENV_PY=./.venv/bin/python
-          $VENV_PY -m pip install --upgrade pip
-          $VENV_PY -m pip install maturin
-          echo "VENV_PY=$VENV_PY" >> $GITHUB_ENV
-
-      - name: Create venv and install maturin (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          python -m venv .venv
-          $VENV = '.\\.venv\\Scripts\\python.exe'
-          & $VENV -m pip install --upgrade pip
-          & $VENV -m pip install maturin
-          Write-Output "VENV_PY=$VENV" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      # Build wheel (Unix)
-      - name: Build wheel
-        if: runner.os != 'Windows'
-        run: |
-          $VENV_PY -m maturin build --release --out dist
-
-      - name: Build wheel (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $VENV = $env:VENV_PY
-          & $VENV -m maturin build --release --out dist
-
-      # Upload artifact
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+          target: ${{ matrix.target }}
+          args: --release --out dist
+      - uses: actions/upload-artifact@v4
         with:
-          name: wheel-${{ matrix.os }}-${{ matrix.python-version }}
-          path: dist/*
+          name: wheels-windows-${{ matrix.python-version }}
+          path: dist/*.whl
+
+  macos:
+    name: MacOS
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        target: [x86_64-apple-darwin, aarch64-apple-darwin]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-macos-${{ matrix.python-version }}-${{ matrix.target }}
+          path: dist/*.whl
 
   android:
     name: Android build (maturin)
@@ -144,13 +134,14 @@ jobs:
 
   release:
     name: Publish Release
-    needs: [build, android]
+    needs: [linux, windows, macos, android]
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: dist
+          merge-multiple: true
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
