@@ -20,6 +20,8 @@ BustAPI expects a `templates` folder in the same directory as your application m
 
 Use the `render_template` function. You can pass any number of keyword arguments to be available in the template context.
 
+`render_template` returns a standard `Response` object with `Content-Type: text/html`, so you can return it directly from your view function.
+
 ```python
 from bustapi import render_template
 
