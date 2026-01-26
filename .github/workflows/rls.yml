@@ -22,8 +22,10 @@ jobs:
             manylinux: musllinux_1_1
           - target: aarch64-unknown-linux-gnu
             manylinux: auto
+            args: --release --out dist --find-interpreter --no-default-features
           - target: aarch64-unknown-linux-musl
             manylinux: musllinux_1_1
+            args: --release --out dist --find-interpreter --no-default-features
     steps:
       - uses: actions/checkout@v4
       - uses: PyO3/maturin-action@v1
@@ -124,7 +126,7 @@ jobs:
       # Build Android wheel
       - name: Build Android (aarch64)
         run: |
-          $VENV_PY -m maturin build --release --target aarch64-linux-android --out dist -i python3.11
+          $VENV_PY -m maturin build --release --target aarch64-linux-android --out dist -i python3.11 --no-default-features
 
       # Upload artifact
       - name: Upload artifact
