@@ -80,7 +80,9 @@ class UploadFile:
         if self._headers is None:
             self._headers = {
                 "content-type": self.content_type,
-                "content-disposition": f'form-data; name="file"; filename="{self.filename}"',
+                "content-disposition": (
+                    f'form-data; name="file"; filename="{self.filename}"'
+                ),
             }
         return self._headers
 
