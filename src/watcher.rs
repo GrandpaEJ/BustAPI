@@ -1,7 +1,7 @@
-use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{Config, Error, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use std::ffi::CString;
 use std::path::Path;
-use std::sync::mpsc::channel;
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 
 /// Enable hot reloading by watching the specified paths.
@@ -9,7 +9,7 @@ use std::thread;
 pub fn enable_hot_reload(path_str: String) {
     // Spawn a thread to handle watching
     thread::spawn(move || {
-        let (tx, rx) = channel();
+        let (tx, rx): (Sender<Result<Event, Error>>, Receiver<Result<Event, Error>>) = channel();
 
         // Initialize watcher
         let mut watcher: RecommendedWatcher = Watcher::new(tx, Config::default()).unwrap();
