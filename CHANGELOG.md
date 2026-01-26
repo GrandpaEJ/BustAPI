@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented here.
 
+## [0.9.1] - 2026-01-26
+
+### Fixed
+
+- **CI/CD Expansion**: Added comprehensive cross-platform build support:
+  - **Alpine Linux (musl)**: Added `musllinux` wheels for x86_64 ([#14](https://github.com/GrandpaEJ/BustAPI/issues/14)).
+  - **ARM64 (aarch64)**: Added support for both glibc (Ubuntu/Debian) and musl (Alpine) on ARM processors ([#27](https://github.com/GrandpaEJ/BustAPI/issues/27), [#28](https://github.com/GrandpaEJ/BustAPI/issues/28)).
+- **Session Persistence**: Fixed bug where `session.pop()` did not save changes ([#17](https://github.com/GrandpaEJ/BustAPI/issues/17)).
+- **Template Path**: Fixed `BustAPI()` default template loading when no `import_name` is provided ([#15](https://github.com/GrandpaEJ/BustAPI/issues/15)).
+- **Content-Type**: `render_template` now reliably returns `text/html` headers.
+
 ## [0.9.0] - 2026-01-22
 
 ### Major Features
@@ -59,12 +70,7 @@ All notable changes to this project will be documented here.
 
 - **Optimized Route Matching**: Deterministic scoring system and Rust-side optimizations.
 
-### Fixed
 
-- **Session Logout Bug**: Fixed issue where `session.pop()` failures to persist changes to the session cookie ([#17](https://github.com/GrandpaEJ/BustAPI/issues/17)).
-- **Template Headers**: `render_template` now correctly returns an `HTMLResponse` ensuring `Content-Type: text/html` is set instead of relying on implicit string handling ([#17](https://github.com/GrandpaEJ/BustAPI/issues/17)).
-- **Template Loading**: Fixed `TemplateNotFound` errors when initializing `BustAPI` without arguments by auto-detecting the caller's module path ([#15](https://github.com/GrandpaEJ/BustAPI/issues/15)).
-- **CI Expansion**: Added `aarch64` (ARM64) support for both GNU/glibc and musl/Alpine in release and CI workflows. Now supports practically all Linux distributions including Raspberry Pi and AWS Graviton.
 
 
 ## [0.8.0] - 2026-01-14
