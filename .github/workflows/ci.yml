@@ -65,16 +65,17 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        maturin_args: ["--interpreter 3.12"]
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            args: 
+            maturin_args: --find-interpreter
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            args: 
+            maturin_args: --find-interpreter
           - os: ubuntu-latest
             target: aarch64-unknown-linux-musl
-            args:
+            maturin_args: --find-interpreter
     steps:
       - uses: actions/checkout@v4
       
@@ -89,7 +90,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           # Build only for 3.12 in CI to save time, unless it's a release
-          args: --release --out dist --interpreter 3.12 ${{ matrix.args }}
+          args: --release --out dist ${{ matrix.maturin_args }}
           # Use manylinux 2.28 alias "auto" for glibc, and appropriate image for musl
           manylinux: auto
 
