@@ -68,13 +68,13 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            args: --find-interpreter
+            args: 
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            args: --find-interpreter
+            args: 
           - os: ubuntu-latest
             target: aarch64-unknown-linux-musl
-            args: --find-interpreter
+            args:
     steps:
       - uses: actions/checkout@v4
       
