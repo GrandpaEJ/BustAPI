@@ -11,10 +11,11 @@ Usage:
 """
 
 import asyncio
-import time
-import websockets
 import statistics
 import sys
+import time
+
+import websockets
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8005
 WS_URL = (

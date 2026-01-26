@@ -36,11 +36,11 @@ def index():
         <div id="messages"></div>
         <input type="text" id="input" placeholder="Type a message..." onkeypress="if(event.keyCode==13) send()">
         <button onclick="send()">Send</button>
-        
+
         <script>
             const messages = document.getElementById('messages');
             const input = document.getElementById('input');
-            
+
             function log(msg, type='system') {
                 const div = document.createElement('div');
                 div.className = type;
@@ -48,15 +48,15 @@ def index():
                 messages.appendChild(div);
                 messages.scrollTop = messages.scrollHeight;
             }
-            
+
             log('Connecting to WebSocket...');
             const ws = new WebSocket('ws://' + window.location.host + '/ws');
-            
+
             ws.onopen = () => log('Connected!');
             ws.onclose = () => log('Disconnected');
             ws.onerror = (e) => log('Error: ' + e);
             ws.onmessage = (e) => log(e.data, 'received');
-            
+
             function send() {
                 const msg = input.value.trim();
                 if (msg && ws.readyState === WebSocket.OPEN) {

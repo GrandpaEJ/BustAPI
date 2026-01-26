@@ -4,8 +4,8 @@ WebSocket support for BustAPI.
 Provides high-performance WebSocket connection handling with a simple decorator API.
 """
 
-from typing import Callable, Optional, Any
 import asyncio
+from typing import Any, Callable, Optional
 
 
 class WebSocket:
