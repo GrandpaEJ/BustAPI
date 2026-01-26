@@ -252,7 +252,7 @@ def _get_current_object():
 
 
 # Template helpers
-def render_template(template_name: str, **context) -> str:
+def render_template(template_name: str, **context) -> Response:
     """
     Render template using Jinja2 (Flask-compatible).
 
@@ -261,7 +261,7 @@ def render_template(template_name: str, **context) -> str:
         **context: Template context variables
 
     Returns:
-        Rendered template string
+        Response object with rendered template (HTML)
     """
     try:
         import os
@@ -293,7 +293,11 @@ def render_template(template_name: str, **context) -> str:
 
         # Load and render template
         template = env.get_template(template_name)
-        return template.render(**context)
+        html = template.render(**context)
+
+        from ..responses import HTMLResponse
+
+        return HTMLResponse(html)
 
     except ImportError:
         # Fallback if Jinja2 is not installed

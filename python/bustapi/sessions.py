@@ -31,6 +31,11 @@ class SessionMixin(dict):
         super().update(*args, **kwargs)
         self.modified = True
 
+    def pop(self, key, default=None):
+        val = super().pop(key, default)
+        self.modified = True
+        return val
+
 
 class SecureCookieSession(SessionMixin):
     """Secure cookie-based session."""
