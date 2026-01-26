@@ -59,6 +59,11 @@ All notable changes to this project will be documented here.
 
 - **Optimized Route Matching**: Deterministic scoring system and Rust-side optimizations.
 
+### Fixed
+
+- **Session Logout Bug**: Fixed issue where `session.pop()` failures to persist changes to the session cookie ([#17](https://github.com/GrandpaEJ/BustAPI/issues/17)).
+- **Template Headers**: `render_template` now correctly returns an `HTMLResponse` ensuring `Content-Type: text/html` is set instead of relying on implicit string handling ([#17](https://github.com/GrandpaEJ/BustAPI/issues/17)).
+
 ## [0.8.0] - 2026-01-14
 
 ### Added
