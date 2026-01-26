@@ -244,8 +244,8 @@ pub async fn handle_request(
 
         if state.debug.load(Ordering::Relaxed) {
             crate::logger::log_request_optimized(
-                &req.method().to_string(),
-                &req.path().to_string(),
+                req.method().as_ref(),
+                req.path(),
                 response_data.status.as_u16(),
                 start_time.elapsed().as_secs_f64(),
                 true,
@@ -275,8 +275,8 @@ pub async fn handle_request(
 
                     if state.debug.load(Ordering::Relaxed) {
                         crate::logger::log_request_optimized(
-                            &req.method().to_string(),
-                            &req.path().to_string(),
+                            req.method().as_ref(),
+                            req.path(),
                             response.status().as_u16(),
                             start_time.elapsed().as_secs_f64(),
                             true,
@@ -288,8 +288,8 @@ pub async fn handle_request(
                 Err(_) => {
                     if state.debug.load(Ordering::Relaxed) {
                         crate::logger::log_request_optimized(
-                            &req.method().to_string(),
-                            &req.path().to_string(),
+                            req.method().as_ref(),
+                            req.path(),
                             500,
                             start_time.elapsed().as_secs_f64(),
                             true,
@@ -309,8 +309,8 @@ pub async fn handle_request(
 
     if state.debug.load(Ordering::Relaxed) {
         crate::logger::log_request_optimized(
-            &req.method().to_string(),
-            &req.path().to_string(),
+            req.method().as_ref(),
+            req.path(),
             response_data.status.as_u16(),
             start_time.elapsed().as_secs_f64(),
             true,

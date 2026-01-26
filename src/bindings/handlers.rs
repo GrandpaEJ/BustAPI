@@ -166,10 +166,7 @@ impl RouteHandler for PyRouteHandler {
                     // Extract path params in Rust (fast path)
                     let py_params = if !self.param_specs.is_empty() {
                         match self.extract_params(&req.path) {
-                            Some(params) => match self.to_py_dict(py, &params) {
-                                Ok(dict) => Some(dict),
-                                Err(_) => None,
-                            },
+                            Some(params) => self.to_py_dict(py, &params).ok(),
                             None => None,
                         }
                     } else {
