@@ -123,7 +123,7 @@ jobs:
       # Build Android wheel
       - name: Build Android (aarch64)
         run: |
-          $VENV_PY -m maturin build --release --target aarch64-linux-android --out dist
+          $VENV_PY -m maturin build --release --target aarch64-linux-android --out dist -i $VENV_PY
 
       # Upload artifact
       - name: Upload artifact
