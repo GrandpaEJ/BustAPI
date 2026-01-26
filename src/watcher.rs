@@ -6,6 +6,7 @@ use std::thread;
 
 /// Enable hot reloading by watching the specified paths.
 /// When a change is detected, this function restarts the current process.
+#[allow(clippy::type_complexity)]
 pub fn enable_hot_reload(path_str: String) {
     // Spawn a thread to handle watching
     thread::spawn(move || {
