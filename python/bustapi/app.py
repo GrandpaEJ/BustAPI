@@ -63,6 +63,7 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
         """
         if import_name is None:
             import inspect
+
             # Auto-detect the caller's module name
             frame = inspect.stack()[1]
             module = inspect.getmodule(frame[0])

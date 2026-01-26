@@ -140,7 +140,9 @@ def api_hello():
 
 if __name__ == "__main__":
     app.run(debug=True)
-'''.format(name=project_name)
+'''.format(
+        name=project_name
+    )
 
     (project_path / "main.py").write_text(main_py)
 
