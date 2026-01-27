@@ -2,15 +2,8 @@ name: Deploy Documentation
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
-    paths:
-      - 'docs/**'
-      - 'python/**'
-      - 'src/**'
-      - 'mkdocs.yml'
-      - 'pyproject.toml'
-      - '.github/workflows/docs.yml'
+  release:
+    types: [published]
 
 permissions:
   contents: write
