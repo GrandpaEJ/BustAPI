@@ -84,7 +84,7 @@ jobs:
     name: Android build (maturin)
     runs-on: ubuntu-latest
     steps:
-    steps:
+
       - uses: actions/checkout@v4
       - uses: PyO3/maturin-action@v1
         with:
