@@ -2,30 +2,32 @@ name: Deploy Documentation
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [ main ]
-  #   paths:
-  #     - 'docs/**'
-  #     - 'python/**'
-  #     - 'src/**'
-  #     - 'mkdocs.yml'
-  #     - 'pyproject.toml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'docs/**'
+      - 'python/**'
+      - 'src/**'
+      - 'mkdocs.yml'
+      - 'pyproject.toml'
+      - '.github/workflows/docs.yml'
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  contents: write
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git User
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -45,31 +47,21 @@ jobs:
         run: uv venv
 
       - name: Install dependencies
+        # Install 'mike' and core package
         run: |
           uv pip install -e .
-          uv pip install mkdocs mkdocs-material mkdocstrings[python]
+          uv pip install mkdocs mkdocs-material mkdocstrings[python] mike
 
       - name: Build Rust extension
         run: uv run maturin develop
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Build documentation
-        run: uv run mkdocs build --clean
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./site
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Deploy with Mike
+        # Deploy current version as 'latest' (or use specialized versioning logic here)
+        # For main branch, we typically deploy to a specific version or 'dev'
+        run: |
+          # Extract version from pyproject.toml or use 'dev'
+          VERSION=$(grep -m1 'version = ' pyproject.toml | cut -d '"' -f 2)
+          echo "Deploying version: $VERSION"
+          
+          # Deploy $VERSION and update 'latest' alias
+          uv run mike deploy --push --update-aliases $VERSION latest

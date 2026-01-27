@@ -69,6 +69,7 @@ docs = [
     "mkdocs>=1.5",
     "mkdocs-material>=9.0",
     "mkdocstrings[python]>=0.20",
+    "mike>=2.0.0",
 ]
 
 server = [
