@@ -118,9 +118,10 @@ def cmd_new(args):
     (project_path / "static" / "js").mkdir(exist_ok=True)
 
     # Create main.py
-    main_py = '''"""
-{name} - Built with BustAPI
-"""
+    # Create main.py
+    main_py = f"""\"\"\"
+{project_name} - Built with BustAPI
+\"\"\"
 
 from bustapi import BustAPI, render_template
 
@@ -130,7 +131,7 @@ app.secret_key = "change-this-in-production"
 
 @app.route("/")
 def index():
-    return render_template("index.html", title="Welcome to {name}")
+    return render_template("index.html", title="Welcome to {project_name}")
 
 
 @app.route("/api/hello")
@@ -140,7 +141,7 @@ def api_hello():
 
 if __name__ == "__main__":
     app.run(debug=True)
-'''.format(name=project_name)
+"""
 
     (project_path / "main.py").write_text(main_py)
 
