@@ -110,10 +110,11 @@ jobs:
           path: dist/*.whl
 
   release:
-    name: Publish Release
+    name: Publish to PyPI
     needs: [build-wheels]
-    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -121,9 +122,9 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          files: dist/**/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          packages_dir: dist/
+          # output-dir: dist/ # optional
+          # password: ${{ secrets.PYPI_API_TOKEN }} # If not using trusted publishing
