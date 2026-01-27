@@ -59,7 +59,7 @@ impl Header {
 #[pyclass]
 pub struct JWTManager {
     secret_key: String,
-    _algorithm: String, // Only HS256 supported for now
+    _algorithm: String,         // Only HS256 supported for now
     access_token_expires: u64,  // seconds
     refresh_token_expires: u64, // seconds
 }
