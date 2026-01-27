@@ -248,27 +248,26 @@ impl JWTManager {
     fn sign(&self, input: &str) -> PyResult<Vec<u8>> {
         match self._algorithm.as_str() {
             "HS256" => {
-                let mut mac = HmacSha256::new_from_slice(self.secret_key.as_bytes()).map_err(|_| {
-                    pyo3::exceptions::PyValueError::new_err("Invalid key length")
-                })?;
+                let mut mac = HmacSha256::new_from_slice(self.secret_key.as_bytes())
+                    .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid key length"))?;
                 mac.update(input.as_bytes());
                 Ok(mac.finalize().into_bytes().to_vec())
             }
             "HS384" => {
-                let mut mac = HmacSha384::new_from_slice(self.secret_key.as_bytes()).map_err(|_| {
-                    pyo3::exceptions::PyValueError::new_err("Invalid key length")
-                })?;
+                let mut mac = HmacSha384::new_from_slice(self.secret_key.as_bytes())
+                    .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid key length"))?;
                 mac.update(input.as_bytes());
                 Ok(mac.finalize().into_bytes().to_vec())
             }
             "HS512" => {
-                let mut mac = HmacSha512::new_from_slice(self.secret_key.as_bytes()).map_err(|_| {
-                    pyo3::exceptions::PyValueError::new_err("Invalid key length")
-                })?;
+                let mut mac = HmacSha512::new_from_slice(self.secret_key.as_bytes())
+                    .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid key length"))?;
                 mac.update(input.as_bytes());
                 Ok(mac.finalize().into_bytes().to_vec())
             }
-            _ => Err(pyo3::exceptions::PyValueError::new_err("Unsupported algorithm")),
+            _ => Err(pyo3::exceptions::PyValueError::new_err(
+                "Unsupported algorithm",
+            )),
         }
     }
 
@@ -293,27 +292,28 @@ impl JWTManager {
         // Using verify_slice is safer
         let verification_result = match self._algorithm.as_str() {
             "HS256" => {
-                let mut mac = HmacSha256::new_from_slice(self.secret_key.as_bytes()).map_err(|_| {
-                    pyo3::exceptions::PyValueError::new_err("Invalid key")
-                })?;
+                let mut mac = HmacSha256::new_from_slice(self.secret_key.as_bytes())
+                    .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid key"))?;
                 mac.update(signing_input.as_bytes());
                 mac.verify_slice(&provided_sig)
             }
             "HS384" => {
-                let mut mac = HmacSha384::new_from_slice(self.secret_key.as_bytes()).map_err(|_| {
-                    pyo3::exceptions::PyValueError::new_err("Invalid key")
-                })?;
+                let mut mac = HmacSha384::new_from_slice(self.secret_key.as_bytes())
+                    .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid key"))?;
                 mac.update(signing_input.as_bytes());
                 mac.verify_slice(&provided_sig)
             }
             "HS512" => {
-                let mut mac = HmacSha512::new_from_slice(self.secret_key.as_bytes()).map_err(|_| {
-                    pyo3::exceptions::PyValueError::new_err("Invalid key")
-                })?;
+                let mut mac = HmacSha512::new_from_slice(self.secret_key.as_bytes())
+                    .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid key"))?;
                 mac.update(signing_input.as_bytes());
                 mac.verify_slice(&provided_sig)
             }
-            _ => return Err(pyo3::exceptions::PyValueError::new_err("Unsupported algorithm")),
+            _ => {
+                return Err(pyo3::exceptions::PyValueError::new_err(
+                    "Unsupported algorithm",
+                ))
+            }
         };
 
         if verification_result.is_err() {
