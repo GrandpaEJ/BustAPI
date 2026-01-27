@@ -3,6 +3,7 @@
 //! Provides high-performance JWT encoding/decoding using pure Rust crates (hmac, sha2, base64).
 //! Removing `ring` dependency to fix cross-compilation issues.
 
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use hmac::{Hmac, Mac};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
@@ -10,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
-use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -59,7 +59,7 @@ impl Header {
 #[pyclass]
 pub struct JWTManager {
     secret_key: String,
-    algorithm: String, // Only HS256 supported for now
+    _algorithm: String, // Only HS256 supported for now
     access_token_expires: u64,  // seconds
     refresh_token_expires: u64, // seconds
 }
@@ -89,14 +89,14 @@ impl JWTManager {
 
         let algo = algorithm.to_uppercase();
         if algo != "HS256" {
-             return Err(pyo3::exceptions::PyValueError::new_err(
+            return Err(pyo3::exceptions::PyValueError::new_err(
                 "Currently only HS256 is supported by the pure-Rust implementation.",
             ));
         }
 
         Ok(JWTManager {
             secret_key: secret_key.to_string(),
-            algorithm: algo,
+            _algorithm: algo,
             access_token_expires: access_expires,
             refresh_token_expires: refresh_expires,
         })
@@ -167,15 +167,15 @@ impl JWTManager {
     pub fn get_identity(&self, token: &str) -> PyResult<Option<String>> {
         let parts: Vec<&str> = token.split('.').collect();
         if parts.len() != 3 {
-             return Ok(None);
+            return Ok(None);
         }
-        
+
         // Decode payload (2nd part)
         let payload_json = match decode_b64(parts[1]) {
             Ok(v) => v,
             Err(_) => return Ok(None),
         };
-        
+
         let claims: serde_json::Value = match serde_json::from_slice(&payload_json) {
             Ok(v) => v,
             Err(_) => return Ok(None),
@@ -226,20 +226,20 @@ impl JWTManager {
         };
 
         let header = Header::new("HS256");
-        
+
         // Serialize
-        let header_json = serde_json::to_string(&header).map_err(|e| py_err(e))?;
-        let claims_json = serde_json::to_string(&claims).map_err(|e| py_err(e))?;
-        
+        let header_json = serde_json::to_string(&header).map_err(py_err)?;
+        let claims_json = serde_json::to_string(&claims).map_err(py_err)?;
+
         // Base64 Encode
         let header_b64 = encode_b64(header_json.as_bytes());
         let claims_b64 = encode_b64(claims_json.as_bytes());
-        
+
         // Sign
         let signing_input = format!("{}.{}", header_b64, claims_b64);
         let signature = self.sign(&signing_input)?;
         let signature_b64 = encode_b64(&signature);
-        
+
         Ok(format!("{}.{}", signing_input, signature_b64))
     }
 
@@ -249,22 +249,24 @@ impl JWTManager {
         mac.update(input.as_bytes());
         Ok(mac.finalize().into_bytes().to_vec())
     }
-    
+
     fn verify_and_decode(&self, token: &str) -> PyResult<Claims> {
         let parts: Vec<&str> = token.split('.').collect();
         if parts.len() != 3 {
-             return Err(pyo3::exceptions::PyValueError::new_err("Invalid token format"));
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "Invalid token format",
+            ));
         }
-        
+
         let header_b64 = parts[0];
         let claims_b64 = parts[1];
         let signature_b64 = parts[2];
-        
+
         // 1. Verify Signature
         let signing_input = format!("{}.{}", header_b64, claims_b64);
         let provided_sig = decode_b64(signature_b64)
             .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid signature encoding"))?;
-            
+
         // Constant time comparison (handled by hmac verify if we had the struct, but here we check bytes)
         // Using verify_slice is safer
         let mut mac = HmacSha256::new_from_slice(self.secret_key.as_bytes())
@@ -273,28 +275,31 @@ impl JWTManager {
         if mac.verify_slice(&provided_sig).is_err() {
             return Err(pyo3::exceptions::PyValueError::new_err("Invalid signature"));
         }
-        
+
         // 2. Decode Claims
         let claims_json = decode_b64(claims_b64)
             .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid claims encoding"))?;
         let claims: Claims = serde_json::from_slice(&claims_json)
-             .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid claims JSON"))?;
-             
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid claims JSON"))?;
+
         // 3. Validate Expiration
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-            
+
         if claims.exp < now {
             return Err(pyo3::exceptions::PyValueError::new_err("Token has expired"));
         }
-        
+
         // 4. Validate Not Before
-        if claims.nbf > now + 10 { // 10s leeway
-             return Err(pyo3::exceptions::PyValueError::new_err("Token not yet valid"));
+        if claims.nbf > now + 10 {
+            // 10s leeway
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "Token not yet valid",
+            ));
         }
-        
+
         Ok(claims)
     }
 }
