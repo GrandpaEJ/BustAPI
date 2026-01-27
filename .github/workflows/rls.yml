@@ -80,27 +80,11 @@ jobs:
           name: wheels-macos-${{ matrix.python-version }}-${{ matrix.target }}
           path: dist/*.whl
 
-  android:
-    name: Android build (maturin)
-    runs-on: ubuntu-latest
-    steps:
 
-      - uses: actions/checkout@v4
-      - uses: PyO3/maturin-action@v1
-        with:
-          target: aarch64-linux-android
-          args: --release --out dist --no-default-features
-        env:
-          PYO3_NO_PYTHON_LINKING: "1"
-          RUSTFLAGS: "-C link-arg=-Wl,--allow-shlib-undefined"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: wheel-android
-          path: dist/*
 
   release:
     name: Publish Release
-    needs: [linux, windows, macos, android]
+    needs: [linux, windows, macos]
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
