@@ -54,6 +54,9 @@ class _RequestContext:
         else:
             request = MockRequest()
 
+        # Attach app to request so it can be retrieved via _get_current_object
+        request.app = self.app
+
         # Push request context
         self.token = _request_ctx.set(request)
         return request

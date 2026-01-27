@@ -41,7 +41,7 @@ def redirect(location: str, code: int = 302) -> Response:
 
 def url_for(endpoint: str, **values) -> str:
     """
-    Generate URL for endpoint (Flask-compatible placeholder).
+    Generate URL for endpoint (Flask-compatible implementation).
 
     Args:
         endpoint: Endpoint name
@@ -50,30 +50,62 @@ def url_for(endpoint: str, **values) -> str:
     Returns:
         Generated URL
 
-    Note:
-        This is a simplified implementation. Full URL generation
-        requires route reversal which should be implemented in
-        the Rust backend for performance.
+    Raises:
+        ValueError: If endpoint not found or missing parameters
+        RuntimeError: If outside application context
     """
-    # Placeholder implementation
-    # TODO: Implement proper URL reversal with route mapping
+    import re
 
-    # For now, just return the endpoint as-is
-    # In a full implementation, this would:
-    # 1. Look up the route pattern for the endpoint
-    # 2. Substitute parameters into the pattern
-    # 3. Generate the full URL
+    # Get current application to access url_map
+    app = _get_current_object()
 
-    if values:
-        # Simple parameter substitution for basic cases
-        url = endpoint
-        for key, value in values.items():
-            url = url.replace(f"<{key}>", str(value))
-            url = url.replace(f"<int:{key}>", str(value))
-            url = url.replace(f"<string:{key}>", str(value))
-        return url
+    # Find rule for endpoint
+    rule = None
+    for r, options in app.url_map.items():
+        if options.get("endpoint") == endpoint:
+            # TODO: Handle multiple rules for same endpoint (e.g. choose best match)
+            rule = r
+            break
 
-    return endpoint
+    if rule is None:
+        raise ValueError(f"Endpoint '{endpoint}' not found")
+
+    # Replace parameters in rule
+    # Pattern matches <name> or <converter:name>
+    # Logic adapted from decorators.py regex
+
+    used_params = set()
+
+    def replacer(match):
+        # Match content inside <>
+        content = match.group(1)
+        converter = "string"  # default
+        if ":" in content:
+            converter, name = content.split(":", 1)
+        else:
+            name = content
+
+        if name in values:
+            used_params.add(name)
+            # For 'path' converter, allow slashes. For others, escape them.
+            safe = "/:" if converter == "path" else ""
+            return url_quote(str(values[name]), safe=safe)
+        else:
+            raise ValueError(f"Missing value for parameter '{name}'")
+
+    # Regex: < followed by anything not >
+    rule_url = re.sub(r"<([^>]+)>", replacer, rule)
+
+    # Add remaining values as query parameters
+    query_params = []
+    for k, v in values.items():
+        if k not in used_params:
+            query_params.append(f"{k}={url_quote(str(v))}")
+
+    if query_params:
+        return f"{rule_url}?{'&'.join(query_params)}"
+
+    return rule_url
 
 
 def flash(message: str, category: str = "message") -> None:
