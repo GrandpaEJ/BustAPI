@@ -84,56 +84,16 @@ jobs:
     name: Android build (maturin)
     runs-on: ubuntu-latest
     steps:
+    steps:
       - uses: actions/checkout@v4
-
-      # Ensure Python
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: PyO3/maturin-action@v1
         with:
-          python-version: "3.11"
-
-      # Ensure Rust
-      - name: Install Rust
-        run: |
-          if ! command -v rustc &> /dev/null
-          then
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-            source $HOME/.cargo/env
-          fi
-          rustc --version
-          cargo --version
-          rustup target add aarch64-linux-android
-
-      # Install Maturin into a venv
-      - name: Create venv and install maturin (Android)
-        run: |
-          python -m venv .venv
-          VENV_PY=./.venv/bin/python
-          $VENV_PY -m pip install --upgrade pip
-          $VENV_PY -m pip install maturin
-          echo "VENV_PY=$VENV_PY" >> $GITHUB_ENV
-
-      # Install Android NDK
-      - name: Install Android NDK
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip wget
-          wget https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
-          unzip -q android-ndk-r26d-linux.zip -d $HOME
-          echo "ANDROID_NDK_HOME=$HOME/android-ndk-r26d" >> $GITHUB_ENV
-          echo "$HOME/android-ndk-r26d/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
-
-      # Build Android wheel
-      - name: Build Android (aarch64)
+          target: aarch64-linux-android
+          args: --release --out dist --no-default-features
         env:
           PYO3_NO_PYTHON_LINKING: "1"
           RUSTFLAGS: "-C link-arg=-Wl,--allow-shlib-undefined"
-        run: |
-          $VENV_PY -m maturin build --release --target aarch64-linux-android --out dist -i python3.11 --no-default-features
-
-      # Upload artifact
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: wheel-android
           path: dist/*
