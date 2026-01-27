@@ -28,7 +28,9 @@ percent-encoding = "2.3"
 sha2 = "0.10"
 
 # JWT and Auth
-jsonwebtoken = "9"
+hmac = "0.12"
+base64 = "0.22"
+
 argon2 = "0.5"
 rand = "0.8"
 

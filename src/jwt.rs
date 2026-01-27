@@ -1,15 +1,18 @@
 //! JWT (JSON Web Token) support for BustAPI
 //!
-//! Provides high-performance JWT encoding/decoding using the jsonwebtoken crate.
+//! Provides high-performance JWT encoding/decoding using pure Rust crates (hmac, sha2, base64).
+//! Removing `ring` dependency to fix cross-compilation issues.
 
-use jsonwebtoken::{
-    decode, encode, errors::ErrorKind, Algorithm, DecodingKey, EncodingKey, Header, Validation,
-};
+use hmac::{Hmac, Mac};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+
+type HmacSha256 = Hmac<Sha256>;
 
 /// JWT Claims structure
 #[derive(Debug, Serialize, Deserialize)]
@@ -23,23 +26,40 @@ struct Claims {
     /// Not before (Unix timestamp)
     nbf: u64,
     /// JWT ID (unique identifier)
+    #[serde(skip_serializing_if = "Option::is_none")]
     jti: Option<String>,
     /// Token type (access/refresh)
     #[serde(rename = "type")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     token_type: Option<String>,
     /// Fresh token flag
+    #[serde(skip_serializing_if = "Option::is_none")]
     fresh: Option<bool>,
     /// Custom claims
     #[serde(flatten)]
     custom: HashMap<String, serde_json::Value>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct Header {
+    alg: String,
+    typ: String,
+}
+
+impl Header {
+    fn new(alg: &str) -> Self {
+        Self {
+            alg: alg.to_string(),
+            typ: "JWT".to_string(),
+        }
+    }
+}
+
 /// JWT Manager for encoding and decoding tokens
 #[pyclass]
 pub struct JWTManager {
-    encoding_key: EncodingKey,
-    decoding_key: DecodingKey,
-    algorithm: Algorithm,
+    secret_key: String,
+    algorithm: String, // Only HS256 supported for now
     access_token_expires: u64,  // seconds
     refresh_token_expires: u64, // seconds
 }
@@ -49,7 +69,7 @@ impl JWTManager {
     /// Create a new JWT Manager
     ///
     /// Args:
-    ///     secret_key: Secret key for signing tokens (min 32 bytes recommended)
+    ///     secret_key: Secret key for signing tokens (min 16 chars recommended)
     ///     algorithm: Algorithm to use (default: "HS256")
     ///     access_expires: Access token expiry in seconds (default: 900 = 15 min)
     ///     refresh_expires: Refresh token expiry in seconds (default: 2592000 = 30 days)
@@ -67,23 +87,15 @@ impl JWTManager {
             ));
         }
 
-        let algo = match algorithm.to_uppercase().as_str() {
-            "HS256" => Algorithm::HS256,
-            "HS384" => Algorithm::HS384,
-            "HS512" => Algorithm::HS512,
-            _ => {
-                return Err(pyo3::exceptions::PyValueError::new_err(
-                    "Unsupported algorithm. Use HS256, HS384, or HS512",
-                ))
-            }
-        };
-
-        let encoding_key = EncodingKey::from_secret(secret_key.as_bytes());
-        let decoding_key = DecodingKey::from_secret(secret_key.as_bytes());
+        let algo = algorithm.to_uppercase();
+        if algo != "HS256" {
+             return Err(pyo3::exceptions::PyValueError::new_err(
+                "Currently only HS256 is supported by the pure-Rust implementation.",
+            ));
+        }
 
         Ok(JWTManager {
-            encoding_key,
-            decoding_key,
+            secret_key: secret_key.to_string(),
             algorithm: algo,
             access_token_expires: access_expires,
             refresh_token_expires: refresh_expires,
@@ -91,15 +103,6 @@ impl JWTManager {
     }
 
     /// Create an access token
-    ///
-    /// Args:
-    ///     identity: User identity (usually user ID as string)
-    ///     expires_delta: Optional custom expiry in seconds
-    ///     fresh: Whether this is a fresh token (from login, not refresh)
-    ///     claims: Optional additional claims as dict
-    ///
-    /// Returns:
-    ///     JWT token string
     #[pyo3(signature = (identity, expires_delta = None, fresh = true, claims = None))]
     pub fn create_access_token(
         &self,
@@ -113,14 +116,6 @@ impl JWTManager {
     }
 
     /// Create a refresh token
-    ///
-    /// Args:
-    ///     identity: User identity (usually user ID as string)
-    ///     expires_delta: Optional custom expiry in seconds
-    ///     claims: Optional additional claims as dict
-    ///
-    /// Returns:
-    ///     JWT token string
     #[pyo3(signature = (identity, expires_delta = None, claims = None))]
     pub fn create_refresh_token(
         &self,
@@ -133,84 +128,63 @@ impl JWTManager {
     }
 
     /// Decode and verify a token
-    ///
-    /// Args:
-    ///     token: JWT token string
-    ///
-    /// Returns:
-    ///     Dict with claims on success
-    ///
-    /// Raises:
-    ///     ValueError: If token is invalid or expired
     pub fn decode_token(&self, py: Python<'_>, token: &str) -> PyResult<Py<PyAny>> {
-        let mut validation = Validation::new(self.algorithm);
-        validation.validate_exp = true;
-        validation.validate_nbf = true;
+        let claims = self.verify_and_decode(token)?;
 
-        match decode::<Claims>(token, &self.decoding_key, &validation) {
-            Ok(token_data) => {
-                let dict = PyDict::new(py);
-                dict.set_item("sub", &token_data.claims.sub)?;
-                dict.set_item("identity", &token_data.claims.sub)?;
-                dict.set_item("exp", token_data.claims.exp)?;
-                dict.set_item("iat", token_data.claims.iat)?;
-                dict.set_item("nbf", token_data.claims.nbf)?;
+        let dict = PyDict::new(py);
+        dict.set_item("sub", &claims.sub)?;
+        dict.set_item("identity", &claims.sub)?; // Alias for convenience
+        dict.set_item("exp", claims.exp)?;
+        dict.set_item("iat", claims.iat)?;
+        dict.set_item("nbf", claims.nbf)?;
 
-                if let Some(jti) = &token_data.claims.jti {
-                    dict.set_item("jti", jti)?;
-                }
-                if let Some(token_type) = &token_data.claims.token_type {
-                    dict.set_item("type", token_type)?;
-                }
-                if let Some(fresh) = token_data.claims.fresh {
-                    dict.set_item("fresh", fresh)?;
-                }
-
-                // Add custom claims
-                for (key, value) in &token_data.claims.custom {
-                    let py_value = json_to_pyobject(py, value)?;
-                    dict.set_item(key, py_value)?;
-                }
-
-                Ok(dict.into())
-            }
-            Err(err) => {
-                let msg = match err.kind() {
-                    ErrorKind::ExpiredSignature => "Token has expired",
-                    ErrorKind::InvalidSignature => "Invalid token signature",
-                    ErrorKind::InvalidToken => "Invalid token format",
-                    ErrorKind::ImmatureSignature => "Token not yet valid (nbf)",
-                    _ => "Token validation failed",
-                };
-                Err(pyo3::exceptions::PyValueError::new_err(msg))
-            }
+        if let Some(jti) = &claims.jti {
+            dict.set_item("jti", jti)?;
         }
+        if let Some(token_type) = &claims.token_type {
+            dict.set_item("type", token_type)?;
+        }
+        if let Some(fresh) = claims.fresh {
+            dict.set_item("fresh", fresh)?;
+        }
+
+        // Add custom claims
+        for (key, value) in &claims.custom {
+            let py_value = json_to_pyobject(py, value)?;
+            dict.set_item(key, py_value)?;
+        }
+
+        Ok(dict.into())
     }
 
     /// Verify a token without returning claims
-    ///
-    /// Returns:
-    ///     True if valid, False otherwise
     pub fn verify_token(&self, token: &str) -> bool {
-        let mut validation = Validation::new(self.algorithm);
-        validation.validate_exp = true;
-        validation.validate_nbf = true;
-
-        decode::<Claims>(token, &self.decoding_key, &validation).is_ok()
+        self.verify_and_decode(token).is_ok()
     }
 
-    /// Get the identity from a token (without full validation)
-    ///
-    /// This extracts the subject claim, useful for logging even with expired tokens.
+    /// Get the identity from a token (without full validation/signature check)
+    /// WARNING: This does NOT verify the signature. Use only for non-security critical checks.
     pub fn get_identity(&self, token: &str) -> PyResult<Option<String>> {
-        let mut validation = Validation::new(self.algorithm);
-        validation.validate_exp = false;
-        validation.validate_nbf = false;
-        validation.insecure_disable_signature_validation();
+        let parts: Vec<&str> = token.split('.').collect();
+        if parts.len() != 3 {
+             return Ok(None);
+        }
+        
+        // Decode payload (2nd part)
+        let payload_json = match decode_b64(parts[1]) {
+            Ok(v) => v,
+            Err(_) => return Ok(None),
+        };
+        
+        let claims: serde_json::Value = match serde_json::from_slice(&payload_json) {
+            Ok(v) => v,
+            Err(_) => return Ok(None),
+        };
 
-        match decode::<Claims>(token, &self.decoding_key, &validation) {
-            Ok(token_data) => Ok(Some(token_data.claims.sub)),
-            Err(_) => Ok(None),
+        if let Some(sub) = claims.get("sub").and_then(|v| v.as_str()) {
+            Ok(Some(sub.to_string()))
+        } else {
+            Ok(None)
         }
     }
 }
@@ -251,12 +225,90 @@ impl JWTManager {
             custom,
         };
 
-        let header = Header::new(self.algorithm);
-
-        encode(&header, &claims, &self.encoding_key).map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("JWT encode error: {}", e))
-        })
+        let header = Header::new("HS256");
+        
+        // Serialize
+        let header_json = serde_json::to_string(&header).map_err(|e| py_err(e))?;
+        let claims_json = serde_json::to_string(&claims).map_err(|e| py_err(e))?;
+        
+        // Base64 Encode
+        let header_b64 = encode_b64(header_json.as_bytes());
+        let claims_b64 = encode_b64(claims_json.as_bytes());
+        
+        // Sign
+        let signing_input = format!("{}.{}", header_b64, claims_b64);
+        let signature = self.sign(&signing_input)?;
+        let signature_b64 = encode_b64(&signature);
+        
+        Ok(format!("{}.{}", signing_input, signature_b64))
     }
+
+    fn sign(&self, input: &str) -> PyResult<Vec<u8>> {
+        let mut mac = HmacSha256::new_from_slice(self.secret_key.as_bytes())
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid key length"))?;
+        mac.update(input.as_bytes());
+        Ok(mac.finalize().into_bytes().to_vec())
+    }
+    
+    fn verify_and_decode(&self, token: &str) -> PyResult<Claims> {
+        let parts: Vec<&str> = token.split('.').collect();
+        if parts.len() != 3 {
+             return Err(pyo3::exceptions::PyValueError::new_err("Invalid token format"));
+        }
+        
+        let header_b64 = parts[0];
+        let claims_b64 = parts[1];
+        let signature_b64 = parts[2];
+        
+        // 1. Verify Signature
+        let signing_input = format!("{}.{}", header_b64, claims_b64);
+        let provided_sig = decode_b64(signature_b64)
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid signature encoding"))?;
+            
+        // Constant time comparison (handled by hmac verify if we had the struct, but here we check bytes)
+        // Using verify_slice is safer
+        let mut mac = HmacSha256::new_from_slice(self.secret_key.as_bytes())
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid key"))?;
+        mac.update(signing_input.as_bytes());
+        if mac.verify_slice(&provided_sig).is_err() {
+            return Err(pyo3::exceptions::PyValueError::new_err("Invalid signature"));
+        }
+        
+        // 2. Decode Claims
+        let claims_json = decode_b64(claims_b64)
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid claims encoding"))?;
+        let claims: Claims = serde_json::from_slice(&claims_json)
+             .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid claims JSON"))?;
+             
+        // 3. Validate Expiration
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+            
+        if claims.exp < now {
+            return Err(pyo3::exceptions::PyValueError::new_err("Token has expired"));
+        }
+        
+        // 4. Validate Not Before
+        if claims.nbf > now + 10 { // 10s leeway
+             return Err(pyo3::exceptions::PyValueError::new_err("Token not yet valid"));
+        }
+        
+        Ok(claims)
+    }
+}
+
+fn encode_b64(input: &[u8]) -> String {
+    URL_SAFE_NO_PAD.encode(input)
+}
+
+fn decode_b64(input: &str) -> Result<Vec<u8>, base64::DecodeError> {
+    URL_SAFE_NO_PAD.decode(input)
+}
+
+fn py_err<E: std::fmt::Display>(err: E) -> PyErr {
+    pyo3::exceptions::PyValueError::new_err(format!("{}", err))
 }
 
 /// Generate a unique JWT ID
