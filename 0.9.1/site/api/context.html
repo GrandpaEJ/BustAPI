@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Context - BustAPI Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+    <script src="../script.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../assets/logo.png">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-controls">
+                <button id="menu-button" aria-label="Menu">☰</button>
+                <a href="../index.html" class="brand">
+                    <img src="../assets/logo.png" alt="Logo" style="height: 30px; margin-right: 10px; vertical-align: middle;">
+                    BustAPI <span style="font-size: 0.8em; opacity: 0.7; margin-left: 5px;">v0.5.0</span>
+                </a>
+            </div>
+
+            <div class="header-controls">
+                <a href="../changelog.html" style="color:white; font-size:0.9rem; font-weight:500; margin-right: 15px;">Changelog</a>
+                <iframe src="https://ghbtns.com/github-btn.html?user=GrandpaEJ&repo=bustapi&type=star&count=true" frameborder="0" scrolling="0" width="100" height="20" title="GitHub" style="margin-right: 10px;"></iframe>
+                <button id="theme-toggle" aria-label="Toggle Theme">◐</button>
+            </div>
+</header>
+
+        <div class="layout">
+            <div class="overlay"></div>
+            <nav class="sidebar">
+                <div class="nav-section">
+                    <h3>Getting Started</h3>
+                    <ul>
+                        <li><a href="../getting_started/index.html">Introduction</a></li>
+                        <li><a href="../getting_started/quickstart.html">Quickstart</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Core Concepts</h3>
+                    <ul>
+                        <li><a href="../core_concepts/routing.html">Routing</a></li>
+                        <li><a href="../core_concepts/request_data.html">Request Data</a></li>
+                        <li><a href="../core_concepts/responses.html">Responses</a></li>
+                        <li><a href="../core_concepts/templates.html">Templates</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Advanced</h3>
+                    <ul>
+                        <li><a href="../advanced/blueprints.html">Blueprints</a></li>
+                        <li><a href="../advanced/middleware.html">Middleware</a></li>
+                        <li><a href="../advanced/dependency_injection.html">Dependency Injection</a></li>
+                        <li><a href="../advanced/validation.html">Validation</a></li>
+                        <li><a href="../advanced/async_support.html">Async Support</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>API Reference</h3>
+                    <ul>
+                        <li><a href="app.html">BustAPI Class</a></li>
+                        <li><a href="context.html" class="active">Context Proxies</a></li>
+                        <li><a href="utilities.html">Utilities</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Examples</h3>
+                    <ul>
+                        <li><a href="../examples/index.html">Gallery</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="content">
+                <h1>Context Proxies</h1>
+
+                <p>BustAPI relies on context locals to make global variables like <code>request</code> thread-safe.
+                    These objects look like global variables but actually point to data specific to the current
+                    request/thread.</p>
+
+                <h2><code>request</code></h2>
+                <p>The Request object for the current request.</p>
+                <ul>
+                    <li><strong>method</strong> (<code>str</code>): HTTP method (GET, POST, etc).</li>
+                    <li><strong>path</strong> (<code>str</code>): The path of the request.</li>
+                    <li><strong>args</strong> (<code>MultiDict</code>): Parsed query parameters.</li>
+                    <li><strong>form</strong> (<code>MultiDict</code>): Parsed form data.</li>
+                    <li><strong>headers</strong> (<code>Headers</code>): Incoming request headers.</li>
+                    <li><strong>get_json(force=False, silent=False)</strong>: Parses body as JSON.</li>
+                </ul>
+
+                <h2><code>g</code></h2>
+                <p>A general purpose object for storing data during a single request context.</p>
+                <div class="admonition tip">
+                    <span class="admonition-title">Usage Span</span>
+                    <p>Data stored in <code>g</code> is lost when the request ends. It is heavily used in
+                        <code>before_request</code> handlers to store user sessions or database connections.</p>
+                </div>
+                <pre><code class="language-python">from bustapi import g
+
+@app.before_request
+def load_user():
+    g.user = get_user()
+
+@app.route("/")
+def index():
+    return f"Hello {g.user.name}"</code></pre>
+
+                <h2><code>session</code></h2>
+                <p>A dict-like object that stores data across requests using signed cookies.</p>
+                <pre><code class="language-python">from bustapi import session
+
+# Setting a value
+session['username'] = 'admin'
+
+# Getting a value
+user = session.get('username')</code></pre>
+
+                <div class="admonition warning">
+                    <span class="admonition-title">Secret Key</span>
+                    <p>To use sessions, you must set <code>app.secret_key</code> to a secure random string.</p>
+                </div>
+
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

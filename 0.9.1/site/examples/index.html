@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Examples - BustAPI Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+    <script src="../script.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../assets/logo.png">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-controls">
+                <button id="menu-button" aria-label="Menu">☰</button>
+                <a href="../index.html" class="brand">
+                    <img src="../assets/logo.png" alt="Logo" style="height: 30px; margin-right: 10px; vertical-align: middle;">
+                    BustAPI <span style="font-size: 0.8em; opacity: 0.7; margin-left: 5px;">v0.5.0</span>
+                </a>
+            </div>
+
+            <div class="header-controls">
+                <a href="../changelog.html" style="color:white; font-size:0.9rem; font-weight:500; margin-right: 15px;">Changelog</a>
+                <iframe src="https://ghbtns.com/github-btn.html?user=GrandpaEJ&repo=bustapi&type=star&count=true" frameborder="0" scrolling="0" width="100" height="20" title="GitHub" style="margin-right: 10px;"></iframe>
+                <button id="theme-toggle" aria-label="Toggle Theme">◐</button>
+            </div>
+</header>
+
+        <div class="layout">
+            <div class="overlay"></div>
+            <nav class="sidebar">
+                <div class="nav-section">
+                    <h3>Getting Started</h3>
+                    <ul>
+                        <li><a href="../getting_started/index.html">Introduction</a></li>
+                        <li><a href="../getting_started/quickstart.html">Quickstart</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Core Concepts</h3>
+                    <ul>
+                        <li><a href="../core_concepts/routing.html">Routing</a></li>
+                        <li><a href="../core_concepts/request_data.html">Request Data</a></li>
+                        <li><a href="../core_concepts/responses.html">Responses</a></li>
+                        <li><a href="../core_concepts/templates.html">Templates</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Advanced</h3>
+                    <ul>
+                        <li><a href="../advanced/blueprints.html">Blueprints</a></li>
+                        <li><a href="../advanced/middleware.html">Middleware</a></li>
+                        <li><a href="../advanced/dependency_injection.html">Dependency Injection</a></li>
+                        <li><a href="../advanced/validation.html">Validation</a></li>
+                        <li><a href="../advanced/async_support.html">Async Support</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>API Reference</h3>
+                    <ul>
+                        <li><a href="../api/app.html">BustAPI Class</a></li>
+                        <li><a href="../api/context.html">Context Proxies</a></li>
+                        <li><a href="../api/utilities.html">Utilities</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Examples</h3>
+                    <ul>
+                        <li><a href="index.html" class="active">Gallery</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="content">
+                <h1>Examples Gallery</h1>
+
+                <p>The <code>examples/</code> directory in the repository contains many complete scripts demonstrating
+                    BustAPI features. Here is a curated list.</p>
+
+                <h2>Basics</h2>
+                <div class="admonition note">
+                    <span class="admonition-title">Learning Path</span>
+                    <p>Start here if you are new to web development or BustAPI.</p>
+                </div>
+                <ul>
+                    <li><strong>01_hello_world.py</strong>: The minimal application.</li>
+                    <li><strong>02_parameters.py</strong>: How to use path parameters like
+                        <code>/user/&lt;name&gt;</code>.</li>
+                    <li><strong>03_async.py</strong>: Using <code>async def</code> for non-blocking routes.</li>
+                    <li><strong>04_request_data.py</strong>: accessing query args and form data.</li>
+                </ul>
+
+                <h2>Data & Validation</h2>
+                <p>Learn how to robustly handle input.</p>
+                <ul>
+                    <li><strong>19_all_types.py</strong>: Comprehensive demonstration of `Struct`, `Array`, `Integer`,
+                        etc.</li>
+                    <li><strong>21_path_validation.py</strong>: Strict validation for path parameters.</li>
+                    <li><strong>23_query_validation.py</strong>: Strict validation for query parameters.</li>
+                    <li><strong>24_body_and_depends.py</strong>: Combining JSON bodies and Dependency Injection.</li>
+                </ul>
+
+                <h2>Advanced Features</h2>
+                <p>For production-grade applications.</p>
+                <ul>
+                    <li><strong>06_blueprints.py</strong>: Organizing your app into modules.</li>
+                    <li><strong>14_middleware.py</strong>: Custom request/response hooks.</li>
+                    <li><strong>10_rate_limit_demo.py</strong>: Using the built-in rate limiter to prevent abuse.</li>
+                    <li><strong>11_security_demo.py</strong>: Implementing security headers.</li>
+                </ul>
+
+                <h2>Database & Templates</h2>
+                <ul>
+                    <li><strong>05_templates.py</strong>: Rendering Jinja2 templates.</li>
+                    <li><strong>07_database_raw.py</strong>: Executing raw SQL queries.</li>
+                    <li><strong>10_database_sqlmodel.py</strong>: Full integration with SQLModel (ORM).</li>
+                </ul>
+
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

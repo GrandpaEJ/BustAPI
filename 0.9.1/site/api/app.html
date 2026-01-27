@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BustAPI Class - BustAPI Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+    <script src="../script.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../assets/logo.png">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-controls">
+                <button id="menu-button" aria-label="Menu">☰</button>
+                <a href="../index.html" class="brand">
+                    <img src="../assets/logo.png" alt="Logo" style="height: 30px; margin-right: 10px; vertical-align: middle;">
+                    BustAPI <span style="font-size: 0.8em; opacity: 0.7; margin-left: 5px;">v0.5.0</span>
+                </a>
+            </div>
+
+            <div class="header-controls">
+                <a href="../changelog.html" style="color:white; font-size:0.9rem; font-weight:500; margin-right: 15px;">Changelog</a>
+                <iframe src="https://ghbtns.com/github-btn.html?user=GrandpaEJ&repo=bustapi&type=star&count=true" frameborder="0" scrolling="0" width="100" height="20" title="GitHub" style="margin-right: 10px;"></iframe>
+                <button id="theme-toggle" aria-label="Toggle Theme">◐</button>
+            </div>
+</header>
+
+        <div class="layout">
+            <div class="overlay"></div>
+            <nav class="sidebar">
+                <div class="nav-section">
+                    <h3>Getting Started</h3>
+                    <ul>
+                        <li><a href="../getting_started/index.html">Introduction</a></li>
+                        <li><a href="../getting_started/quickstart.html">Quickstart</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Core Concepts</h3>
+                    <ul>
+                        <li><a href="../core_concepts/routing.html">Routing</a></li>
+                        <li><a href="../core_concepts/request_data.html">Request Data</a></li>
+                        <li><a href="../core_concepts/responses.html">Responses</a></li>
+                        <li><a href="../core_concepts/templates.html">Templates</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Advanced</h3>
+                    <ul>
+                        <li><a href="../advanced/blueprints.html">Blueprints</a></li>
+                        <li><a href="../advanced/middleware.html">Middleware</a></li>
+                        <li><a href="../advanced/dependency_injection.html">Dependency Injection</a></li>
+                        <li><a href="../advanced/validation.html">Validation</a></li>
+                        <li><a href="../advanced/async_support.html">Async Support</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>API Reference</h3>
+                    <ul>
+                        <li><a href="app.html" class="active">BustAPI Class</a></li>
+                        <li><a href="context.html">Context Proxies</a></li>
+                        <li><a href="utilities.html">Utilities</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Examples</h3>
+                    <ul>
+                        <li><a href="../examples/index.html">Gallery</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="content">
+                <h1>Class: BustAPI</h1>
+
+                <p>The main application class. You usually create one instance of this per application.</p>
+
+                <pre><code class="language-python">class BustAPI(import_name: str = None, static_folder: str = 'static', template_folder: str = 'templates')</code></pre>
+
+                <h2>Constructor Arguments</h2>
+                <ul>
+                    <li><strong>import_name</strong> (<code>str</code>): The name of the application package. Using
+                        <code>__name__</code> is standard.</li>
+                    <li><strong>static_folder</strong> (<code>str</code>): The folder where static files are served
+                        from. Default: <code>'static'</code>.</li>
+                    <li><strong>template_folder</strong> (<code>str</code>): The folder containing Jinja2 templates.
+                        Default: <code>'templates'</code>.</li>
+                </ul>
+
+                <h2>Methods</h2>
+
+                <h3 id="run"><code>run(host='127.0.0.1', port=5000, debug=False)</code></h3>
+                <p>Starts the development server. This runs a single-process server suitable for development.</p>
+                <ul>
+                    <li><strong>host</strong>: The hostname to listen on. Set to <code>'0.0.0.0'</code> to make the
+                        server available externally.</li>
+                    <li><strong>port</strong>: The port to listen on.</li>
+                    <li><strong>debug</strong>: If <code>True</code>, enables hot-reloading and debug pages.</li>
+                </ul>
+
+                <h3 id="route"><code>route(rule, **options)</code></h3>
+                <p>A decorator to register a function as a view handler.</p>
+                <div class="admonition note">
+                    <span class="admonition-title">See Also</span>
+                    <p>Refer to the <a href="../core_concepts/routing.html">Routing</a> section for detailed usage.</p>
+                </div>
+
+                <h3 id="register_blueprint"><code>register_blueprint(blueprint, **options)</code></h3>
+                <p>Registers a blueprint with the application.</p>
+                <ul>
+                    <li><strong>blueprint</strong>: The <code>Blueprint</code> instance to register.</li>
+                    <li><strong>url_prefix</strong> (optional): Prefix to prepend to all routes in the blueprint.</li>
+                </ul>
+
+                <h3 id="before_request"><code>before_request(f)</code></h3>
+                <p>Registers a function to run before each request.</p>
+
+                <h3 id="after_request"><code>after_request(f)</code></h3>
+                <p>Registers a function to run after each request. Expected to return the response object.</p>
+
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

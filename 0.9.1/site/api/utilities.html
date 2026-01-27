@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Utilities - BustAPI Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+    <script src="../script.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../assets/logo.png">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-controls">
+                <button id="menu-button" aria-label="Menu">☰</button>
+                <a href="../index.html" class="brand">
+                    <img src="../assets/logo.png" alt="Logo" style="height: 30px; margin-right: 10px; vertical-align: middle;">
+                    BustAPI <span style="font-size: 0.8em; opacity: 0.7; margin-left: 5px;">v0.5.0</span>
+                </a>
+            </div>
+
+            <div class="header-controls">
+                <a href="../changelog.html" style="color:white; font-size:0.9rem; font-weight:500; margin-right: 15px;">Changelog</a>
+                <iframe src="https://ghbtns.com/github-btn.html?user=GrandpaEJ&repo=bustapi&type=star&count=true" frameborder="0" scrolling="0" width="100" height="20" title="GitHub" style="margin-right: 10px;"></iframe>
+                <button id="theme-toggle" aria-label="Toggle Theme">◐</button>
+            </div>
+</header>
+
+        <div class="layout">
+            <div class="overlay"></div>
+            <nav class="sidebar">
+                <div class="nav-section">
+                    <h3>Getting Started</h3>
+                    <ul>
+                        <li><a href="../getting_started/index.html">Introduction</a></li>
+                        <li><a href="../getting_started/quickstart.html">Quickstart</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Core Concepts</h3>
+                    <ul>
+                        <li><a href="../core_concepts/routing.html">Routing</a></li>
+                        <li><a href="../core_concepts/request_data.html">Request Data</a></li>
+                        <li><a href="../core_concepts/responses.html">Responses</a></li>
+                        <li><a href="../core_concepts/templates.html">Templates</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Advanced</h3>
+                    <ul>
+                        <li><a href="../advanced/blueprints.html">Blueprints</a></li>
+                        <li><a href="../advanced/middleware.html">Middleware</a></li>
+                        <li><a href="../advanced/dependency_injection.html">Dependency Injection</a></li>
+                        <li><a href="../advanced/validation.html">Validation</a></li>
+                        <li><a href="../advanced/async_support.html">Async Support</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>API Reference</h3>
+                    <ul>
+                        <li><a href="app.html">BustAPI Class</a></li>
+                        <li><a href="context.html">Context Proxies</a></li>
+                        <li><a href="utilities.html" class="active">Utilities</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Examples</h3>
+                    <ul>
+                        <li><a href="../examples/index.html">Gallery</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="content">
+                <h1>Utilities</h1>
+
+                <p>BustAPI provides several helper functions to make common web tasks easier.</p>
+
+                <h3 id="jsonify"><code>jsonify(data)</code></h3>
+                <p>Creates a <code>Response</code> with the given data serialized to JSON and the
+                    <code>Content-Type</code> header set to <code>application/json</code>.</p>
+                <pre><code class="language-python">return jsonify({"status": "ok"})</code></pre>
+
+                <h3 id="abort"><code>abort(status_code, description=None)</code></h3>
+                <p>Raises an HTTP exception, stopping request processing immediately.</p>
+                <ul>
+                    <li><strong>status_code</strong> (<code>int</code>): The HTTP status code (e.g., 404, 403).</li>
+                    <li><strong>description</strong> (<code>str</code>): Optional text description to show to the user.
+                    </li>
+                </ul>
+
+                <h3 id="redirect"><code>redirect(location, code=302)</code></h3>
+                <p>Returns a response redirecting the client to a new location.</p>
+                <ul>
+                    <li><strong>location</strong> (<code>str</code>): The URL to redirect to.</li>
+                    <li><strong>code</strong> (<code>int</code>): The status code (301, 302, 303, 307, etc). Default is
+                        302.</li>
+                </ul>
+
+                <h3 id="render_template"><code>render_template(template_name, **context)</code></h3>
+                <p>Renders a template from the templates folder with the given context.</p>
+                <ul>
+                    <li><strong>template_name</strong> (<code>str</code>): The name of the template file (e.g.,
+                        'index.html').</li>
+                    <li><strong>**context</strong>: Keyword arguments representing variables available in the template.
+                    </li>
+                </ul>
+
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>
