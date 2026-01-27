@@ -8,7 +8,7 @@ All notable changes to this project will be documented here.
 
 - **CI/CD Expansion**: Added comprehensive cross-platform build support:
   - **Alpine Linux (musl)**: Added `musllinux` wheels for x86_64 ([#14](https://github.com/GrandpaEJ/BustAPI/issues/14)).
-  - **ARM64 (aarch64)**: Added support for both glibc (Ubuntu/Debian) and musl (Alpine) on ARM processors ([#27](https://github.com/GrandpaEJ/BustAPI/issues/27), [#28](https://github.com/GrandpaEJ/BustAPI/issues/28)).
+  - **ARM64 (aarch64)**: Added support for both glibc (Ubuntu/Debian) and musl (Alpine) on ARM processors.
 - **Session Persistence**: Fixed bug where `session.pop()` did not save changes ([#17](https://github.com/GrandpaEJ/BustAPI/issues/17)).
 - **Template Path**: Fixed `BustAPI()` default template loading when no `import_name` is provided ([#15](https://github.com/GrandpaEJ/BustAPI/issues/15)).
 - **Content-Type**: `render_template` now reliably returns `text/html` headers.
