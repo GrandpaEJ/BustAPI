@@ -114,7 +114,7 @@ jobs:
     needs: [build-wheels]
     runs-on: ubuntu-latest
     permissions:
-      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -122,9 +122,9 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages_dir: dist/
-          # output-dir: dist/ # optional
-          # password: ${{ secrets.PYPI_API_TOKEN }} # If not using trusted publishing
+      # - name: Publish to PyPI
+      #   uses: pypa/gh-action-pypi-publish@release/v1
+      #   with:
+      #     packages_dir: dist/
+      #     # output-dir: dist/ # optional
+      #     # password: ${{ secrets.PYPI_API_TOKEN }} # If not using trusted publishing
