@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 /// Find pattern match for dynamic routes like /greet/<name> or /users/<int:id>
-/// 
+///
 /// DEPRECATED: Prefer using the matchit radix tree in Router::match_route
 #[allow(dead_code)]
 pub fn find_pattern_match(

@@ -49,7 +49,7 @@ fn parse_pattern(pattern: &str) -> (String, Vec<(String, ParamType)>) {
     let mut result = String::with_capacity(pattern.len());
     let mut param_types = Vec::new();
     let mut chars = pattern.chars().peekable();
-    
+
     while let Some(c) = chars.next() {
         if c == '<' {
             // Find the closing >
@@ -61,14 +61,14 @@ fn parse_pattern(pattern: &str) -> (String, Vec<(String, ParamType)>) {
                 }
                 param.push(chars.next().unwrap());
             }
-            
+
             // Parse the parameter: type:name or just name
             let (type_str, param_name) = if let Some((t, n)) = param.split_once(':') {
                 (t.trim(), n.trim())
             } else {
                 ("str", param.trim())
             };
-            
+
             // Convert type string to ParamType
             let param_type = match type_str {
                 "int" => ParamType::Int,
@@ -76,10 +76,10 @@ fn parse_pattern(pattern: &str) -> (String, Vec<(String, ParamType)>) {
                 "path" => ParamType::Path,
                 _ => ParamType::Str,
             };
-            
+
             // Store pre-compiled type info
             param_types.push((param_name.to_string(), param_type));
-            
+
             // Convert to matchit syntax
             if param_type == ParamType::Path {
                 // Wildcard/catch-all parameter
@@ -96,7 +96,7 @@ fn parse_pattern(pattern: &str) -> (String, Vec<(String, ParamType)>) {
             result.push(c);
         }
     }
-    
+
     (result, param_types)
 }
 
@@ -160,28 +160,30 @@ impl Router {
         H: RouteHandler + 'static,
     {
         tracing::debug!("Adding route: {} {}", method, path);
-        
+
         let handler_arc = Arc::new(handler);
         let handler_id = self.handlers.len();
-        
+
         // Parse pattern and extract pre-compiled type information
         let (matchit_pattern, param_types) = parse_pattern(&path);
-        
+
         // Store handler with pre-compiled param types
         self.handlers.push(HandlerEntry {
             handler: handler_arc.clone(),
             original_pattern: path.clone(),
             param_types,
         });
-        
+
         // Also store in legacy routes map for compatibility
-        self.routes.insert((method.clone(), path.clone()), handler_arc);
-        
+        self.routes
+            .insert((method.clone(), path.clone()), handler_arc);
+
         // Get or create method router
-        let method_router = self.method_routers
+        let method_router = self
+            .method_routers
             .entry(method)
             .or_insert_with(matchit::Router::new);
-        
+
         // Insert route (ignore errors for duplicate routes)
         if let Err(e) = method_router.insert(&matchit_pattern, handler_id) {
             tracing::warn!("Route insertion warning for {}: {:?}", matchit_pattern, e);
@@ -258,12 +260,12 @@ impl Router {
         let matched = method_router.at(&req.path).ok()?;
         let handler_id = *matched.value;
         let entry = &self.handlers[handler_id];
-        
+
         // Validate params against pre-compiled type constraints
         if !entry.param_types.is_empty() && !validate_params(&matched.params, &entry.param_types) {
             return None;
         }
-        
+
         Some(entry.handler.clone())
     }
 
@@ -279,7 +281,10 @@ impl Router {
         // Check redirect for current method
         let redirect_path = if path.ends_with('/') {
             let trimmed = &path[..path.len() - 1];
-            if self.routes.contains_key(&(method.clone(), trimmed.to_string())) {
+            if self
+                .routes
+                .contains_key(&(method.clone(), trimmed.to_string()))
+            {
                 Some(trimmed.to_string())
             } else {
                 None
@@ -299,12 +304,18 @@ impl Router {
                 let get_method = Method::GET;
                 if path.ends_with('/') {
                     let trimmed = &path[..path.len() - 1];
-                    if self.routes.contains_key(&(get_method.clone(), trimmed.to_string())) {
+                    if self
+                        .routes
+                        .contains_key(&(get_method.clone(), trimmed.to_string()))
+                    {
                         return Some(trimmed.to_string());
                     }
                 } else {
                     let slashed = format!("{}/", path);
-                    if self.routes.contains_key(&(get_method.clone(), slashed.clone())) {
+                    if self
+                        .routes
+                        .contains_key(&(get_method.clone(), slashed.clone()))
+                    {
                         return Some(slashed);
                     }
                 }
@@ -369,7 +380,13 @@ mod tests {
     fn test_pattern_conversion() {
         assert_eq!(convert_pattern_to_matchit("/users/<id>"), "/users/{id}");
         assert_eq!(convert_pattern_to_matchit("/users/<int:id>"), "/users/{id}");
-        assert_eq!(convert_pattern_to_matchit("/files/<path:rest>"), "/files/{*rest}");
-        assert_eq!(convert_pattern_to_matchit("/api/<version>/users/<int:id>"), "/api/{version}/users/{id}");
+        assert_eq!(
+            convert_pattern_to_matchit("/files/<path:rest>"),
+            "/files/{*rest}"
+        );
+        assert_eq!(
+            convert_pattern_to_matchit("/api/<version>/users/<int:id>"),
+            "/api/{version}/users/{id}"
+        );
     }
 }
