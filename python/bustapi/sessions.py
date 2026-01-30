@@ -65,7 +65,7 @@ class SessionInterface(ABC):
 
 class SecureCookieSessionInterface(SessionInterface):
     """Default session interface using secure cookies (Rust-backed signing).
-    
+
     Uses Rust for all serialization operations:
     - encode_session: Dict → JSON → Base64 → Sign (single Rust call)
     - decode_session: Verify → Base64 → JSON → Dict (single Rust call)

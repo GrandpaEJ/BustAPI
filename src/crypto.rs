@@ -64,38 +64,48 @@ impl Signer {
 
     /// Encode a session dict to a signed cookie value (JSON → Base64 → Sign)
     /// This performs all serialization in Rust for maximum performance.
-    /// 
+    ///
     /// Args:
     ///     name: Cookie name (used in signature)
     ///     data: Python dict to serialize
-    /// 
+    ///
     /// Returns:
     ///     Signed cookie value string
-    pub fn encode_session(&self, name: &str, data: &Bound<'_, pyo3::types::PyDict>) -> PyResult<String> {
+    pub fn encode_session(
+        &self,
+        name: &str,
+        data: &Bound<'_, pyo3::types::PyDict>,
+    ) -> PyResult<String> {
         // 1. Convert PyDict to serde_json::Value
         let json_value = pythondict_to_json(data)?;
-        
+
         // 2. Serialize to JSON string
-        let json_str = serde_json::to_string(&json_value)
-            .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("JSON serialization error: {}", e)))?;
-        
+        let json_str = serde_json::to_string(&json_value).map_err(|e| {
+            pyo3::exceptions::PyValueError::new_err(format!("JSON serialization error: {}", e))
+        })?;
+
         // 3. Base64 encode
         let b64_payload = base64::engine::general_purpose::URL_SAFE.encode(json_str.as_bytes());
-        
+
         // 4. Sign using cookie crate
         self.sign(name, &b64_payload)
     }
 
     /// Decode a signed cookie value to a Python dict (Verify → Base64 → JSON)
     /// This performs all deserialization in Rust for maximum performance.
-    /// 
+    ///
     /// Args:
     ///     name: Cookie name (used in signature verification)
     ///     signed_value: The signed cookie value
-    /// 
+    ///
     /// Returns:
     ///     Python dict if valid, None if signature invalid or decode error
-    pub fn decode_session<'py>(&self, py: Python<'py>, name: &str, signed_value: &str) -> PyResult<Option<Bound<'py, pyo3::types::PyDict>>> {
+    pub fn decode_session<'py>(
+        &self,
+        py: Python<'py>,
+        name: &str,
+        signed_value: &str,
+    ) -> PyResult<Option<Bound<'py, pyo3::types::PyDict>>> {
         // 1. Verify signature
         let payload = match self.verify(name, signed_value)? {
             Some(p) => p,
@@ -159,7 +169,10 @@ fn python_to_json_value(obj: &Bound<'_, pyo3::types::PyAny>) -> PyResult<serde_j
         let val: String = s.extract()?;
         Ok(Value::String(val))
     } else if let Ok(list) = obj.downcast::<PyList>() {
-        let arr: Result<Vec<Value>, _> = list.iter().map(|item| python_to_json_value(&item)).collect();
+        let arr: Result<Vec<Value>, _> = list
+            .iter()
+            .map(|item| python_to_json_value(&item))
+            .collect();
         Ok(Value::Array(arr?))
     } else if let Ok(dict) = obj.downcast::<PyDict>() {
         pythondict_to_json(dict)
@@ -171,7 +184,10 @@ fn python_to_json_value(obj: &Bound<'_, pyo3::types::PyAny>) -> PyResult<serde_j
 }
 
 /// Convert serde_json::Value to Python dict
-fn json_to_pydict<'py>(py: Python<'py>, value: &serde_json::Value) -> PyResult<Option<Bound<'py, pyo3::types::PyDict>>> {
+fn json_to_pydict<'py>(
+    py: Python<'py>,
+    value: &serde_json::Value,
+) -> PyResult<Option<Bound<'py, pyo3::types::PyDict>>> {
     use serde_json::Value;
 
     match value {
@@ -188,7 +204,10 @@ fn json_to_pydict<'py>(py: Python<'py>, value: &serde_json::Value) -> PyResult<O
 }
 
 /// Convert serde_json::Value to PyObject
-fn json_to_pyobject(py: Python<'_>, value: &serde_json::Value) -> PyResult<pyo3::Py<pyo3::types::PyAny>> {
+fn json_to_pyobject(
+    py: Python<'_>,
+    value: &serde_json::Value,
+) -> PyResult<pyo3::Py<pyo3::types::PyAny>> {
     use pyo3::IntoPyObjectExt;
     use serde_json::Value;
 
