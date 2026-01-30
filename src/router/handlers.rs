@@ -26,15 +26,28 @@ struct HandlerEntry {
     handler: Arc<dyn RouteHandler>,
     #[allow(dead_code)]
     original_pattern: String,
+    /// Pre-compiled parameter type constraints (name -> type)
+    param_types: Vec<(String, ParamType)>,
 }
 
-/// Convert BustAPI path pattern to matchit format
-/// <name> -> {name}
-/// <int:id> -> {id}
-/// <float:val> -> {val}
-/// <path:rest> -> {*rest}
-fn convert_pattern_to_matchit(pattern: &str) -> String {
+/// Parameter type for validation (pre-compiled at registration time)
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ParamType {
+    /// String parameter (accepts any non-empty string)
+    Str,
+    /// Integer parameter (must parse as i64)
+    Int,
+    /// Float parameter (must parse as f64)
+    Float,
+    /// Path wildcard (captures everything remaining)
+    Path,
+}
+
+/// Parse a BustAPI pattern and extract parameter types
+/// Returns (matchit_pattern, param_types)
+fn parse_pattern(pattern: &str) -> (String, Vec<(String, ParamType)>) {
     let mut result = String::with_capacity(pattern.len());
+    let mut param_types = Vec::new();
     let mut chars = pattern.chars().peekable();
     
     while let Some(c) = chars.next() {
@@ -50,20 +63,31 @@ fn convert_pattern_to_matchit(pattern: &str) -> String {
             }
             
             // Parse the parameter: type:name or just name
-            let (param_type, param_name) = if let Some((t, n)) = param.split_once(':') {
+            let (type_str, param_name) = if let Some((t, n)) = param.split_once(':') {
                 (t.trim(), n.trim())
             } else {
                 ("str", param.trim())
             };
             
+            // Convert type string to ParamType
+            let param_type = match type_str {
+                "int" => ParamType::Int,
+                "float" => ParamType::Float,
+                "path" => ParamType::Path,
+                _ => ParamType::Str,
+            };
+            
+            // Store pre-compiled type info
+            param_types.push((param_name.to_string(), param_type));
+            
             // Convert to matchit syntax
-            if param_type == "path" {
+            if param_type == ParamType::Path {
                 // Wildcard/catch-all parameter
                 result.push_str("{*");
                 result.push_str(param_name);
                 result.push('}');
             } else {
-                // Regular parameter (int, float, str all become the same in matchit)
+                // Regular parameter
                 result.push('{');
                 result.push_str(param_name);
                 result.push('}');
@@ -73,7 +97,36 @@ fn convert_pattern_to_matchit(pattern: &str) -> String {
         }
     }
     
-    result
+    (result, param_types)
+}
+
+/// Validate extracted params against pre-compiled type constraints
+fn validate_params(params: &matchit::Params, param_types: &[(String, ParamType)]) -> bool {
+    for (name, param_type) in param_types {
+        if let Some(value) = params.get(name) {
+            match param_type {
+                ParamType::Int => {
+                    if value.parse::<i64>().is_err() {
+                        return false;
+                    }
+                }
+                ParamType::Float => {
+                    if value.parse::<f64>().is_err() {
+                        return false;
+                    }
+                }
+                ParamType::Str => {
+                    if value.is_empty() {
+                        return false;
+                    }
+                }
+                ParamType::Path => {
+                    // Path wildcard accepts anything
+                }
+            }
+        }
+    }
+    true
 }
 
 /// Router for managing routes and dispatching requests
@@ -111,17 +164,18 @@ impl Router {
         let handler_arc = Arc::new(handler);
         let handler_id = self.handlers.len();
         
-        // Store handler
+        // Parse pattern and extract pre-compiled type information
+        let (matchit_pattern, param_types) = parse_pattern(&path);
+        
+        // Store handler with pre-compiled param types
         self.handlers.push(HandlerEntry {
             handler: handler_arc.clone(),
             original_pattern: path.clone(),
+            param_types,
         });
         
         // Also store in legacy routes map for compatibility
         self.routes.insert((method.clone(), path.clone()), handler_arc);
-        
-        // Convert pattern to matchit format
-        let matchit_pattern = convert_pattern_to_matchit(&path);
         
         // Get or create method router
         let method_router = self.method_routers
@@ -198,12 +252,19 @@ impl Router {
         response_data
     }
 
-    /// Match a route using matchit radix tree
+    /// Match a route using matchit radix tree with pre-compiled type validation
     fn match_route(&self, req: &RequestData) -> Option<Arc<dyn RouteHandler>> {
         let method_router = self.method_routers.get(&req.method)?;
         let matched = method_router.at(&req.path).ok()?;
         let handler_id = *matched.value;
-        Some(self.handlers[handler_id].handler.clone())
+        let entry = &self.handlers[handler_id];
+        
+        // Validate params against pre-compiled type constraints
+        if !entry.param_types.is_empty() && !validate_params(&matched.params, &entry.param_types) {
+            return None;
+        }
+        
+        Some(entry.handler.clone())
     }
 
     /// Try to redirect with/without trailing slash
