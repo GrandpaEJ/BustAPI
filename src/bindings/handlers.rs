@@ -159,28 +159,34 @@ impl RouteHandler for PyRouteHandler {
     fn handle(&self, req: RequestData) -> ResponseData {
         Python::attach(|py| {
             // Create request object
-            let py_req = create_py_request(py, &req);
+            // Extract path params in Rust (fast path) - must do before moving req
+            let py_params = if !self.param_specs.is_empty() {
+                match self.extract_params(&req.path) {
+                    Some(params) => self.to_py_dict(py, &params).ok(),
+                    None => None,
+                }
+            } else {
+                None
+            };
+
+            // Create request object (moves req)
+            let py_req = create_py_request(py, req);
 
             match py_req {
                 Ok(py_req_obj) => {
-                    // Extract path params in Rust (fast path)
-                    let py_params = if !self.param_specs.is_empty() {
-                        match self.extract_params(&req.path) {
-                            Some(params) => self.to_py_dict(py, &params).ok(),
-                            None => None,
-                        }
-                    } else {
-                        None
-                    };
-
                     // Call Python handler with (rust_request, path_params)
                     let call_result = match py_params {
-                        Some(params) => self.handler.call1(py, (py_req_obj, params)),
-                        None => self.handler.call1(py, (py_req_obj, py.None())),
+                        Some(params) => self.handler.call1(py, (py_req_obj.clone_ref(py), params)),
+                        None => self
+                            .handler
+                            .call1(py, (py_req_obj.clone_ref(py), py.None())),
                     };
 
                     match call_result {
-                        Ok(result) => convert_py_result_to_response(py, result, &req.headers),
+                        Ok(result) => {
+                            let headers = &py_req_obj.borrow(py).inner.headers;
+                            convert_py_result_to_response(py, result, headers)
+                        }
                         Err(e) => {
                             tracing::error!("Python handler error: {:?}", e);
                             ResponseData::error(
@@ -217,11 +223,12 @@ impl RouteHandler for PyAsyncRouteHandler {
     fn handle(&self, req: RequestData) -> ResponseData {
         // For async handlers, call and check if coroutine
         Python::attach(|py| {
-            let py_req = create_py_request(py, &req);
+            // Create request object (moves req)
+            let py_req = create_py_request(py, req);
 
             match py_req {
                 Ok(py_req_obj) => {
-                    match self.handler.call1(py, (py_req_obj,)) {
+                    match self.handler.call1(py, (py_req_obj.clone_ref(py),)) {
                         Ok(result) => {
                             // Check if coroutine
                             let asyncio = py.import("asyncio");
@@ -230,42 +237,27 @@ impl RouteHandler for PyAsyncRouteHandler {
                                     Ok(is_coro) => {
                                         let is_coro_bool =
                                             is_coro.extract::<bool>().unwrap_or(false);
-                                        tracing::debug!(
-                                            "Async handler result type: {}, is_coro: {}",
-                                            result
-                                                .bind(py)
-                                                .get_type()
-                                                .name()
-                                                .ok()
-                                                .map(|s| s.to_string())
-                                                .unwrap_or("unknown".to_string()),
-                                            is_coro_bool
-                                        );
 
                                         if is_coro_bool {
                                             // Run coroutine
-                                            if let Ok(_loop_obj) =
-                                                asyncio.call_method0("NewEventLoop")
-                                            { // Try new loop? No get_event_loop
-                                                 // ...
-                                            }
-                                            // Revert to old logic but with logging
                                             if let Ok(loop_obj) =
                                                 asyncio.call_method0("get_event_loop")
                                             {
                                                 if let Ok(awaited) = loop_obj
                                                     .call_method1("run_until_complete", (&result,))
                                                 {
+                                                    let headers =
+                                                        &py_req_obj.borrow(py).inner.headers;
                                                     return convert_py_result_to_response(
                                                         py,
                                                         awaited.into(),
-                                                        &req.headers,
+                                                        headers,
                                                     );
                                                 } else {
                                                     tracing::error!("run_until_complete failed");
                                                 }
                                             } else {
-                                                // Try new loop if get_event_loop fails (e.g. no loop in thread)
+                                                // Try new loop if get_event_loop fails
                                                 if let Ok(loop_obj) =
                                                     asyncio.call_method0("new_event_loop")
                                                 {
@@ -277,10 +269,12 @@ impl RouteHandler for PyAsyncRouteHandler {
                                                         "run_until_complete",
                                                         (&result,),
                                                     ) {
+                                                        let headers =
+                                                            &py_req_obj.borrow(py).inner.headers;
                                                         return convert_py_result_to_response(
                                                             py,
                                                             awaited.into(),
-                                                            &req.headers,
+                                                            headers,
                                                         );
                                                     }
                                                 }
@@ -291,7 +285,8 @@ impl RouteHandler for PyAsyncRouteHandler {
                                     Err(e) => tracing::error!("iscoroutine check failed: {:?}", e),
                                 }
                             }
-                            convert_py_result_to_response(py, result, &req.headers)
+                            let headers = &py_req_obj.borrow(py).inner.headers;
+                            convert_py_result_to_response(py, result, headers)
                         }
                         Err(e) => {
                             tracing::error!("Async handler error: {:?}", e);
