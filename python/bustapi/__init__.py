@@ -22,7 +22,7 @@ import platform
 import sys
 from http import HTTPStatus
 
-__version__ = "0.9.0"
+__version__ = "0.9.2"
 __author__ = "BustAPI"
 __email__ = ""
 
