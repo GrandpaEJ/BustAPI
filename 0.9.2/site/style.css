@@ -1,0 +1,520 @@
+:root {
+    /* Light Theme Defaults */
+    --primary: #3f51b5;
+    --primary-dark: #303f9f;
+    --accent: #ff4081;
+    --bg-body: #ffffff;
+    --bg-sidebar: #f5f5f5;
+    --bg-header: #3f51b5;
+    --text-main: #212121;
+    --text-muted: #757575;
+    --border: #e0e0e0;
+
+    /* Code Blocks - GitHub Light inspired */
+    --code-bg: #f6f8fa;
+    --code-text: #24292e;
+    --shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    /* Syntax Highlighting */
+    --hl-keyword: #d73a49;
+    /* Red */
+    --hl-string: #032f62;
+    /* Dark Blue */
+    --hl-comment: #6a737d;
+    /* Gray */
+    --hl-value: #005cc5;
+    /* Blue */
+    --hl-number: #005cc5;
+    --hl-decorator: #6f42c1;
+    /* Purple */
+    --hl-function: #6f42c1;
+    /* Purple for function names */
+
+    /* Copy Button */
+    --copy-bg: #ffffff;
+    --copy-border: #d1d5da;
+    --copy-text: #24292e;
+}
+
+[data-theme="dark"] {
+    /* Dark Theme Overrides */
+    --primary: #7986cb;
+    --primary-dark: #5c6bc0;
+    --accent: #ff80ab;
+    --bg-body: #0d1117;
+    /* GitHub Dark Dimmed */
+    --bg-sidebar: #161b22;
+    --bg-header: #161b22;
+    --text-main: #c9d1d9;
+    --text-muted: #8b949e;
+    --border: #30363d;
+    --code-bg: #0d1117;
+    /* Match body or slightly lighter */
+    --code-text: #c9d1d9;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+
+    /* Syntax Highlighting - VS Code Dark+ inspired */
+    --hl-keyword: #ff7b72;
+    /* Red/Pink */
+    --hl-string: #a5d6ff;
+    /* Light Blue */
+    --hl-comment: #8b949e;
+    /* Gray */
+    --hl-value: #79c0ff;
+    /* Blue */
+    --hl-number: #79c0ff;
+    --hl-decorator: #d2a8ff;
+    /* Purple */
+    --hl-function: #d2a8ff;
+
+    /* Copy Button */
+    --copy-bg: #21262d;
+    --copy-border: #30363d;
+    --copy-text: #c9d1d9;
+}
+
+/* Global Reset */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: var(--text-main);
+    background-color: var(--bg-body);
+    line-height: 1.6;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* Typography */
+h1,
+h2,
+h3,
+h4 {
+    color: var(--text-main);
+    font-weight: 500;
+    margin-bottom: 0.8em;
+}
+
+h1 {
+    font-size: 2.2em;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.3em;
+    margin-top: -1em;
+}
+
+h2 {
+    font-size: 1.8em;
+    margin-top: 1.5em;
+}
+
+h3 {
+    font-size: 1.4em;
+    margin-top: 1.2em;
+}
+
+p {
+    margin-bottom: 1em;
+}
+
+a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+a:hover {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+/* API Documentation Styles */
+.api-param {
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-weight: bold;
+    color: var(--text-main);
+    background-color: rgba(63, 81, 181, 0.1);
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+}
+
+[data-theme="dark"] .api-param {
+    background-color: rgba(121, 134, 203, 0.15);
+    color: #e0e0e0;
+}
+
+/* Highlight Strong tags inside lists as params if they look like code */
+main ul li strong {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* Layout */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Header */
+header {
+    background-color: var(--bg-header);
+    color: #fff;
+    padding: 0 1.5rem;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow);
+    border-bottom: 1px solid var(--border);
+}
+
+.brand {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: white;
+    text-decoration: none;
+    letter-spacing: 1px;
+}
+
+.brand:hover {
+    text-decoration: none;
+    color: white;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+#theme-toggle {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+#theme-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Main Layout */
+.layout {
+    display: flex;
+    flex: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 300px;
+    background-color: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    padding: 2rem 1.5rem;
+    overflow-y: auto;
+    height: calc(100vh - 60px);
+    position: sticky;
+    top: 60px;
+    transition: transform 0.3s;
+}
+
+.nav-section h3 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    margin: 1.5rem 0 0.5rem 0;
+    font-weight: 600;
+}
+
+.nav-section ul {
+    list-style: none;
+}
+
+.nav-section li a {
+    display: block;
+    padding: 0.5rem 0.8rem;
+    color: var(--text-main);
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+
+.nav-section li a:hover {
+    color: var(--primary);
+    background-color: rgba(0, 0, 0, 0.05);
+    text-decoration: none;
+}
+
+.nav-section li a.active {
+    color: var(--primary);
+    background-color: rgba(63, 81, 181, 0.1);
+    /* Primary with opacity */
+    font-weight: 500;
+}
+
+[data-theme="dark"] .nav-section li a:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .nav-section li a.active {
+    background-color: rgba(121, 134, 203, 0.2);
+}
+
+/* Content */
+.content {
+    flex: 1;
+    padding: 2.5rem 4rem;
+    max-width: 900px;
+}
+
+/* Code Blocks */
+pre {
+    background-color: var(--code-bg);
+    color: var(--code-text);
+    padding: 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+    border: 1px solid var(--border);
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    position: relative;
+    /* For copy button */
+}
+
+code {
+    background-color: rgba(127, 127, 127, 0.1);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 0.9em;
+}
+
+pre code {
+    background-color: transparent;
+    padding: 0;
+    font-size: 0.95em;
+    display: block;
+    line-height: 1.5;
+}
+
+/* Copy Button */
+.copy-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background-color: var(--copy-bg);
+    border: 1px solid var(--copy-border);
+    color: var(--copy-text);
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s, background 0.1s;
+}
+
+pre:hover .copy-btn {
+    opacity: 1;
+}
+
+.copy-btn:hover {
+    background-color: rgba(127, 127, 127, 0.1);
+}
+
+.copy-btn.copied {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* Syntax Highlighting Classes */
+.k {
+    color: var(--hl-keyword);
+    font-weight: 500;
+}
+
+.s {
+    color: var(--hl-string);
+}
+
+.c {
+    color: var(--hl-comment);
+    font-style: italic;
+}
+
+.v {
+    color: var(--hl-value);
+}
+
+.n {
+    color: var(--hl-number);
+}
+
+.d {
+    color: var(--hl-decorator);
+}
+
+.f {
+    color: var(--hl-function);
+    font-weight: bold;
+}
+
+/* Buttons */
+.btn {
+    display: inline-block;
+    padding: 0.8rem 1.5rem;
+    border-radius: 4px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: transform 0.1s, box-shadow 0.2s;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    color: white;
+    text-decoration: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background-color: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-main);
+}
+
+.btn-secondary:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    text-decoration: none;
+}
+
+/* Alerts / Admonitions */
+.admonition {
+    padding: 1rem 1rem 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    background-color: rgba(63, 81, 181, 0.05);
+    border-left: 4px solid var(--primary);
+    border-radius: 0 4px 4px 0;
+}
+
+.admonition-title {
+    font-weight: bold;
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.admonition.warning {
+    border-color: #ff9800;
+    background-color: rgba(255, 152, 0, 0.05);
+}
+
+.admonition.warning .admonition-title {
+    color: #e65100;
+    background-color: transparent;
+}
+
+/* Feature Cards (Index Page) */
+.features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 4rem;
+}
+
+.feature-card {
+    background-color: var(--bg-sidebar);
+    padding: 2rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow);
+    border-color: var(--primary);
+}
+
+.feature-card h3 {
+    color: var(--primary);
+    font-size: 1.25rem;
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+.feature-card p {
+    margin-bottom: 0;
+    color: var(--text-muted);
+}
+
+
+/* Mobile */
+#menu-button {
+    display: none;
+}
+
+.overlay {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        left: -300px;
+        z-index: 200;
+        top: 0;
+        height: 100vh;
+        background: var(--bg-sidebar);
+    }
+
+    .sidebar.active {
+        left: 0;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .overlay.active {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 150;
+    }
+
+    .content {
+        padding: 1.5rem;
+    }
+
+    #menu-button {
+        display: block;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+    }
+}

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All APIs - BustAPI Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+    <script src="../script.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../assets/logo.png">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-controls">
+                <button id="menu-button" aria-label="Menu">☰</button>
+                <a href="../index.html" class="brand">
+                    <img src="../assets/logo.png" alt="Logo" style="height: 30px; margin-right: 10px; vertical-align: middle;">
+                    BustAPI <span style="font-size: 0.8em; opacity: 0.7; margin-left: 5px;">v0.5.0</span>
+                </a>
+            </div>
+
+            <div class="header-controls">
+                <a href="../changelog.html" style="color:white; font-size:0.9rem; font-weight:500; margin-right: 15px;">Changelog</a>
+                <iframe src="https://ghbtns.com/github-btn.html?user=GrandpaEJ&repo=bustapi&type=star&count=true" frameborder="0" scrolling="0" width="100" height="20" title="GitHub" style="margin-right: 10px;"></iframe>
+                <button id="theme-toggle" aria-label="Toggle Theme">◐</button>
+            </div>
+</header>
+
+        <div class="layout">
+            <div class="overlay"></div>
+            <nav class="sidebar">
+                <div class="nav-section">
+                    <h3>Getting Started</h3>
+                    <ul>
+                        <li><a href="../getting_started/index.html">Introduction</a></li>
+                        <li><a href="../getting_started/quickstart.html">Quickstart</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>General</h3>
+                    <ul>
+                        <li><a href="../changelog.html">Changelog</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Core Concepts</h3>
+                    <ul>
+                        <li><a href="../core_concepts/routing.html">Routing</a></li>
+                        <li><a href="../core_concepts/request_data.html">Request Data</a></li>
+                        <li><a href="../core_concepts/responses.html">Responses</a></li>
+                        <li><a href="../core_concepts/templates.html">Templates</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Advanced</h3>
+                    <ul>
+                        <li><a href="../advanced/blueprints.html">Blueprints</a></li>
+                        <li><a href="../advanced/middleware.html">Middleware</a></li>
+                        <li><a href="../advanced/dependency_injection.html">Dependency Injection</a></li>
+                        <li><a href="../advanced/validation.html">Validation</a></li>
+                        <li><a href="../advanced/async_support.html">Async Support</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>API Reference</h3>
+                    <ul>
+                        <li><a href="all.html" class="active">All APIs (Index)</a></li>
+                        <li><a href="app.html">BustAPI Class</a></li>
+                        <li><a href="context.html">Context Proxies</a></li>
+                        <li><a href="utilities.html">Utilities</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Examples</h3>
+                    <ul>
+                        <li><a href="../examples/index.html">Gallery</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="content">
+                <h1>All API Index</h1>
+                <p>A comprehensive list of all exposed modules, classes, and functions.</p>
+
+                <h2>Core</h2>
+                <ul>
+                    <li><strong><a href="app.html">BustAPI</a></strong>: The main application class.</li>
+                    <li><strong><a href="app.html#run">BustAPI.run</a></strong>: Start the development server.</li>
+                    <li><strong><a href="app.html#route">BustAPI.route</a></strong>: Register a view handler.</li>
+                    <li><strong><a href="app.html#register_blueprint">BustAPI.register_blueprint</a></strong>: Register
+                        a modular blueprint.</li>
+                </ul>
+
+                <h2>Context & Request</h2>
+                <ul>
+                    <li><strong><a href="context.html">request</a></strong>: Thread-local request object proxy.</li>
+                    <li><strong><a href="context.html">session</a></strong>: Secure cookie-based session dict.</li>
+                    <li><strong><a href="context.html">g</a></strong>: Application global storage per request.</li>
+                    <li><strong><a href="../core_concepts/request_data.html">Query</a></strong>: Validator for query
+                        parameters.</li>
+                    <li><strong><a href="../core_concepts/request_data.html">Body</a></strong>: Validator for JSON
+                        bodies.</li>
+                    <li><strong><a href="../core_concepts/request_data.html">Form</a></strong>: Validator for Form data.
+                    </li>
+                    <li><strong><a href="../core_concepts/request_data.html">File, UploadFile</a></strong>: Validators
+                        for file uploads.</li>
+                </ul>
+
+                <h2>Utilities</h2>
+                <ul>
+                    <li><strong><a href="utilities.html#jsonify">jsonify</a></strong>: Return a JSON response.</li>
+                    <li><strong><a href="utilities.html#render_template">render_template</a></strong>: Render a Jinja2
+                        template.</li>
+                    <li><strong><a href="utilities.html#redirect">redirect</a></strong>: Return a Redirect response.
+                    </li>
+                    <li><strong><a href="utilities.html#abort">abort</a></strong>: Terminate a request with an error
+                        code.</li>
+                    <li><strong><a href="../advanced/async_support.html">BackgroundTasks</a></strong>: Schedule
+                        post-response tasks.</li>
+                </ul>
+
+                <h2>Middleware & DI</h2>
+                <ul>
+                    <li><strong><a href="../advanced/middleware.html">before_request</a></strong>: Run code before a
+                        request.</li>
+                    <li><strong><a href="../advanced/middleware.html">after_request</a></strong>: Run code after a
+                        request.</li>
+                    <li><strong><a href="../advanced/dependency_injection.html">Depends</a></strong>: Declare a
+                        dependency for injection.</li>
+                </ul>
+
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

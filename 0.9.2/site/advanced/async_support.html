@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Async Support - BustAPI Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+    <script src="../script.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../assets/logo.png">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-controls">
+                <button id="menu-button" aria-label="Menu">☰</button>
+                <a href="../index.html" class="brand">
+                    <img src="../assets/logo.png" alt="Logo" style="height: 30px; margin-right: 10px; vertical-align: middle;">
+                    BustAPI <span style="font-size: 0.8em; opacity: 0.7; margin-left: 5px;">v0.5.0</span>
+                </a>
+            </div>
+
+            <div class="header-controls">
+                <a href="../changelog.html" style="color:white; font-size:0.9rem; font-weight:500; margin-right: 15px;">Changelog</a>
+                <iframe src="https://ghbtns.com/github-btn.html?user=GrandpaEJ&repo=bustapi&type=star&count=true" frameborder="0" scrolling="0" width="100" height="20" title="GitHub" style="margin-right: 10px;"></iframe>
+                <button id="theme-toggle" aria-label="Toggle Theme">◐</button>
+            </div>
+</header>
+
+        <div class="layout">
+            <div class="overlay"></div>
+            <nav class="sidebar">
+                <div class="nav-section">
+                    <h3>Getting Started</h3>
+                    <ul>
+                        <li><a href="../getting_started/index.html">Introduction</a></li>
+                        <li><a href="../getting_started/quickstart.html">Quickstart</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Core Concepts</h3>
+                    <ul>
+                        <li><a href="routing.html">Routing</a></li>
+                        <li><a href="request_data.html">Request Data</a></li>
+                        <li><a href="responses.html">Responses</a></li>
+                        <li><a href="templates.html">Templates</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Advanced</h3>
+                    <ul>
+                        <li><a href="../advanced/blueprints.html">Blueprints</a></li>
+                        <li><a href="../advanced/middleware.html">Middleware</a></li>
+                        <li><a href="../advanced/dependency_injection.html">Dependency Injection</a></li>
+                        <li><a href="../advanced/validation.html">Validation</a></li>
+                        <li><a href="async_support.html" class="active">Async Support</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>API Reference</h3>
+                    <ul>
+                        <li><a href="../api/app.html">BustAPI Class</a></li>
+                        <li><a href="../api/context.html">Context Proxies</a></li>
+                        <li><a href="../api/utilities.html">Utilities</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Examples</h3>
+                    <ul>
+                        <li><a href="../examples/index.html">Gallery</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="content">
+                <h1>Async Support</h1>
+
+                <p>Python's <code>async/await</code> syntax allows for cooperative multitasking, which is ideal for
+                    I/O-bound web applications. BustAPI runs on an asynchronous event loop powered by Rust.</p>
+
+                <h2>Async Handlers</h2>
+                <p>Defining an async handler is as simple as adding the <code>async</code> keyword.</p>
+
+                <pre><code class="language-python">import asyncio
+
+@app.route("/sleep")
+async def sleep():
+    await asyncio.sleep(1)
+    return "Woke up!"</code></pre>
+
+                <h2>When to use Async?</h2>
+                <div class="admonition tip">
+                    <span class="admonition-title">Use Async for:</span>
+                    <ul>
+                        <li>Database queries (using async drivers like <code>motor</code> or <code>asyncpg</code>).</li>
+                        <li>Calling external APIs (using <code>httpx</code> or <code>aiohttp</code>).</li>
+                        <li>File I/O.</li>
+                    </ul>
+                </div>
+
+                <div class="admonition warning">
+                    <span class="admonition-title">Avoid specific blocking calls</span>
+                    <p>Do not use blocking calls like <code>time.sleep()</code> or standard <code>requests.get()</code>
+                        inside an async route. This will block the entire event loop and freeze your server.</p>
+                </div>
+
+                <h2>Background Tasks</h2>
+                <p>Sometimes you want to perform an action after returning a response, like sending an email. BustAPI
+                    provides <code>BackgroundTasks</code> for this.</p>
+
+                <pre><code class="language-python">from bustapi import BackgroundTasks
+
+def send_email(email: str, message: str):
+    # Simulated email sending
+    print(f"Sending email to {email}")
+
+@app.post("/signup")
+def signup(email: str, tasks: BackgroundTasks):
+    tasks.add_task(send_email, email, "Welcome!")
+    return {"status": "User created, email scheduled"}</code></pre>
+
+                <h2>Mixing Sync and Async</h2>
+                <p>BustAPI is smart enough to handle both. Standard synchronous functions are run in a thread pool to
+                    avoid blocking the async event loop.</p>
+
+                <div style="margin-top: 2rem; display: flex; justify-content: space-between;">
+                    <a href="validation.html" class="btn btn-secondary">&larr; Validation</a>
+                    <a href="../api/app.html" class="btn btn-primary">Next: API Reference &rarr;</a>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

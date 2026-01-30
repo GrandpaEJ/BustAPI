@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Templates - BustAPI Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+    <script src="../script.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../assets/logo.png">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-controls">
+                <button id="menu-button" aria-label="Menu">☰</button>
+                <a href="../index.html" class="brand">
+                    <img src="../assets/logo.png" alt="Logo" style="height: 30px; margin-right: 10px; vertical-align: middle;">
+                    BustAPI <span style="font-size: 0.8em; opacity: 0.7; margin-left: 5px;">v0.5.0</span>
+                </a>
+            </div>
+
+            <div class="header-controls">
+                <a href="../changelog.html" style="color:white; font-size:0.9rem; font-weight:500; margin-right: 15px;">Changelog</a>
+                <iframe src="https://ghbtns.com/github-btn.html?user=GrandpaEJ&repo=bustapi&type=star&count=true" frameborder="0" scrolling="0" width="100" height="20" title="GitHub" style="margin-right: 10px;"></iframe>
+                <button id="theme-toggle" aria-label="Toggle Theme">◐</button>
+            </div>
+</header>
+
+        <div class="layout">
+            <div class="overlay"></div>
+            <nav class="sidebar">
+                <div class="nav-section">
+                    <h3>Getting Started</h3>
+                    <ul>
+                        <li><a href="../getting_started/index.html">Introduction</a></li>
+                        <li><a href="../getting_started/quickstart.html">Quickstart</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Core Concepts</h3>
+                    <ul>
+                        <li><a href="routing.html">Routing</a></li>
+                        <li><a href="request_data.html">Request Data</a></li>
+                        <li><a href="responses.html">Responses</a></li>
+                        <li><a href="templates.html" class="active">Templates</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Advanced</h3>
+                    <ul>
+                        <li><a href="../advanced/blueprints.html">Blueprints</a></li>
+                        <li><a href="../advanced/middleware.html">Middleware</a></li>
+                        <li><a href="../advanced/dependency_injection.html">Dependency Injection</a></li>
+                        <li><a href="../advanced/validation.html">Validation</a></li>
+                        <li><a href="../advanced/async_support.html">Async Support</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>API Reference</h3>
+                    <ul>
+                        <li><a href="../api/app.html">BustAPI Class</a></li>
+                        <li><a href="../api/context.html">Context Proxies</a></li>
+                        <li><a href="../api/utilities.html">Utilities</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Examples</h3>
+                    <ul>
+                        <li><a href="../examples/index.html">Gallery</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="content">
+                <h1>Templates</h1>
+
+                <p>Generating HTML directly in Python strings is tedious and dangerous (XSS vulnerabilities). BustAPI
+                    uses <strong>Jinja2</strong>, the most popular Python templating engine, for this purpose.</p>
+
+                <h2>Directory Structure</h2>
+                <p>BustAPI expects a <code>templates</code> folder in the same directory as your application module.</p>
+
+                <pre><code>/yourapp
+    app.py
+    /templates
+        base.html
+        index.html
+    /static
+        style.css</code></pre>
+
+                <h2>Rendering</h2>
+                <p>Use the <code>render_template</code> function. You can pass any number of keyword arguments to be
+                    available in the template context.</p>
+
+                <pre><code class="language-python">from bustapi import render_template
+
+@app.route("/hello/&lt;name&gt;")
+def hello(name):
+    return render_template('index.html', name=name)</code></pre>
+
+                <h2>Template Inheritance</h2>
+                <p>The power of Jinja2 comes from inheritance. Define a base layout and extend it.</p>
+
+                <div class="admonition note">
+                    <span class="admonition-title">base.html</span>
+                    <pre><code class="language-html">&lt;!doctype html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;{% block title %}{% endblock %}&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    {% block content %}{% endblock %}
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+                </div>
+
+                <div class="admonition note">
+                    <span class="admonition-title">index.html</span>
+                    <pre><code class="language-html">{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+    &lt;h1&gt;Welcome to my site&lt;/h1&gt;
+{% endblock %}</code></pre>
+                </div>
+
+                <div style="margin-top: 2rem; display: flex; justify-content: space-between;">
+                    <a href="responses.html" class="btn btn-secondary">&larr; Responses</a>
+                    <a href="../advanced/blueprints.html" class="btn btn-primary">Next: Advanced Features &rarr;</a>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>
