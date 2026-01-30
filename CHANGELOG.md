@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented here.
 
+## [0.9.2] - 2026-01-30
+
+### Fixed
+
+- **Pre-built Wheel Distribution** ([#20](https://github.com/GrandpaEJ/BustAPI/issues/20)):
+  - Unified CI workflow to build and publish wheels for all platforms:
+    - **Linux**: x86_64 (glibc + musl), aarch64 (glibc + musl)
+    - **Windows**: x86_64-pc-windows-msvc
+    - **macOS**: x86_64 + aarch64 (Apple Silicon)
+  - Users no longer need Rust toolchain installed to `pip install bustapi`.
+
+### Changed
+
+- **CI/CD Overhaul**:
+  - Merged separate `pypi.yml` into unified `ci.yml` workflow.
+  - Added trusted publishing (OIDC) with API token fallback for PyPI.
+  - Wheels and source distribution now automatically uploaded to GitHub Releases.
+  - Trigger on version tags (`v*`) for consistent release process.
+
 ## [0.9.1] - 2026-01-26
 
 ### Fixed
