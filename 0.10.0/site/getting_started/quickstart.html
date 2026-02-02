@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quickstart - BustAPI Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+    <script src="../script.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../assets/logo.png">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-controls">
+                <button id="menu-button" aria-label="Menu">☰</button>
+                <a href="../index.html" class="brand">
+                    <img src="../assets/logo.png" alt="Logo" style="height: 30px; margin-right: 10px; vertical-align: middle;">
+                    BustAPI <span style="font-size: 0.8em; opacity: 0.7; margin-left: 5px;">v0.5.0</span>
+                </a>
+            </div>
+
+            <div class="header-controls">
+                <a href="../changelog.html" style="color:white; font-size:0.9rem; font-weight:500; margin-right: 15px;">Changelog</a>
+                <iframe src="https://ghbtns.com/github-btn.html?user=GrandpaEJ&repo=bustapi&type=star&count=true" frameborder="0" scrolling="0" width="100" height="20" title="GitHub" style="margin-right: 10px;"></iframe>
+                <button id="theme-toggle" aria-label="Toggle Theme">◐</button>
+            </div>
+</header>
+
+        <div class="layout">
+            <div class="overlay"></div>
+            <nav class="sidebar">
+                <div class="nav-section">
+                    <h3>Getting Started</h3>
+                    <ul>
+                        <li><a href="index.html">Introduction</a></li>
+                        <li><a href="quickstart.html" class="active">Quickstart</a></li>
+                    </ul>
+                </div>
+                <div class="nav-section">
+                    <h3>Core Concepts</h3>
+                    <ul>
+                        <li><a href="../core_concepts/routing.html">Routing</a></li>
+                        <li><a href="../core_concepts/request_data.html">Request Data</a></li>
+                        <li><a href="../core_concepts/responses.html">Responses</a></li>
+                        <li><a href="../core_concepts/templates.html">Templates</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Advanced</h3>
+                    <ul>
+                        <li><a href="../advanced/blueprints.html">Blueprints</a></li>
+                        <li><a href="../advanced/middleware.html">Middleware</a></li>
+                        <li><a href="../advanced/dependency_injection.html">Dependency Injection</a></li>
+                        <li><a href="../advanced/validation.html">Validation</a></li>
+                        <li><a href="../advanced/async_support.html">Async Support</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>API Reference</h3>
+                    <ul>
+                        <li><a href="../api/app.html">BustAPI Class</a></li>
+                        <li><a href="../api/context.html">Context Proxies</a></li>
+                        <li><a href="../api/utilities.html">Utilities</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Examples</h3>
+                    <ul>
+                        <li><a href="../examples/index.html">Gallery</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="content">
+                <h1>Quickstart</h1>
+
+                <p>This guide will walk you through creating your first BustAPI application.</p>
+
+                <h2>Step 1: Create the Application</h2>
+                <p>Create a file named <code>app.py</code>.</p>
+
+                <div class="admonition tip">
+                    <span class="admonition-title">Naming</span>
+                    <p>Running the file <code>bustapi.py</code> (same as the package name) will cause import errors.
+                        Stick to <code>app.py</code> or <code>main.py</code>.</p>
+                </div>
+
+                <pre><code class="language-python">from bustapi import BustAPI
+
+app = BustAPI()
+
+@app.route("/")
+def home():
+    return {"message": "Hello from BustAPI!"}
+
+@app.route("/user/<name>")
+def greet(name):
+    return f"<h1>Welcome, {name}</h1>"
+
+if __name__ == "__main__":
+    app.run(debug=True, port=8000)</code></pre>
+
+                <h2>Step 2: Run the Server</h2>
+                <p>Execute the script in your terminal:</p>
+                <pre><code class="language-bash">python app.py</code></pre>
+
+                <p>You should see a colorful startup log indicating the server is active.</p>
+
+                <h2>Step 3: Test It</h2>
+                <p>Open your browser or use <code>curl</code>:</p>
+                <ul>
+                    <li><a href="http://127.0.0.1:8000/" target="_blank">http://127.0.0.1:8000/</a> - Should return
+                        JSON.</li>
+                    <li><a href="http://127.0.0.1:8000/user/Alice" target="_blank">http://127.0.0.1:8000/user/Alice</a>
+                        - Should return HTML.</li>
+                </ul>
+
+                <h2>What just happened?</h2>
+                <p>
+                    1. <code>@app.route</code> registered your functions with the Rust routing engine.<br>
+                    2. When you hit <code>/</code>, the Rust "hot path" identified the route.<br>
+                    3. Since <code>home()</code> returned a dictionary, BustAPI automatically serialized it to JSON and
+                    set the header <code>Content-Type: application/json</code>.
+                </p>
+
+                <div style="margin-top: 2rem; display: flex; justify-content: space-between;">
+                    <a href="index.html" class="btn btn-secondary">&larr; Introduction</a>
+                    <a href="../core_concepts/routing.html" class="btn btn-primary">Next: Routing &rarr;</a>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

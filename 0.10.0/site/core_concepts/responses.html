@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responses - BustAPI Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+    <script src="../script.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../assets/logo.png">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-controls">
+                <button id="menu-button" aria-label="Menu">☰</button>
+                <a href="../index.html" class="brand">
+                    <img src="../assets/logo.png" alt="Logo" style="height: 30px; margin-right: 10px; vertical-align: middle;">
+                    BustAPI <span style="font-size: 0.8em; opacity: 0.7; margin-left: 5px;">v0.5.0</span>
+                </a>
+            </div>
+
+            <div class="header-controls">
+                <a href="../changelog.html" style="color:white; font-size:0.9rem; font-weight:500; margin-right: 15px;">Changelog</a>
+                <iframe src="https://ghbtns.com/github-btn.html?user=GrandpaEJ&repo=bustapi&type=star&count=true" frameborder="0" scrolling="0" width="100" height="20" title="GitHub" style="margin-right: 10px;"></iframe>
+                <button id="theme-toggle" aria-label="Toggle Theme">◐</button>
+            </div>
+</header>
+
+        <div class="layout">
+            <div class="overlay"></div>
+            <nav class="sidebar">
+                <div class="nav-section">
+                    <h3>Getting Started</h3>
+                    <ul>
+                        <li><a href="../getting_started/index.html">Introduction</a></li>
+                        <li><a href="../getting_started/quickstart.html">Quickstart</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Core Concepts</h3>
+                    <ul>
+                        <li><a href="routing.html">Routing</a></li>
+                        <li><a href="request_data.html">Request Data</a></li>
+                        <li><a href="responses.html" class="active">Responses</a></li>
+                        <li><a href="templates.html">Templates</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Advanced</h3>
+                    <ul>
+                        <li><a href="../advanced/blueprints.html">Blueprints</a></li>
+                        <li><a href="../advanced/middleware.html">Middleware</a></li>
+                        <li><a href="../advanced/dependency_injection.html">Dependency Injection</a></li>
+                        <li><a href="../advanced/validation.html">Validation</a></li>
+                        <li><a href="../advanced/async_support.html">Async Support</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>API Reference</h3>
+                    <ul>
+                        <li><a href="../api/app.html">BustAPI Class</a></li>
+                        <li><a href="../api/context.html">Context Proxies</a></li>
+                        <li><a href="../api/utilities.html">Utilities</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Examples</h3>
+                    <ul>
+                        <li><a href="../examples/index.html">Gallery</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="content">
+                <h1>Responses</h1>
+
+                <p>BustAPI is flexible in what you can return from a view function. It attempts to smartly convert your
+                    return values into a valid HTTP response.</p>
+
+                <h2>Return Types</h2>
+
+                <h3 id="strings">Strings</h3>
+                <p>Returning a plain string results in a <code>text/html</code> response with a <code>200 OK</code>
+                    status.</p>
+                <pre><code class="language-python">@app.route("/")
+def home():
+    return "&lt;h1&gt;Hello&lt;/h1&gt;"</code></pre>
+
+                <h3 id="dictionaries">Dictionaries & Lists</h3>
+                <p>Returning a dictionary or a list will automatically serialize it to JSON and set the content-type to
+                    <code>application/json</code>.</p>
+                <pre><code class="language-python">@app.route("/api/user")
+def user():
+    return {"name": "Alice", "role": "admin"}</code></pre>
+
+                <h3 id="tuples">Tuples</h3>
+                <p>You can return a tuple in the form <code>(body, status)</code> or
+                    <code>(body, status, headers)</code>.</p>
+                <pre><code class="language-python">@app.route("/created")
+def created():
+    return {"id": 123}, 201, {"X-Custom-Header": "foo"}</code></pre>
+
+                <h2>The <code>make_response</code> Helper</h2>
+                <p>For more control, wrap your content in a <code>Response</code> object.</p>
+
+                <pre><code class="language-python">from bustapi import make_response
+
+@app.route("/xml")
+def xml():
+    resp = make_response("&lt;data&gt;value&lt;/data&gt;")
+    resp.headers['Content-Type'] = 'application/xml'
+    return resp</code></pre>
+
+                <h2>Redirections & Errors</h2>
+                <p>Use the helper functions <code>redirect</code> and <code>abort</code>.</p>
+
+                <pre><code class="language-python">from bustapi import redirect, abort
+
+@app.route("/old")
+def old():
+    return redirect("/new")
+
+@app.route("/protected")
+def protected():
+    if not is_authorized:
+        abort(403, "You shall not pass!")</code></pre>
+
+                <div style="margin-top: 2rem; display: flex; justify-content: space-between;">
+                    <a href="request_data.html" class="btn btn-secondary">&larr; Request Data</a>
+                    <a href="templates.html" class="btn btn-primary">Next: Templates &rarr;</a>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>
