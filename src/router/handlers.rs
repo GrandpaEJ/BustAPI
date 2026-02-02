@@ -179,10 +179,7 @@ impl Router {
             .insert((method.clone(), path.clone()), handler_arc);
 
         // Get or create method router
-        let method_router = self
-            .method_routers
-            .entry(method)
-            .or_default();
+        let method_router = self.method_routers.entry(method).or_default();
 
         // Insert route (ignore errors for duplicate routes)
         if let Err(e) = method_router.insert(&matchit_pattern, handler_id) {

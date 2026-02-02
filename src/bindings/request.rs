@@ -1,6 +1,5 @@
 //! Python wrapper for HTTP requests
 
-
 use pyo3::prelude::*;
 use std::collections::HashMap;
 use std::io::Write;
