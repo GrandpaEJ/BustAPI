@@ -1,0 +1,49 @@
+name: Publish to PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'CI Run ID to download artifacts from'
+        required: true
+        type: string
+  release:
+    types: [published]
+
+jobs:
+  publish-to-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/bustapi
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Download Artifacts from CI Run
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: ci.yml
+          run_id: ${{ inputs.run_id }}
+          path: dist
+          name_is_regexp: true
+          name: "wheels-.*|sdist"
+          
+      - name: Flatten artifacts
+        run: |
+          # Move all files from subdirectories to dist/ root
+          find dist -mindepth 2 -type f -exec mv {} dist/ \;
+          # Remove empty subdirectories
+          find dist -type d -empty -delete
+          
+      - name: Display collected files
+        run: |
+          echo "Files to be published:"
+          ls -la dist/
+
+      - name: Publish to PyPI (Trusted Publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          skip-existing: true
