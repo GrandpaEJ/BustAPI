@@ -43,7 +43,17 @@ jobs:
           ls -la dist/
 
       - name: Publish to PyPI (Trusted Publishing)
+        id: trusted-publish
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
+          skip-existing: true
+        continue-on-error: true
+
+      - name: Publish to PyPI (API Token Fallback)
+        if: steps.trusted-publish.outcome == 'failure'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          password: ${{ secrets.PYPI_API_TOKEN }}
           skip-existing: true
