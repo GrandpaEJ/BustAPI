@@ -1,6 +1,6 @@
 //! Python wrapper for HTTP requests
 
-use percent_encoding;
+
 use pyo3::prelude::*;
 use std::collections::HashMap;
 use std::io::Write;

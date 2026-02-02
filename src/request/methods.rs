@@ -110,7 +110,11 @@ impl RequestData {
             for cookie_pair in cookie_header.split(';') {
                 let cookie_pair = cookie_pair.trim();
                 if let Some((key, value)) = cookie_pair.split_once('=') {
-                    cookies.insert(key.trim().to_string(), value.trim().to_string());
+                    // URL decode cookie values
+                    let decoded_value = percent_encoding::percent_decode_str(value.trim())
+                        .decode_utf8()
+                        .unwrap_or_else(|_| std::borrow::Cow::Borrowed(value.trim()));
+                    cookies.insert(key.trim().to_string(), decoded_value.to_string());
                 }
             }
         }
