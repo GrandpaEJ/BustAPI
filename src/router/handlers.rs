@@ -377,10 +377,7 @@ mod tests {
     fn test_pattern_conversion() {
         assert_eq!(parse_pattern("/users/<id>").0, "/users/{id}");
         assert_eq!(parse_pattern("/users/<int:id>").0, "/users/{id}");
-        assert_eq!(
-            parse_pattern("/files/<path:rest>").0,
-            "/files/{*rest}"
-        );
+        assert_eq!(parse_pattern("/files/<path:rest>").0, "/files/{*rest}");
         assert_eq!(
             parse_pattern("/api/<version>/users/<int:id>").0,
             "/api/{version}/users/{id}"
