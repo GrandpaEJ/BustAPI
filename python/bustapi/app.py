@@ -217,6 +217,32 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
                         method, rule, create_sync_wrapper(self, view_func, rule)
                     )
 
+    def add_websocket_route(
+        self, path: str, handler: Any, config: Optional[Any] = None
+    ) -> None:
+        """
+        Add a WebSocket route with a Python handler.
+
+        Args:
+            path: URL path for the WebSocket
+            handler: WebSocketHandler instance
+            config: Optional WebSocketConfig instance
+        """
+        self._rust_app.add_websocket_route(path, handler, config)
+
+    def add_turbo_websocket_route(
+        self, path: str, response_prefix: str, config: Optional[Any] = None
+    ) -> None:
+        """
+        Add a Turbo WebSocket route (Pure Rust).
+
+        Args:
+            path: URL path for the WebSocket
+            response_prefix: Prefix to add to echoed messages
+            config: Optional WebSocketConfig instance
+        """
+        self._rust_app.add_turbo_websocket_route(path, response_prefix, config)
+
     def _make_response(self, *args) -> Response:
         """Convert various return types to Response objects."""
         return make_response(*args)

@@ -4,7 +4,7 @@ Route decorators for BustAPI - Flask-compatible routing.
 
 import inspect
 import re
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 
 class RoutingMixin:
@@ -199,19 +199,13 @@ class RoutingMixin:
 
         return params
 
-    def websocket(self, rule: str) -> Callable:
+    def websocket(self, rule: str, config: Optional[Any] = None) -> Callable:
         """
         WebSocket route decorator for real-time bidirectional communication.
 
         Args:
             rule: URL path for the WebSocket endpoint
-
-        Example:
-            @app.websocket("/ws")
-            async def ws_handler(ws):
-                await ws.send("Welcome!")
-                async for msg in ws:
-                    await ws.send(f"Echo: {msg}")
+            config: Optional WebSocketConfig instance
         """
         from ..websocket import WebSocketHandler
 
@@ -235,13 +229,15 @@ class RoutingMixin:
 
             # Register WebSocket handler with Rust backend
             if hasattr(self, "_rust_app"):
-                self._rust_app.add_websocket_route(rule, handler)
+                self._rust_app.add_websocket_route(rule, handler, config)
 
             return f
 
         return decorator
 
-    def turbo_websocket(self, rule: str, response_prefix: str = "Echo: ") -> Callable:
+    def turbo_websocket(
+        self, rule: str, response_prefix: str = "Echo: ", config: Optional[Any] = None
+    ) -> Callable:
         """
         Turbo WebSocket route - pure Rust, maximum performance.
 
@@ -251,16 +247,7 @@ class RoutingMixin:
         Args:
             rule: URL path for the WebSocket endpoint
             response_prefix: String to prepend to each echoed message
-
-        Example:
-            @app.turbo_websocket("/ws/fast")
-            def fast_echo():
-                pass  # Handler body is ignored, all processing is in Rust
-
-            # Or with custom prefix:
-            @app.turbo_websocket("/ws/fast", response_prefix="Server: ")
-            def fast_echo():
-                pass
+            config: Optional WebSocketConfig instance
         """
 
         def decorator(f: Callable) -> Callable:
@@ -277,7 +264,7 @@ class RoutingMixin:
 
             # Register Turbo WebSocket handler with Rust backend
             if hasattr(self, "_rust_app"):
-                self._rust_app.add_turbo_websocket_route(rule, response_prefix)
+                self._rust_app.add_turbo_websocket_route(rule, response_prefix, config)
 
             return f
 

@@ -53,6 +53,9 @@ from .auth import (
     roles_required,
     verify_password,
 )
+
+# WebSocket
+from .bustapi_core import WebSocketConfig, WebSocketConnection, WebSocketHandler
 from .core.helpers import abort, redirect, render_template, send_file, url_for
 from .dependencies import Depends
 from .documentation.generator import BustAPIDocs
@@ -163,6 +166,10 @@ __all__ = [
     "generate_csrf_token",
     # Auth - CSRF
     "CSRFProtect",
+    # WebSocket
+    "WebSocketHandler",
+    "WebSocketConnection",
+    "WebSocketConfig",
 ]
 
 # Convenience imports for common use cases
