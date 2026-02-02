@@ -19,23 +19,6 @@ All notable changes to this project will be documented here.
 - Added `docs/websockets.md` with performance guides and configuration details.
 - Consolidated benchmark suite into `benchmarks/bustapi_bench.py` and `benchmarks/comparison_bench.py`.
 
-## [0.10.0] - 2026-02-02
-
-### Major Features
-
-- **WebSocket Configuration**:
-  - Introduced `WebSocketConfig` struct accessible from Python.
-  - **RAM Protection**: `max_message_size` limit enforces strict payload caps.
-  - **CPU Protection**: `rate_limit` (messages/sec) prevents abuse.
-  - Support for `heartbeat_interval` and connection `timeout`.
-  - Applied to both `@app.websocket` (Standard) and `@app.turbo_websocket` (Turbo) routes.
-
-### Documentation & Examples
-
-- Added `examples/websockets_demo.py` featuring echo, chat, and limits.
-- Added `docs/websockets.md` with performance guides and configuration details.
-- Consolidated benchmark suite into `benchmarks/bustapi_bench.py` and `benchmarks/comparison_bench.py`.
-
 ## [0.9.2] - 2026-01-30
 
 ### Fixed
