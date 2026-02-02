@@ -65,14 +65,18 @@ use pyo3::prelude::*;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::websocket::TurboWebSocketHandler;
+use crate::websocket::{TurboWebSocketHandler, WebSocketConfig};
+
+// Type aliases to avoid complexity warnings
+type WsRoute = (Py<PyAny>, Option<WebSocketConfig>);
+type TurboWsRoute = (Arc<TurboWebSocketHandler>, Option<WebSocketConfig>);
 
 /// Shared application state
 pub struct AppState {
     pub routes: RwLock<Router>,
     pub debug: AtomicBool,
-    pub websocket_handlers: RwLock<HashMap<String, Py<PyAny>>>,
-    pub turbo_websocket_handlers: RwLock<HashMap<String, Arc<TurboWebSocketHandler>>>,
+    pub websocket_handlers: RwLock<HashMap<String, WsRoute>>,
+    pub turbo_websocket_handlers: RwLock<HashMap<String, TurboWsRoute>>,
 }
 
 impl AppState {
@@ -114,11 +118,19 @@ pub async fn handle_request(
         // Check for Turbo WebSocket handlers first (pure Rust, maximum performance)
         {
             let turbo_handlers = state.turbo_websocket_handlers.read().await;
-            if let Some(handler) = turbo_handlers.get(&path) {
+            if let Some((handler, config)) = turbo_handlers.get(&path) {
                 let handler_clone = handler.clone();
+                let config_clone = config.clone();
                 drop(turbo_handlers);
 
-                match crate::websocket::handle_turbo_websocket(req, payload, handler_clone).await {
+                match crate::websocket::handle_turbo_websocket(
+                    req,
+                    payload,
+                    handler_clone,
+                    config_clone,
+                )
+                .await
+                {
                     Ok(response) => return response,
                     Err(e) => {
                         return HttpResponse::InternalServerError()
@@ -131,11 +143,14 @@ pub async fn handle_request(
         // Fall back to Python WebSocket handlers
         let ws_handlers = state.websocket_handlers.read().await;
 
-        if let Some(handler) = ws_handlers.get(&path) {
+        if let Some((handler, config)) = ws_handlers.get(&path) {
             let handler_clone = Python::attach(|py| handler.clone_ref(py));
+            let config_clone = config.clone();
             drop(ws_handlers);
 
-            match crate::websocket::handle_websocket(req, payload, handler_clone).await {
+            match crate::websocket::handle_websocket(req, payload, handler_clone, config_clone)
+                .await
+            {
                 Ok(response) => return response,
                 Err(e) => {
                     return HttpResponse::InternalServerError()

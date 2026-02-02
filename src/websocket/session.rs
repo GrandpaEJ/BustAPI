@@ -61,11 +61,14 @@ impl WebSocketSession {
 /// Counter for generating unique session IDs
 static SESSION_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
+use crate::websocket::WebSocketConfig;
+
 /// Handle WebSocket upgrade and message loop
 pub async fn handle_websocket(
     req: HttpRequest,
     body: web::Payload,
     handler: Py<PyAny>,
+    config: Option<WebSocketConfig>,
 ) -> Result<HttpResponse, actix_web::Error> {
     // Upgrade the connection
     let (response, mut session, mut msg_stream) = actix_ws::handle(&req, body)?;
@@ -122,9 +125,42 @@ pub async fn handle_websocket(
 
     // Spawn task for receiving messages
     actix_rt::spawn(async move {
+        let mut last_tick = std::time::Instant::now();
+        let mut msg_count = 0;
+
         while let Some(Ok(msg)) = msg_stream.next().await {
+            // Apply Rate Limit
+            if let Some(limit) = config.as_ref().and_then(|c| c.rate_limit) {
+                if last_tick.elapsed().as_secs() >= 1 {
+                    last_tick = std::time::Instant::now();
+                    msg_count = 0;
+                }
+                msg_count += 1;
+                if msg_count > limit {
+                    let _ = session
+                        .close(Some(actix_ws::CloseReason {
+                            code: actix_ws::CloseCode::Policy,
+                            description: Some("Rate limit exceeded".to_string()),
+                        }))
+                        .await;
+                    break;
+                }
+            }
+
             match msg {
                 Message::Text(text) => {
+                    // Apply Size Limit
+                    if let Some(limit) = config.as_ref().and_then(|c| c.max_message_size) {
+                        if text.len() > limit {
+                            let _ = session
+                                .close(Some(actix_ws::CloseReason {
+                                    code: actix_ws::CloseCode::Size,
+                                    description: Some("Message too big".to_string()),
+                                }))
+                                .await;
+                            break;
+                        }
+                    }
                     let text_str = text.to_string();
                     let sid = ws_session.id;
                     let tx_clone = ws_session.tx.clone();

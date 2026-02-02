@@ -28,11 +28,14 @@ impl TurboWebSocketHandler {
     }
 }
 
+use crate::websocket::WebSocketConfig;
+
 /// Handle Turbo WebSocket - pure Rust, no Python per-message callbacks
 pub async fn handle_turbo_websocket(
     req: HttpRequest,
     body: web::Payload,
     handler: Arc<TurboWebSocketHandler>,
+    config: Option<WebSocketConfig>,
 ) -> Result<HttpResponse, actix_web::Error> {
     // Upgrade the connection
     let (response, mut session, mut msg_stream) = actix_ws::handle(&req, body)?;
@@ -42,9 +45,42 @@ pub async fn handle_turbo_websocket(
 
     // Spawn the message handling task
     actix_rt::spawn(async move {
+        let mut last_tick = std::time::Instant::now();
+        let mut msg_count = 0;
+
         while let Some(Ok(msg)) = msg_stream.next().await {
+            // Apply Rate Limit
+            if let Some(limit) = config.as_ref().and_then(|c| c.rate_limit) {
+                if last_tick.elapsed().as_secs() >= 1 {
+                    last_tick = std::time::Instant::now();
+                    msg_count = 0;
+                }
+                msg_count += 1;
+                if msg_count > limit {
+                    let _ = session
+                        .close(Some(actix_ws::CloseReason {
+                            code: actix_ws::CloseCode::Policy,
+                            description: Some("Rate limit exceeded".to_string()),
+                        }))
+                        .await;
+                    break;
+                }
+            }
+
             match msg {
                 Message::Text(text) => {
+                    // Apply Size Limit
+                    if let Some(limit) = config.as_ref().and_then(|c| c.max_message_size) {
+                        if text.len() > limit {
+                            let _ = session
+                                .close(Some(actix_ws::CloseReason {
+                                    code: actix_ws::CloseCode::Size,
+                                    description: Some("Message too big".to_string()),
+                                }))
+                                .await;
+                            break;
+                        }
+                    }
                     // Pure Rust message handling - no Python, no GIL
                     let response_text = handler.format_response(&text);
                     let _ = session.text(response_text).await;

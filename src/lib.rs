@@ -49,6 +49,7 @@ fn bustapi_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // WebSocket support
     m.add_class::<bindings::PyWebSocketConnection>()?;
     m.add_class::<bindings::PyWebSocketHandler>()?;
+    m.add_class::<websocket::WebSocketConfig>()?;
 
     // Password hashing
     m.add_function(wrap_pyfunction!(crypto::hash_password, m)?)?;

@@ -191,13 +191,19 @@ impl PyBustApp {
     }
 
     /// Add a WebSocket route with a Python handler
-    pub fn add_websocket_route(&self, path: &str, handler: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (path, handler, config=None))]
+    pub fn add_websocket_route(
+        &self,
+        path: &str,
+        handler: Py<PyAny>,
+        config: Option<crate::websocket::WebSocketConfig>,
+    ) -> PyResult<()> {
         let state = self.state.clone();
         let path = path.to_string();
 
         self.runtime.block_on(async {
             let mut ws_handlers = state.websocket_handlers.write().await;
-            ws_handlers.insert(path, handler);
+            ws_handlers.insert(path, (handler, config));
         });
 
         Ok(())
@@ -205,7 +211,13 @@ impl PyBustApp {
 
     /// Add a Turbo WebSocket route - pure Rust, maximum performance
     /// The response_prefix is prepended to each received message
-    pub fn add_turbo_websocket_route(&self, path: &str, response_prefix: String) -> PyResult<()> {
+    #[pyo3(signature = (path, response_prefix, config=None))]
+    pub fn add_turbo_websocket_route(
+        &self,
+        path: &str,
+        response_prefix: String,
+        config: Option<crate::websocket::WebSocketConfig>,
+    ) -> PyResult<()> {
         let handler = std::sync::Arc::new(crate::websocket::TurboWebSocketHandler::new(
             response_prefix,
         ));
@@ -214,7 +226,7 @@ impl PyBustApp {
 
         self.runtime.block_on(async {
             let mut turbo_handlers = state.turbo_websocket_handlers.write().await;
-            turbo_handlers.insert(path, handler);
+            turbo_handlers.insert(path, (handler, config));
         });
 
         Ok(())
