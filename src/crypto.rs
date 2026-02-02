@@ -136,7 +136,6 @@ impl Signer {
 
 /// Convert a Python dict to serde_json::Value
 fn pythondict_to_json(dict: &Bound<'_, pyo3::types::PyDict>) -> PyResult<serde_json::Value> {
-    use pyo3::types::{PyBool, PyFloat, PyInt, PyList, PyString};
     use serde_json::{Map, Value};
 
     let mut map = Map::new();
@@ -155,26 +154,28 @@ fn python_to_json_value(obj: &Bound<'_, pyo3::types::PyAny>) -> PyResult<serde_j
 
     if obj.is_none() || obj.is_instance_of::<PyNone>() {
         Ok(Value::Null)
-    } else if let Ok(b) = obj.downcast::<PyBool>() {
-        Ok(Value::Bool(b.is_true()))
-    } else if let Ok(i) = obj.downcast::<PyInt>() {
-        let val: i64 = i.extract()?;
+    } else if obj.is_instance_of::<PyBool>() {
+        Ok(Value::Bool(obj.extract::<bool>()?))
+    } else if obj.is_instance_of::<PyInt>() {
+        let val: i64 = obj.extract()?;
         Ok(Value::Number(val.into()))
-    } else if let Ok(f) = obj.downcast::<PyFloat>() {
-        let val: f64 = f.extract()?;
+    } else if obj.is_instance_of::<PyFloat>() {
+        let val: f64 = obj.extract()?;
         Ok(serde_json::Number::from_f64(val)
             .map(Value::Number)
             .unwrap_or(Value::Null))
-    } else if let Ok(s) = obj.downcast::<PyString>() {
-        let val: String = s.extract()?;
+    } else if obj.is_instance_of::<PyString>() {
+        let val: String = obj.extract()?;
         Ok(Value::String(val))
-    } else if let Ok(list) = obj.downcast::<PyList>() {
+    } else if obj.is_instance_of::<PyList>() {
+        let list = obj.cast::<PyList>().expect("checked");
         let arr: Result<Vec<Value>, _> = list
             .iter()
             .map(|item| python_to_json_value(&item))
             .collect();
         Ok(Value::Array(arr?))
-    } else if let Ok(dict) = obj.downcast::<PyDict>() {
+    } else if obj.is_instance_of::<PyDict>() {
+        let dict = obj.cast::<PyDict>().expect("checked");
         pythondict_to_json(dict)
     } else {
         // Fallback: try to convert to string

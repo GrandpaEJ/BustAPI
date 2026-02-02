@@ -182,7 +182,7 @@ impl Router {
         let method_router = self
             .method_routers
             .entry(method)
-            .or_insert_with(matchit::Router::new);
+            .or_default();
 
         // Insert route (ignore errors for duplicate routes)
         if let Err(e) = method_router.insert(&matchit_pattern, handler_id) {
