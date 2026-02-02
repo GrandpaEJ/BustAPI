@@ -375,14 +375,14 @@ mod tests {
 
     #[test]
     fn test_pattern_conversion() {
-        assert_eq!(convert_pattern_to_matchit("/users/<id>"), "/users/{id}");
-        assert_eq!(convert_pattern_to_matchit("/users/<int:id>"), "/users/{id}");
+        assert_eq!(parse_pattern("/users/<id>").0, "/users/{id}");
+        assert_eq!(parse_pattern("/users/<int:id>").0, "/users/{id}");
         assert_eq!(
-            convert_pattern_to_matchit("/files/<path:rest>"),
+            parse_pattern("/files/<path:rest>").0,
             "/files/{*rest}"
         );
         assert_eq!(
-            convert_pattern_to_matchit("/api/<version>/users/<int:id>"),
+            parse_pattern("/api/<version>/users/<int:id>").0,
             "/api/{version}/users/{id}"
         );
     }
