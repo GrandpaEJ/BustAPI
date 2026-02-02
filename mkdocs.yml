@@ -165,6 +165,7 @@ nav:
       - Sessions: user-guide/sessions.md
       - Logging: user-guide/logging.md
       - Video Streaming: user-guide/video-streaming.md
+      - WebSockets: websockets.md
       - Templates: user-guide/templates.md
   - ⚡ Performance:
       - Multiprocessing: user-guide/multiprocessing.md
