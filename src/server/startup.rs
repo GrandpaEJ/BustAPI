@@ -66,24 +66,24 @@ pub async fn start_server(config: ServerConfig, state: Arc<AppState>) -> std::io
             
         let horizontal_line = "─".repeat(max_width);
 
-        tracing::info!("┌{}┐", horizontal_line);
+        println!("┌{}┐", horizontal_line);
         // For line1, calculate padding based on uncolored text, then apply color
         let line1_len = line1.len();
         let total_padding = max_width.saturating_sub(line1_len);
         let pad_left = total_padding / 2;
         let pad_right = total_padding - pad_left;
-        tracing::info!(
+        println!(
             "│{}{}{}│",
             " ".repeat(pad_left),
             line1.cyan().bold(),
             " ".repeat(pad_right)
         );
-        tracing::info!("{}", center_in_box(&line2, max_width));
-        tracing::info!("{}", center_in_box(&line3, max_width));
-        tracing::info!("{}", center_in_box(&line4, max_width));
-        tracing::info!("{}", center_in_box(&line5, max_width));
-        tracing::info!("{}", center_in_box(&line6, max_width));
-        tracing::info!("└{}┘", horizontal_line);
+        println!("{}", center_in_box(&line2, max_width));
+        println!("{}", center_in_box(&line3, max_width));
+        println!("{}", center_in_box(&line4, max_width));
+        println!("{}", center_in_box(&line5, max_width));
+        println!("{}", center_in_box(&line6, max_width));
+        println!("└{}┘", horizontal_line);
     }
 
     // Enable SO_REUSEPORT for multi-process scalability
