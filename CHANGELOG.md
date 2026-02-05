@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented here.
 
+## [0.10.1] - 2026-02-05
+
+### Fixed
+
+- **WebSocket Buffering**: Fixed a critical issue where WebSocket messages were stalled in the Rust backend buffer until a new event occurred. Switched to unbounded channels and corrected channel capacity handling.
+- **Logging**: Replaced all usage of `println!` and `eprintln!` with proper `tracing` macros (`info!`, `debug!`, `error!`).
+- **Development Experience**:
+  - `BustAPI.run()` now supports `verbose=True` to enable `TRACE` level logging from the Rust core.
+  - Added new `examples/ws` directory with a fully functional anonymous chat application.
+
+
 ## [0.10.0] - 2026-02-02
 
 ### Major Features
