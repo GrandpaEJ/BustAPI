@@ -6,11 +6,17 @@ All notable changes to this project will be documented here.
 
 ### Fixed
 
-- **WebSocket Buffering**: Fixed a critical issue where WebSocket messages were stalled in the Rust backend buffer until a new event occurred. Switched to unbounded channels and corrected channel capacity handling.
-- **Logging**: Replaced all usage of `println!` and `eprintln!` with proper `tracing` macros (`info!`, `debug!`, `error!`).
-- **Development Experience**:
-  - `BustAPI.run()` now supports `verbose=True` to enable `TRACE` level logging from the Rust core.
-  - Added new `examples/ws` directory with a fully functional anonymous chat application.
+- **WebSocket Buffering**: Fixed a critical issue where WebSocket messages were stalled using bounded channels. Switched to unbounded channels.
+- **Startup Banner**:
+  - Fixed incorrect process count display (e.g., "1" instead of actual worker count).
+  - Removed log prefixes (timestamps/levels) from banner for a cleaner, perfectly aligned box.
+
+### Changed
+
+- **Logging Levels**:
+  - `debug=True`: Now shows only a clean request summary (Time, Status, Latency, Method, Path).
+  - `verbose=True`: Enables detailed `DEBUG` logs (Headers, Tracing events) for deep inspection.
+- **Examples**: Added `examples/ws` with a functional anonymous chat demo.
 
 
 ## [0.10.0] - 2026-02-02
