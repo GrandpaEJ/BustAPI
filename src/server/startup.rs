@@ -62,24 +62,27 @@ pub async fn start_server(config: ServerConfig, state: Arc<AppState>) -> std::io
     };
 
     // Print the box
-    tracing::info!("┌{}┐", horizontal_line);
-    // For line1, calculate padding based on uncolored text, then apply color
-    let line1_len = line1.len();
-    let total_padding = max_width.saturating_sub(line1_len);
-    let pad_left = total_padding / 2;
-    let pad_right = total_padding - pad_left;
-    tracing::info!(
-        "│{}{}{}│",
-        " ".repeat(pad_left),
-        line1.cyan().bold(),
-        " ".repeat(pad_right)
-    );
-    tracing::info!("{}", center_in_box(&line2, max_width));
-    tracing::info!("{}", center_in_box(&line3, max_width));
-    tracing::info!("{}", center_in_box(&line4, max_width));
-    tracing::info!("{}", center_in_box(&line5, max_width));
-    tracing::info!("{}", center_in_box(&line6, max_width));
-    tracing::info!("└{}┘", horizontal_line);
+    // Print the box only if requested
+    if config.show_banner {
+        tracing::info!("┌{}┐", horizontal_line);
+        // For line1, calculate padding based on uncolored text, then apply color
+        let line1_len = line1.len();
+        let total_padding = max_width.saturating_sub(line1_len);
+        let pad_left = total_padding / 2;
+        let pad_right = total_padding - pad_left;
+        tracing::info!(
+            "│{}{}{}│",
+            " ".repeat(pad_left),
+            line1.cyan().bold(),
+            " ".repeat(pad_right)
+        );
+        tracing::info!("{}", center_in_box(&line2, max_width));
+        tracing::info!("{}", center_in_box(&line3, max_width));
+        tracing::info!("{}", center_in_box(&line4, max_width));
+        tracing::info!("{}", center_in_box(&line5, max_width));
+        tracing::info!("{}", center_in_box(&line6, max_width));
+        tracing::info!("└{}┘", horizontal_line);
+    }
 
     // Enable SO_REUSEPORT for multi-process scalability
     // This allows multiple processes to bind to the same port on Linux

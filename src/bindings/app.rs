@@ -285,6 +285,7 @@ impl PyBustApp {
         workers: usize,
         debug: bool,
         verbose: bool,
+        show_banner: bool,
     ) -> PyResult<()> {
         let state = self.state.clone();
         let config = ServerConfig {
@@ -292,6 +293,7 @@ impl PyBustApp {
             port,
             debug,
             workers,
+            show_banner,
         };
 
         // Initialize logging if debug is on and not already initialized
@@ -339,6 +341,7 @@ impl PyBustApp {
         port: u16,
         debug: bool,
         verbose: bool,
+        show_banner: bool,
     ) -> PyResult<Bound<'p, PyAny>> {
         let state = self.state.clone();
         let config = ServerConfig {
@@ -346,6 +349,7 @@ impl PyBustApp {
             port,
             debug,
             workers: 1, // Async mode runs in single worker usually
+            show_banner,
         };
 
         // Initialize logging

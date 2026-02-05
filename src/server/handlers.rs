@@ -18,6 +18,7 @@ pub struct ServerConfig {
     #[allow(dead_code)]
     pub debug: bool,
     pub workers: usize,
+    pub show_banner: bool,
 }
 
 impl Default for ServerConfig {
@@ -27,6 +28,7 @@ impl Default for ServerConfig {
             port: 5000,
             debug: false,
             workers: num_cpus::get(),
+            show_banner: true,
         }
     }
 }
