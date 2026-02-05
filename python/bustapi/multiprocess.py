@@ -105,7 +105,9 @@ class SocketManager:
             self._socket = None
 
 
-def spawn_workers_linux(rust_app, host: str, port: int, workers: int, debug: bool, verbose: bool):
+def spawn_workers_linux(
+    rust_app, host: str, port: int, workers: int, debug: bool, verbose: bool
+):
     """
     Spawn worker processes on Linux using fork + SO_REUSEPORT.
 
@@ -183,7 +185,9 @@ def spawn_workers_windows(
     rust_app.run(host, port, workers, debug, verbose)
 
 
-def spawn_workers(rust_app, host: str, port: int, workers: int, debug: bool, verbose: bool = False):
+def spawn_workers(
+    rust_app, host: str, port: int, workers: int, debug: bool, verbose: bool = False
+):
     """
     Spawn worker processes using the best method for the current platform.
     """
