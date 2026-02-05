@@ -10,7 +10,6 @@ pub async fn start_server(config: ServerConfig, state: Arc<AppState>) -> std::io
 
     let pid = std::process::id();
     let route_count = state.routes.read().await.route_count();
-    let workers = config.workers;
 
     // Stylish Banner (Fiber-like)
     use colored::Colorize;
@@ -27,7 +26,6 @@ pub async fn start_server(config: ServerConfig, state: Arc<AppState>) -> std::io
         "Debug ............ {}  PID ............. {}",
         config.debug, pid
     );
-
 
     // Helper function to center text in box
     let center_in_box = |text: &str, width: usize| {
@@ -51,7 +49,7 @@ pub async fn start_server(config: ServerConfig, state: Arc<AppState>) -> std::io
             "Handlers ............. {}   Processes ........... {}",
             route_count, processes_count
         );
-        
+
         let max_width = [
             line1.len(),
             line2.len(),
@@ -63,7 +61,7 @@ pub async fn start_server(config: ServerConfig, state: Arc<AppState>) -> std::io
         .max()
         .unwrap_or(&0)
             + 4;
-            
+
         let horizontal_line = "─".repeat(max_width);
 
         println!("┌{}┐", horizontal_line);
