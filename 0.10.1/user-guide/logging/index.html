@@ -913,6 +913,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Modes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#custom-logging" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1820,9 +1831,40 @@
 <li><strong>Color Coded</strong>: Easy to read output with status code coloring.</li>
 </ul>
 <h2 id="configuration">Configuration</h2>
-<p>Logging is enabled automatically when you run in debug mode:</p>
-<div class="language-python highlight"><span class="filename">Python</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<p>Logging is configured via the <code>app.run()</code> method:</p>
+<div class="language-python highlight"><span class="filename">Python</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Standard Debug Mode (Summary logs only)</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Verbose Mode (Detailed headers + Tracing)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span></code></pre></div>
+<h3 id="modes">Modes</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Mode</th>
+<th style="text-align: left;">Flag</th>
+<th style="text-align: left;">Output Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Standard</strong></td>
+<td style="text-align: left;"><code>debug=True</code></td>
+<td style="text-align: left;"><strong>Summary only</strong>. clean one-line logs: <code>TIME | STATUS | LATENCY | METHOD | PATH</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Verbose</strong></td>
+<td style="text-align: left;"><code>verbose=True</code></td>
+<td style="text-align: left;"><strong>Full Details</strong>. Includes request headers, tracing events, and internal debug info.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Production</strong></td>
+<td style="text-align: left;"><code>debug=False</code></td>
+<td style="text-align: left;"><strong>Minimal</strong>. Only startup banner and Errors.</td>
+</tr>
+</tbody>
+</table>
 <h3 id="custom-logging">Custom Logging</h3>
 <p>You can use the <code>bustapi.logging</code> module to customize the logger or use it manually:</p>
 <div class="language-python highlight"><span class="filename">Python</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">bustapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">BustAPI</span><span class="p">,</span> <span class="n">logging</span>

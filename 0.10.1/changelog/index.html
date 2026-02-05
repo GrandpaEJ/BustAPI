@@ -1604,6 +1604,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1672,7 +1683,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed" class="md-nav__link">
+  <a href="#changed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -1811,7 +1822,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_1" class="md-nav__link">
+  <a href="#changed_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -1894,7 +1905,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_2" class="md-nav__link">
+  <a href="#changed_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -1944,7 +1955,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_3" class="md-nav__link">
+  <a href="#changed_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -2211,7 +2222,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#changed_4" class="md-nav__link">
+  <a href="#changed_5" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -2437,11 +2448,17 @@
 <h2 id="0101-2026-02-05">[0.10.1] - 2026-02-05</h2>
 <h3 id="fixed">Fixed</h3>
 <ul>
-<li><strong>WebSocket Buffering</strong>: Fixed a critical issue where WebSocket messages were stalled in the Rust backend buffer until a new event occurred. Switched to unbounded channels and corrected channel capacity handling.</li>
-<li><strong>Logging</strong>: Replaced all usage of <code>println!</code> and <code>eprintln!</code> with proper <code>tracing</code> macros (<code>info!</code>, <code>debug!</code>, <code>error!</code>).</li>
-<li><strong>Development Experience</strong>:</li>
-<li><code>BustAPI.run()</code> now supports <code>verbose=True</code> to enable <code>TRACE</code> level logging from the Rust core.</li>
-<li>Added new <code>examples/ws</code> directory with a fully functional anonymous chat application.</li>
+<li><strong>WebSocket Buffering</strong>: Fixed a critical issue where WebSocket messages were stalled using bounded channels. Switched to unbounded channels.</li>
+<li><strong>Startup Banner</strong>:</li>
+<li>Fixed incorrect process count display (e.g., "1" instead of actual worker count).</li>
+<li>Removed log prefixes (timestamps/levels) from banner for a cleaner, perfectly aligned box.</li>
+</ul>
+<h3 id="changed">Changed</h3>
+<ul>
+<li><strong>Logging Levels</strong>:</li>
+<li><code>debug=True</code>: Now shows only a clean request summary (Time, Status, Latency, Method, Path).</li>
+<li><code>verbose=True</code>: Enables detailed <code>DEBUG</code> logs (Headers, Tracing events) for deep inspection.</li>
+<li><strong>Examples</strong>: Added <code>examples/ws</code> with a functional anonymous chat demo.</li>
 </ul>
 <h2 id="0100-2026-02-02">[0.10.0] - 2026-02-02</h2>
 <h3 id="major-features">Major Features</h3>
@@ -2471,7 +2488,7 @@
 </li>
 <li>Users no longer need Rust toolchain installed to <code>pip install bustapi</code>.</li>
 </ul>
-<h3 id="changed">Changed</h3>
+<h3 id="changed_1">Changed</h3>
 <ul>
 <li><strong>CI/CD Overhaul</strong>:</li>
 <li>Merged separate <code>pypi.yml</code> into unified <code>ci.yml</code> workflow.</li>
@@ -2578,7 +2595,7 @@
 <li>New <code>docs/user-guide/turbo-routes.md</code> with comprehensive guide.</li>
 <li>Example <code>examples/turbo/typed_turbo_example.py</code>.</li>
 </ul>
-<h3 id="changed_1">Changed</h3>
+<h3 id="changed_2">Changed</h3>
 <ul>
 <li><code>turbo_route</code> decorator now auto-detects parameters from route pattern.</li>
 <li>Improved error responses with structured JSON for type mismatches.</li>
@@ -2725,7 +2742,7 @@
 <li>Fixed 404 errors for nested static files (e.g. <code>css/style.css</code>) using new wildcard routing.</li>
 <li><strong>Robust Path Resolution</strong>: Implemented <code>get_root_path</code> to correctly locate <code>templates</code> and <code>static</code> folders regardless of working directory.</li>
 </ul>
-<h3 id="changed_2">Changed</h3>
+<h3 id="changed_3">Changed</h3>
 <ul>
 <li><strong>Refactored <code>bustapi.auth</code></strong> into modular package: <code>auth/login.py</code>, <code>auth/user.py</code>, <code>auth/decorators.py</code>, <code>auth/password.py</code>, <code>auth/tokens.py</code>, <code>auth/csrf.py</code>.</li>
 </ul>
@@ -2747,7 +2764,7 @@
 <ul>
 <li><strong>Manual File Serving Module</strong> (<code>src/file_serving.rs</code>): Removed in favor of robust <code>actix-files</code> integration which handles Range requests automatically.</li>
 </ul>
-<h3 id="changed_3">Changed</h3>
+<h3 id="changed_4">Changed</h3>
 <ul>
 <li>Refactored <code>src/server/handlers.rs</code> to use <code>actix-files</code> for serving file responses.</li>
 <li>Updated <code>src/bindings/converters.rs</code> to pass <code>FileResponse</code> and <code>StreamingResponse</code> objects directly to Rust backend.</li>
@@ -2883,7 +2900,7 @@
 <li>Fixed <code>ruff</code> import sorting errors and <code>clippy</code> warnings.</li>
 </ul>
 <h2 id="020-2025-12-05">[0.2.0] - 2025-12-05</h2>
-<h3 id="changed_4">Changed</h3>
+<h3 id="changed_5">Changed</h3>
 <ul>
 <li><strong>BREAKING</strong>: Migrated from Hyper to Actix-web for 50x+ performance improvement</li>
 <li>Updated PyO3 from 0.20 to 0.23 with free-threading support</li>
