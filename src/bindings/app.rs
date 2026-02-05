@@ -285,7 +285,7 @@ impl PyBustApp {
         workers: usize,
         debug: bool,
         verbose: bool,
-        show_banner: bool,
+        show_banner: Option<usize>,
     ) -> PyResult<()> {
         let state = self.state.clone();
         let config = ServerConfig {
@@ -341,7 +341,7 @@ impl PyBustApp {
         port: u16,
         debug: bool,
         verbose: bool,
-        show_banner: bool,
+        show_banner: Option<usize>,
     ) -> PyResult<Bound<'p, PyAny>> {
         let state = self.state.clone();
         let config = ServerConfig {

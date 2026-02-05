@@ -142,7 +142,7 @@ def spawn_workers_linux(
         pass  # Not in main thread or interpreter shutting down
 
     for i in range(workers):
-        show_banner = i == 0
+        show_banner = workers if i == 0 else None
         p = multiprocessing.Process(
             target=rust_app.run,
             args=(host, port, 1, debug, verbose, show_banner),
@@ -167,7 +167,7 @@ def spawn_workers_macos(
     # macOS multiprocessing is complex without SO_REUSEPORT - fallback to single process
     print("[BustAPI] Starting server on macOS (single process mode)...")
     print("[BustAPI] Note: Multi-worker mode requires SO_REUSEPORT (Linux only)")
-    rust_app.run(host, port, workers, debug, verbose, True)
+    rust_app.run(host, port, workers, debug, verbose, workers)
 
 
 def spawn_workers_windows(
@@ -183,7 +183,7 @@ def spawn_workers_windows(
     # Windows multiprocessing is complex - fallback to single process
     print("[BustAPI] Starting server on Windows (single process mode)...")
     print("[BustAPI] Note: Multi-worker mode requires SO_REUSEPORT (Linux only)")
-    rust_app.run(host, port, workers, debug, verbose, True)
+    rust_app.run(host, port, workers, debug, verbose, workers)
 
 
 def spawn_workers(
@@ -203,4 +203,4 @@ def spawn_workers(
     else:
         # Unknown platform, fallback to single process
         print(f"⚠️ Unknown platform: {system}. Running single process.")
-        rust_app.run(host, port, workers, debug, verbose, True)
+        rust_app.run(host, port, workers, debug, verbose, workers)

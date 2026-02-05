@@ -419,7 +419,7 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
             return
 
         try:
-            self._rust_app.run(host, port, workers, debug, verbose, True)
+            self._rust_app.run(host, port, workers, debug, verbose, workers)
         except KeyboardInterrupt:
             pass
         except Exception as e:
@@ -515,7 +515,7 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
             self._setup_debug_logging()
 
         try:
-            await self._rust_app.run_async(host, port, debug, verbose, True)
+            await self._rust_app.run_async(host, port, debug, verbose, 1)
         except Exception as e:
             print(f"❌ Async server error: {e}")
 

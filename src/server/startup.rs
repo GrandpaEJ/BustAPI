@@ -23,29 +23,11 @@ pub async fn start_server(config: ServerConfig, state: Arc<AppState>) -> std::io
     let line2 = format!("http://{}", addr);
     let line3 = format!("(bound on host {} and port {})", config.host, config.port);
     let line4 = String::new(); // Empty line
-    let line5 = format!(
-        "Handlers ............. {}   Processes ........... {}",
-        route_count, workers
-    );
     let line6 = format!(
         "Debug ............ {}  PID ............. {}",
         config.debug, pid
     );
 
-    // Find the longest line (without ANSI codes)
-    let max_width = [
-        line1.len(),
-        line2.len(),
-        line3.len(),
-        line5.len(),
-        line6.len(),
-    ]
-    .iter()
-    .max()
-    .unwrap_or(&0)
-        + 4; // +4 for padding (2 on each side)
-
-    let horizontal_line = "─".repeat(max_width);
 
     // Helper function to center text in box
     let center_in_box = |text: &str, width: usize| {
@@ -63,7 +45,27 @@ pub async fn start_server(config: ServerConfig, state: Arc<AppState>) -> std::io
 
     // Print the box
     // Print the box only if requested
-    if config.show_banner {
+    if let Some(processes_count) = config.show_banner {
+        // Re-calculate line5 with correct process count
+        let line5 = format!(
+            "Handlers ............. {}   Processes ........... {}",
+            route_count, processes_count
+        );
+        
+        let max_width = [
+            line1.len(),
+            line2.len(),
+            line3.len(),
+            line5.len(),
+            line6.len(),
+        ]
+        .iter()
+        .max()
+        .unwrap_or(&0)
+            + 4;
+            
+        let horizontal_line = "─".repeat(max_width);
+
         tracing::info!("┌{}┐", horizontal_line);
         // For line1, calculate padding based on uncolored text, then apply color
         let line1_len = line1.len();
