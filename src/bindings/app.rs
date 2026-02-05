@@ -297,16 +297,17 @@ impl PyBustApp {
         };
 
         // Initialize logging if debug is on and not already initialized
-        if debug || verbose {
-            let filter = if verbose {
-                // Verbose mode: Show everything including trace logs
-                "trace,actix_server=info,actix_web=debug,notify=debug"
-            } else {
-                // Debug mode: Show debug logs but suppress framework noise
-                "debug,actix_server=error,actix_web=debug,notify=error"
-            };
-
-            let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
+        // Initialize logging
+        if verbose {
+            // Verbose mode: Show detailed tracing logs (headers, etc.)
+            let _ = tracing_subscriber::fmt()
+                .with_env_filter("debug,actix_server=info,actix_web=debug,notify=debug")
+                .try_init();
+        } else if debug {
+            // Debug mode: Show ONLY summary (handled by println!), hide tracing::debug!
+            let _ = tracing_subscriber::fmt()
+                .with_env_filter("info,actix_server=error,actix_web=error")
+                .try_init();
         } else {
             // Clean mode: Suppress Actix startup noise, only show INFO
             let _ = tracing_subscriber::fmt()
@@ -320,7 +321,7 @@ impl PyBustApp {
         // Update debug state
         self.state
             .debug
-            .store(debug, std::sync::atomic::Ordering::Relaxed);
+            .store(debug || verbose, std::sync::atomic::Ordering::Relaxed);
 
         Python::attach(|py| {
             py.detach(|| {
@@ -353,18 +354,22 @@ impl PyBustApp {
         };
 
         // Initialize logging
-        if debug || verbose {
-            let filter = if verbose {
-                "trace,actix_server=info,actix_web=debug,notify=debug"
-            } else {
-                "debug,actix_server=error,actix_web=debug,notify=error"
-            };
-            let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
+        // Initialize logging
+        if verbose {
+            let _ = tracing_subscriber::fmt()
+                .with_env_filter("debug,actix_server=info,actix_web=debug,notify=debug")
+                .try_init();
         } else {
+            // Debug or Default: INFO level (headers hidden)
             let _ = tracing_subscriber::fmt()
                 .with_env_filter("info,actix_server=error,actix_web=error")
                 .try_init();
         }
+
+        // Update debug state
+        self.state
+            .debug
+            .store(debug || verbose, std::sync::atomic::Ordering::Relaxed);
 
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let sys = actix_rt::System::new();
