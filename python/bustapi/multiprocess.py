@@ -105,7 +105,7 @@ class SocketManager:
             self._socket = None
 
 
-def spawn_workers_linux(rust_app, host: str, port: int, workers: int, debug: bool):
+def spawn_workers_linux(rust_app, host: str, port: int, workers: int, debug: bool, verbose: bool):
     """
     Spawn worker processes on Linux using fork + SO_REUSEPORT.
 
@@ -142,7 +142,7 @@ def spawn_workers_linux(rust_app, host: str, port: int, workers: int, debug: boo
     for i in range(workers):
         p = multiprocessing.Process(
             target=rust_app.run,
-            args=(host, port, 1, debug),
+            args=(host, port, 1, debug, verbose),
             name=f"bustapi-worker-{i + 1}",
         )
         p.start()
@@ -155,20 +155,21 @@ def spawn_workers_linux(rust_app, host: str, port: int, workers: int, debug: boo
         signal_handler(None, None)
 
 
-def spawn_workers_macos(rust_app, host: str, port: int, workers: int, debug: bool):
+def spawn_workers_macos(
+    rust_app, host: str, port: int, workers: int, debug: bool, verbose: bool
+):
     """
     Spawn worker processes on macOS.
-
-    macOS SO_REUSEPORT has poor load balancing.
-    For now, fallback to single process mode.
     """
     # macOS multiprocessing is complex without SO_REUSEPORT - fallback to single process
     print("[BustAPI] Starting server on macOS (single process mode)...")
     print("[BustAPI] Note: Multi-worker mode requires SO_REUSEPORT (Linux only)")
-    rust_app.run(host, port, workers, debug)
+    rust_app.run(host, port, workers, debug, verbose)
 
 
-def spawn_workers_windows(rust_app, host: str, port: int, workers: int, debug: bool):
+def spawn_workers_windows(
+    rust_app, host: str, port: int, workers: int, debug: bool, verbose: bool
+):
     """
     Spawn worker processes on Windows.
 
@@ -179,22 +180,22 @@ def spawn_workers_windows(rust_app, host: str, port: int, workers: int, debug: b
     # Windows multiprocessing is complex - fallback to single process
     print("[BustAPI] Starting server on Windows (single process mode)...")
     print("[BustAPI] Note: Multi-worker mode requires SO_REUSEPORT (Linux only)")
-    rust_app.run(host, port, workers, debug)
+    rust_app.run(host, port, workers, debug, verbose)
 
 
-def spawn_workers(rust_app, host: str, port: int, workers: int, debug: bool):
+def spawn_workers(rust_app, host: str, port: int, workers: int, debug: bool, verbose: bool = False):
     """
     Spawn worker processes using the best method for the current platform.
     """
     system = platform.system()
 
     if system == "Linux":
-        spawn_workers_linux(rust_app, host, port, workers, debug)
+        spawn_workers_linux(rust_app, host, port, workers, debug, verbose)
     elif system == "Darwin":  # macOS
-        spawn_workers_macos(rust_app, host, port, workers, debug)
+        spawn_workers_macos(rust_app, host, port, workers, debug, verbose)
     elif system == "Windows":
-        spawn_workers_windows(rust_app, host, port, workers, debug)
+        spawn_workers_windows(rust_app, host, port, workers, debug, verbose)
     else:
         # Unknown platform, fallback to single process
         print(f"⚠️ Unknown platform: {system}. Running single process.")
-        rust_app.run(host, port, workers, debug)
+        rust_app.run(host, port, workers, debug, verbose)

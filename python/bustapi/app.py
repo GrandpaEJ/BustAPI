@@ -415,7 +415,7 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
         if workers > 1 and not debug:
             from .multiprocess import spawn_workers
 
-            spawn_workers(self._rust_app, host, port, workers, debug)
+            spawn_workers(self._rust_app, host, port, workers, debug, verbose)
             return
 
         try:
