@@ -38,8 +38,10 @@ def hello():
     return {"message": "Hello, World!"}
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True) # (1)!
 ```
+ 
+ 1.  Use `verbose=True` for detailed header logs.
 
 Run it:
 
@@ -120,7 +122,7 @@ if __name__ == "__main__":
 ```
 
 1. :material-server: Spawns 4 worker processes for parallel request handling
-2. :material-bug-outline: Always disable debug in production!
+2. :material-bug-outline: Always disable debug in production! Use `verbose=True` locally for deep tracing.
 
 ### Platform Performance (v0.8.0)
 

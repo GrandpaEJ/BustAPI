@@ -15,11 +15,23 @@ Starting from **v0.9.0**, BustAPI uses a high-performance **Rust-native logging 
 
 ## Configuration
 
-Logging is enabled automatically when you run in debug mode:
-
+Logging is configured via the `app.run()` method:
+ 
 ```python
+# Standard Debug Mode (Summary logs only)
 app.run(debug=True)
+ 
+# Verbose Mode (Detailed headers + Tracing)
+app.run(debug=True, verbose=True)
 ```
+ 
+### Modes
+ 
+| Mode | Flag | Output Description |
+| :--- | :--- | :--- |
+| **Standard** | `debug=True` | **Summary only**. clean one-line logs: `TIME | STATUS | LATENCY | METHOD | PATH`. |
+| **Verbose** | `verbose=True` | **Full Details**. Includes request headers, tracing events, and internal debug info. |
+| **Production**| `debug=False`| **Minimal**. Only startup banner and Errors. |
 
 ### Custom Logging
 

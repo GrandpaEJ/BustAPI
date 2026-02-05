@@ -35,3 +35,8 @@ For production-grade applications.
 - **05_templates.py**: Rendering Jinja2 templates.
 - **07_database_raw.py**: Executing raw SQL queries.
 - **10_database_sqlmodel.py**: Full integration with SQLModel (ORM).
+
+## Real-time & WebSockets
+
+- **28_websocket.py**: Echo server and basic messaging.
+- **ws/app.py**: **Full-featured Anonymous Chat Application** (demonstrates broadcasting, concurrency, and UI integration).
