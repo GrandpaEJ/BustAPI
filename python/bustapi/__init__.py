@@ -23,7 +23,7 @@ import sys
 from http import HTTPStatus
 
 __version__ = "0.10.1"
-__author__ = "BustAPI"
+__author__ = "BustAPI"  # with GrandpaEJ
 __email__ = ""
 
 # Import core modules
