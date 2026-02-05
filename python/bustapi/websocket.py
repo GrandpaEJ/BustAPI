@@ -158,9 +158,9 @@ class WebSocketHandler:
                 # Better: Lazy init a class-level or instance-level loop in a thread
                 import threading
 
-                def run_loop(l):
-                    asyncio.set_event_loop(l)
-                    l.run_forever()
+                def run_loop(loop_instance):
+                    asyncio.set_event_loop(loop_instance)
+                    loop_instance.run_forever()
 
                 # print("[DEBUG] Starting background asyncio loop thread", file=sys.stderr)
                 self._background_loop = asyncio.new_event_loop()

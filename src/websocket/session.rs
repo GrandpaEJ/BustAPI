@@ -123,10 +123,7 @@ pub async fn handle_websocket(
 
     // Call Python on_connect handler
     Python::attach(move |py| {
-        tracing::debug!(
-            "Calling Python on_connect for session {}",
-            session_id
-        );
+        tracing::debug!("Calling Python on_connect for session {}", session_id);
         let py_conn =
             crate::bindings::websocket::PyWebSocketConnection::new(session_id, tx_for_python);
         let res = handler_for_connect.call_method1(py, "on_connect", (py_conn, headers, cookies));
@@ -134,10 +131,7 @@ pub async fn handle_websocket(
             tracing::error!("Python on_connect FAILED: {}", e);
             e.print_and_set_sys_last_vars(py);
         } else {
-            tracing::debug!(
-                "Python on_connect success for session {}",
-                session_id
-            );
+            tracing::debug!("Python on_connect success for session {}", session_id);
         }
     });
 

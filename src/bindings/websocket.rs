@@ -26,7 +26,10 @@ impl PyWebSocketConnection {
         // Unbounded send is synchronous, no need for block_on!
         match tx.send(WebSocketMessage::Text(message)) {
             Ok(_) => Ok(()),
-            Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Send error: {}", e)))
+            Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                "Send error: {}",
+                e
+            ))),
         }
     }
 
@@ -35,7 +38,10 @@ impl PyWebSocketConnection {
         let tx = self.tx.clone();
         match tx.send(WebSocketMessage::Binary(data)) {
             Ok(_) => Ok(()),
-            Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Send error: {}", e)))
+            Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                "Send error: {}",
+                e
+            ))),
         }
     }
 
@@ -44,7 +50,10 @@ impl PyWebSocketConnection {
         let tx = self.tx.clone();
         match tx.send(WebSocketMessage::Close(reason)) {
             Ok(_) => Ok(()),
-            Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Close error: {}", e)))
+            Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                "Close error: {}",
+                e
+            ))),
         }
     }
 }
