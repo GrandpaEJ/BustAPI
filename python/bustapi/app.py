@@ -324,6 +324,7 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
         host: str = "127.0.0.1",
         port: int = 5000,
         debug: bool = False,
+        verbose: bool = False,
         load_dotenv: bool = True,
         workers: Optional[int] = None,
         reload: bool = False,
@@ -337,6 +338,7 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
             host: Hostname to bind to (default: 127.0.0.1)
             port: Port to bind to (default: 5000)
             debug: Enable debug mode
+            verbose: Enable verbose logging (trace level)
             load_dotenv: Load environment variables from .env file
             workers: Number of worker threads
             reload: Enable auto-reload on code changes
@@ -345,7 +347,6 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
         """
         if debug:
             self.config["DEBUG"] = True
-            # self._setup_debug_logging()  # Handled by Rust backend now for better coverage
 
         # Handle hot reload
         if reload or debug:
@@ -358,7 +359,7 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
 
         # Dispatch to appropriate server
         if server == "rust":
-            self._run_rust_server(host, port, workers, debug)
+            self._run_rust_server(host, port, workers, debug, verbose)
         elif server == "uvicorn":
             self._run_uvicorn(host, port, workers, debug, **options)
         elif server == "gunicorn":
@@ -409,7 +410,7 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
             except Exception as e:
                 print(f"⚠️ Failed to enable hot reload: {e}")
 
-    def _run_rust_server(self, host, port, workers, debug):
+    def _run_rust_server(self, host, port, workers, debug, verbose=False):
         """Run the native Rust HTTP server."""
         if workers > 1 and not debug:
             from .multiprocess import spawn_workers
@@ -418,7 +419,7 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
             return
 
         try:
-            self._rust_app.run(host, port, workers, debug)
+            self._rust_app.run(host, port, workers, debug, verbose)
         except KeyboardInterrupt:
             pass
         except Exception as e:
@@ -501,7 +502,12 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
             print(f"❌ Hypercorn error: {e}")
 
     async def run_async(
-        self, host: str = "127.0.0.1", port: int = 5000, debug: bool = False, **options
+        self,
+        host: str = "127.0.0.1",
+        port: int = 5000,
+        debug: bool = False,
+        verbose: bool = False,
+        **options,
     ) -> None:
         """Run the application server asynchronously."""
         if debug:
@@ -509,7 +515,7 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
             self._setup_debug_logging()
 
         try:
-            await self._rust_app.run_async(host, port, debug)
+            await self._rust_app.run_async(host, port, debug, verbose)
         except Exception as e:
             print(f"❌ Async server error: {e}")
 

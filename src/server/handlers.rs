@@ -103,18 +103,14 @@ pub async fn handle_request(
     state: web::Data<AppState>,
 ) -> HttpResponse {
     let start_time = Instant::now();
-    eprintln!(
-        "DEBUG: handle_request path={} method={}",
-        req.path(),
-        req.method()
-    );
+    tracing::debug!("handle_request path={} method={}", req.path(), req.method());
     std::fs::write(
         "/tmp/bustapi_debug.txt",
         format!("handle_request path={}\n", req.path()),
     )
     .ok();
     for (k, v) in req.headers() {
-        eprintln!("DEBUG: Header: {} = {:?}", k, v);
+        tracing::debug!("Header: {} = {:?}", k, v);
     }
 
     // Check for WebSocket upgrade request

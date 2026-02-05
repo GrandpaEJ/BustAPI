@@ -62,24 +62,24 @@ pub async fn start_server(config: ServerConfig, state: Arc<AppState>) -> std::io
     };
 
     // Print the box
-    println!("┌{}┐", horizontal_line);
+    tracing::info!("┌{}┐", horizontal_line);
     // For line1, calculate padding based on uncolored text, then apply color
     let line1_len = line1.len();
     let total_padding = max_width.saturating_sub(line1_len);
     let pad_left = total_padding / 2;
     let pad_right = total_padding - pad_left;
-    println!(
+    tracing::info!(
         "│{}{}{}│",
         " ".repeat(pad_left),
         line1.cyan().bold(),
         " ".repeat(pad_right)
     );
-    println!("{}", center_in_box(&line2, max_width));
-    println!("{}", center_in_box(&line3, max_width));
-    println!("{}", center_in_box(&line4, max_width));
-    println!("{}", center_in_box(&line5, max_width));
-    println!("{}", center_in_box(&line6, max_width));
-    println!("└{}┘", horizontal_line);
+    tracing::info!("{}", center_in_box(&line2, max_width));
+    tracing::info!("{}", center_in_box(&line3, max_width));
+    tracing::info!("{}", center_in_box(&line4, max_width));
+    tracing::info!("{}", center_in_box(&line5, max_width));
+    tracing::info!("{}", center_in_box(&line6, max_width));
+    tracing::info!("└{}┘", horizontal_line);
 
     // Enable SO_REUSEPORT for multi-process scalability
     // This allows multiple processes to bind to the same port on Linux
@@ -92,7 +92,7 @@ pub async fn start_server(config: ServerConfig, state: Arc<AppState>) -> std::io
     #[cfg(unix)]
     {
         if let Err(e) = socket.set_reuse_port(true) {
-            eprintln!("⚠️ Failed to set SO_REUSEPORT: {}", e);
+            tracing::warn!("⚠️ Failed to set SO_REUSEPORT: {}", e);
         }
     }
     socket.set_reuse_address(true)?;
@@ -107,12 +107,12 @@ pub async fn start_server(config: ServerConfig, state: Arc<AppState>) -> std::io
     let listener: std::net::TcpListener = socket.into();
 
     async fn health_check(_state: web::Data<AppState>) -> HttpResponse {
-        eprintln!("DEBUG: health_check called with state");
+        tracing::debug!("health_check called with state");
         HttpResponse::Ok().body("OK")
     }
 
     HttpServer::new(move || {
-        eprintln!("DEBUG: App factory running");
+        tracing::debug!("App factory running");
 
         App::new()
             .app_data(web::Data::from(state.clone()))

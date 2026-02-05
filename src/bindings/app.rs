@@ -278,7 +278,7 @@ impl PyBustApp {
     }
 
     /// Run the server
-    pub fn run(&self, host: String, port: u16, workers: usize, debug: bool) -> PyResult<()> {
+    pub fn run(&self, host: String, port: u16, workers: usize, debug: bool, verbose: bool) -> PyResult<()> {
         let state = self.state.clone();
         let config = ServerConfig {
             host,
@@ -288,13 +288,20 @@ impl PyBustApp {
         };
 
         // Initialize logging if debug is on and not already initialized
-        if debug {
-            // Debug mode: Show debug logs but suppress framework noise
+        if debug || verbose {
+            let filter = if verbose {
+                // Verbose mode: Show everything including trace logs
+                "trace,actix_server=info,actix_web=debug,notify=debug"
+            } else {
+                // Debug mode: Show debug logs but suppress framework noise
+                "debug,actix_server=error,actix_web=debug,notify=error"
+            };
+            
             let _ = tracing_subscriber::fmt()
-                .with_env_filter("debug,actix_server=error,actix_web=debug,notify=error")
+                .with_env_filter(filter)
                 .try_init();
         } else {
-            // Clean mode: Suppress Actix startup noise
+            // Clean mode: Suppress Actix startup noise, only show INFO
             let _ = tracing_subscriber::fmt()
                 .with_env_filter("info,actix_server=error,actix_web=error")
                 .try_init();
@@ -318,8 +325,37 @@ impl PyBustApp {
 
         Ok(())
     }
+
+    /// Run the server asynchronously
+    pub fn run_async<'p>(&self, py: Python<'p>, host: String, port: u16, debug: bool, verbose: bool) -> PyResult<Bound<'p, PyAny>> {
+         let state = self.state.clone();
+         let config = ServerConfig {
+             host,
+             port,
+             debug,
+             workers: 1, // Async mode runs in single worker usually
+         };
+
+         // Initialize logging
+         if debug || verbose {
+            let filter = if verbose {
+                "trace,actix_server=info,actix_web=debug,notify=debug"
+            } else {
+                "debug,actix_server=error,actix_web=debug,notify=error"
+            };
+            let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
+         } else {
+            let _ = tracing_subscriber::fmt().with_env_filter("info,actix_server=error,actix_web=error").try_init();
+         }
+
+         pyo3_async_runtimes::tokio::future_into_py(py, async move {
+             let sys = actix_rt::System::new();
+             sys.block_on(start_server(config, state))
+                 .map_err(|e| pyo3::exceptions::PyOSError::new_err(format!("Server error: {}", e)))
+         })
+    }
+
     /// Handle a request directly (for ASGI/WSGI support)
-    /// Returns (body, status_code, headers)
     pub fn handle_request(
         &self,
         method: &str,
