@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BustAPI Anon Chat</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --primary-color: #bb86fc;
+            --secondary-color: #03dac6;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --message-bg-in: #2c2c2c;
+            --message-bg-out: #3700b3;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--surface-color);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        header {
+            padding: 20px;
+            background-color: #252525;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: var(--primary-color);
+        }
+
+        .status {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: red;
+            transition: background-color 0.3s;
+        }
+
+        .status-dot.connected {
+            background-color: var(--secondary-color);
+        }
+
+        #messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.system {
+            align-self: center;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .message.in {
+            align-self: flex-start;
+            background-color: var(--message-bg-in);
+            border-bottom-left-radius: 2px;
+        }
+
+        .message.out {
+            align-self: flex-end;
+            background-color: var(--message-bg-out);
+            border-bottom-right-radius: 2px;
+        }
+
+        .sender-name {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        footer {
+            padding: 15px;
+            background-color: #252525;
+            display: flex;
+            gap: 10px;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 25px;
+            border: 1px solid #333;
+            background-color: #121212;
+            color: white;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--primary-color);
+        }
+
+        button {
+            padding: 10px 20px;
+            border-radius: 25px;
+            border: none;
+            background-color: var(--primary-color);
+            color: black;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <header>
+            <h1>👻 AnonChat</h1>
+            <div class="status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Disconnected</span>
+            </div>
+        </header>
+        <div id="messages">
+            <!-- Messages go here -->
+        </div>
+        <footer>
+            <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
+            <button id="sendBtn">Send</button>
+        </footer>
+    </div>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+
+        let ws;
+        let reconnectInterval = 1000;
+
+        function connect() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/chat`;
+            
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                statusDot.classList.add('connected');
+                statusText.textContent = 'Connected';
+                addSystemMessage('Connected to server.');
+                messageInput.disabled = false;
+                sendBtn.disabled = false;
+                reconnectInterval = 1000;
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                addMessage(data);
+            };
+
+            ws.onclose = () => {
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Reconnecting...';
+                messageInput.disabled = true;
+                sendBtn.disabled = true;
+                setTimeout(connect, reconnectInterval);
+                reconnectInterval = Math.min(reconnectInterval * 2, 10000); // Backoff
+            };
+
+            ws.onerror = (err) => {
+                console.error("WebSocket error:", err);
+                ws.close();
+            };
+        }
+
+        function sendMessage() {
+            const text = messageInput.value.trim();
+            if (text && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(text); // Send raw text, server will format broadcast
+                // We assume server echoes for now, or we optimistically add?
+                // For this example, let's wait for server echo/broadcast to ensure order.
+                messageInput.value = '';
+            }
+        }
+
+        function addMessage(data) {
+            const msgEl = document.createElement('div');
+            msgEl.classList.add('message');
+            
+            if (data.type === 'system') {
+                msgEl.classList.add('system');
+                msgEl.textContent = data.text;
+            } else {
+                // Determine if it's 'me' or 'other' based on ID or flag from server
+                // Ideally server sends { text: "...", sender_id: "..." }
+                // For simplicity here, let's look at a 'is_me' flag or check session logic
+                // Actually, server doesn't know 'me' unless we store session.
+                
+                // Let's implement simple checking:
+                // If data.sender_id matches our stored ID (if we had one).
+                // For anon chat without complex auth, we rely on the server telling us "You said" vs "User X said"?
+                // Or simplified: server sends { sender: "You", text: "..." } to the sender
+                // and { sender: "Guest 1", text: "..." } to others.
+                
+                msgEl.classList.add(data.is_me ? 'out' : 'in');
+                
+                const senderSpan = document.createElement('span');
+                senderSpan.classList.add('sender-name');
+                senderSpan.textContent = data.sender;
+                
+                const textSpan = document.createTextNode(data.text);
+                
+                msgEl.appendChild(senderSpan);
+                msgEl.appendChild(textSpan);
+            }
+            
+            messagesDiv.appendChild(msgEl);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function addSystemMessage(text) {
+            addMessage({ type: 'system', text: text });
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // Start connection
+        connect();
+    </script>
+</body>
+</html>
