@@ -1,7 +1,7 @@
 //! Server startup and configuration
 
 use super::handlers::{AppState, ServerConfig};
-use actix_web::{web, App, HttpServer};
+use actix_web::{web, App, HttpResponse, HttpServer};
 use std::sync::Arc;
 
 /// Start the Actix-web server
@@ -106,10 +106,19 @@ pub async fn start_server(config: ServerConfig, state: Arc<AppState>) -> std::io
 
     let listener: std::net::TcpListener = socket.into();
 
+    async fn health_check(_state: web::Data<AppState>) -> HttpResponse {
+        eprintln!("DEBUG: health_check called with state");
+        HttpResponse::Ok().body("OK")
+    }
+
     HttpServer::new(move || {
+        eprintln!("DEBUG: App factory running");
+
         App::new()
-            .app_data(web::Data::new(state.clone()))
-            .default_service(web::route().to(super::handlers::handle_request))
+            .app_data(web::Data::from(state.clone()))
+            .route("/health", web::get().to(health_check))
+            .route("/{tail:.*}", web::to(super::handlers::handle_request))
+            .default_service(web::to(super::handlers::handle_request))
     })
     .workers(config.workers)
     .listen(listener)?

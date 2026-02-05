@@ -100,9 +100,22 @@ impl Default for AppState {
 pub async fn handle_request(
     req: HttpRequest,
     mut payload: web::Payload,
-    state: web::Data<Arc<AppState>>,
+    state: web::Data<AppState>,
 ) -> HttpResponse {
     let start_time = Instant::now();
+    eprintln!(
+        "DEBUG: handle_request path={} method={}",
+        req.path(),
+        req.method()
+    );
+    std::fs::write(
+        "/tmp/bustapi_debug.txt",
+        format!("handle_request path={}\n", req.path()),
+    )
+    .ok();
+    for (k, v) in req.headers() {
+        eprintln!("DEBUG: Header: {} = {:?}", k, v);
+    }
 
     // Check for WebSocket upgrade request
     let is_websocket = req
@@ -144,12 +157,36 @@ pub async fn handle_request(
         let ws_handlers = state.websocket_handlers.read().await;
 
         if let Some((handler, config)) = ws_handlers.get(&path) {
+            println!("DEBUG: Found WebSocket handler for path: {}", path);
             let handler_clone = Python::attach(|py| handler.clone_ref(py));
             let config_clone = config.clone();
             drop(ws_handlers);
 
-            match crate::websocket::handle_websocket(req, payload, handler_clone, config_clone)
-                .await
+            // Extract Headers
+            let mut headers = HashMap::new();
+            for (key, value) in req.headers() {
+                if let Ok(v) = value.to_str() {
+                    headers.insert(key.to_string(), v.to_string());
+                }
+            }
+
+            // Extract Cookies
+            let mut cookies = HashMap::new();
+            if let Ok(cookies_ref) = req.cookies() {
+                for c in cookies_ref.iter() {
+                    cookies.insert(c.name().to_string(), c.value().to_string());
+                }
+            }
+
+            match crate::websocket::handle_websocket(
+                req,
+                payload,
+                handler_clone,
+                config_clone,
+                headers,
+                cookies,
+            )
+            .await
             {
                 Ok(response) => return response,
                 Err(e) => {
@@ -179,7 +216,6 @@ pub async fn handle_request(
         std::collections::HashMap::new()
     };
 
-    // 2. Handle Body (Multipart or Regular)
     let mut files = std::collections::HashMap::new();
     let mut multipart_form = std::collections::HashMap::new();
     let mut body_bytes = Vec::new();
@@ -235,7 +271,7 @@ pub async fn handle_request(
         path: req.path().to_string(),
         query_string: req.query_string().to_string(),
         headers,
-        body: body_bytes,
+        body: body_bytes.to_vec(),
         query_params,
         files,
         multipart_form,
