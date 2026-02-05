@@ -15,7 +15,7 @@ pub struct PyWebSocketConnection {
     #[pyo3(get)]
     pub id: u64,
     /// Message sender channel
-    tx: mpsc::Sender<WebSocketMessage>,
+    tx: mpsc::UnboundedSender<WebSocketMessage>,
 }
 
 #[pymethods]
@@ -23,38 +23,35 @@ impl PyWebSocketConnection {
     /// Send a text message to the client
     fn send(&self, message: String) -> PyResult<()> {
         let tx = self.tx.clone();
-        // Use blocking send for simplicity in sync Python context
-        pyo3_async_runtimes::tokio::get_runtime().block_on(async {
-            tx.send(WebSocketMessage::Text(message)).await.map_err(|e| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Send error: {}", e))
-            })
-        })
+        // Unbounded send is synchronous, no need for block_on!
+        match tx.send(WebSocketMessage::Text(message)) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Send error: {}", e)))
+        }
     }
 
     /// Send binary data to the client
     fn send_binary(&self, data: Vec<u8>) -> PyResult<()> {
         let tx = self.tx.clone();
-        pyo3_async_runtimes::tokio::get_runtime().block_on(async {
-            tx.send(WebSocketMessage::Binary(data)).await.map_err(|e| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Send error: {}", e))
-            })
-        })
+        match tx.send(WebSocketMessage::Binary(data)) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Send error: {}", e)))
+        }
     }
 
     /// Close the connection
     fn close(&self, reason: Option<String>) -> PyResult<()> {
         let tx = self.tx.clone();
-        pyo3_async_runtimes::tokio::get_runtime().block_on(async {
-            tx.send(WebSocketMessage::Close(reason)).await.map_err(|e| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Close error: {}", e))
-            })
-        })
+        match tx.send(WebSocketMessage::Close(reason)) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Close error: {}", e)))
+        }
     }
 }
 
 impl PyWebSocketConnection {
     /// Create a new Python WebSocket connection wrapper
-    pub fn new(id: u64, tx: mpsc::Sender<WebSocketMessage>) -> Self {
+    pub fn new(id: u64, tx: mpsc::UnboundedSender<WebSocketMessage>) -> Self {
         Self { id, tx }
     }
 }
@@ -74,10 +71,15 @@ impl PyWebSocketHandler {
     }
 
     /// Called when a client connects
-    fn on_connect(&self, session_id: u64) -> PyResult<()> {
+    fn on_connect(
+        &self,
+        connection: PyWebSocketConnection,
+        headers: std::collections::HashMap<String, String>,
+        cookies: std::collections::HashMap<String, String>,
+    ) -> PyResult<()> {
         Python::attach(|py| {
             if let Ok(on_connect) = self.handler.getattr(py, "on_connect") {
-                let _ = on_connect.call1(py, (session_id,));
+                let _ = on_connect.call1(py, (connection, headers, cookies));
             }
             Ok(())
         })

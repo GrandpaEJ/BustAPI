@@ -24,21 +24,22 @@ pub struct WebSocketSession {
     /// Unique session ID
     pub id: u64,
     /// Channel for sending messages to the client
-    tx: mpsc::Sender<WebSocketMessage>,
+    tx: mpsc::UnboundedSender<WebSocketMessage>,
 }
 
 impl WebSocketSession {
     /// Create a new WebSocket session
-    pub fn new(id: u64, tx: mpsc::Sender<WebSocketMessage>) -> Self {
+    pub fn new(id: u64, tx: mpsc::UnboundedSender<WebSocketMessage>) -> Self {
         Self { id, tx }
     }
 
+    /// Send a text message to the client
     /// Send a text message to the client
     pub async fn send_text(
         &self,
         text: String,
     ) -> Result<(), mpsc::error::SendError<WebSocketMessage>> {
-        self.tx.send(WebSocketMessage::Text(text)).await
+        self.tx.send(WebSocketMessage::Text(text))
     }
 
     /// Send binary data to the client
@@ -46,7 +47,7 @@ impl WebSocketSession {
         &self,
         data: Vec<u8>,
     ) -> Result<(), mpsc::error::SendError<WebSocketMessage>> {
-        self.tx.send(WebSocketMessage::Binary(data)).await
+        self.tx.send(WebSocketMessage::Binary(data))
     }
 
     /// Close the connection
@@ -54,7 +55,7 @@ impl WebSocketSession {
         &self,
         reason: Option<String>,
     ) -> Result<(), mpsc::error::SendError<WebSocketMessage>> {
-        self.tx.send(WebSocketMessage::Close(reason)).await
+        self.tx.send(WebSocketMessage::Close(reason))
     }
 }
 
@@ -63,28 +64,32 @@ static SESSION_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::Atomic
 
 use crate::websocket::WebSocketConfig;
 
+use std::collections::HashMap;
+
 /// Handle WebSocket upgrade and message loop
 pub async fn handle_websocket(
     req: HttpRequest,
-    body: web::Payload,
+    payload: web::Payload,
     handler: Py<PyAny>,
     config: Option<WebSocketConfig>,
+    headers: HashMap<String, String>,
+    cookies: HashMap<String, String>,
 ) -> Result<HttpResponse, actix_web::Error> {
     // Upgrade the connection
-    let (response, mut session, mut msg_stream) = actix_ws::handle(&req, body)?;
+    let (response, mut session, mut msg_stream) = actix_ws::handle(&req, payload)?;
 
     // Generate unique session ID
     let session_id = SESSION_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-    // Create channel for outgoing messages
-    let (tx, mut rx) = mpsc::channel::<WebSocketMessage>(256);
+    // Create channel for outgoing messages (Unbounded)
+    let (tx, mut rx) = mpsc::unbounded_channel::<WebSocketMessage>();
 
     // Create session wrapper
-    let ws_session = Arc::new(WebSocketSession::new(session_id, tx));
+    let ws_session = Arc::new(WebSocketSession::new(session_id, tx.clone()));
 
-    // Spawn task for sending messages
+    // Spawn task for sending messages using spawn_local
     let mut session_clone = session.clone();
-    actix_rt::spawn(async move {
+    tokio::task::spawn_local(async move {
         while let Some(msg) = rx.recv().await {
             match msg {
                 WebSocketMessage::Text(text) => {
@@ -114,10 +119,26 @@ pub async fn handle_websocket(
 
     // Clone handler for use in async context
     let handler_for_connect = Python::attach(|py| handler.clone_ref(py));
+    let tx_for_python = tx.clone();
 
     // Call Python on_connect handler
-    Python::attach(|py| {
-        let _ = handler_for_connect.call_method1(py, "on_connect", (session_id,));
+    Python::attach(move |py| {
+        println!(
+            "DEBUG: Calling Python on_connect for session {}",
+            session_id
+        );
+        let py_conn =
+            crate::bindings::websocket::PyWebSocketConnection::new(session_id, tx_for_python);
+        let res = handler_for_connect.call_method1(py, "on_connect", (py_conn, headers, cookies));
+        if let Err(e) = res {
+            println!("DEBUG: Python on_connect FAILED: {}", e);
+            e.print_and_set_sys_last_vars(py);
+        } else {
+            println!(
+                "DEBUG: Python on_connect success for session {}",
+                session_id
+            );
+        }
     });
 
     // Clone handler for message loop
@@ -176,7 +197,7 @@ pub async fn handle_websocket(
                             if let Ok(response) = result.extract::<String>(py) {
                                 let tx = tx_clone.clone();
                                 actix_rt::spawn(async move {
-                                    let _ = tx.send(WebSocketMessage::Text(response)).await;
+                                    let _ = tx.send(WebSocketMessage::Text(response));
                                 });
                             }
                         }
