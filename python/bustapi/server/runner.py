@@ -5,7 +5,7 @@ Server runner logic for BustAPI.
 import multiprocessing
 import os
 import sys
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..app import BustAPI
@@ -138,6 +138,7 @@ def setup_debug_logging(app: "BustAPI"):
     def _debug_start_timer():
         try:
             import time
+
             from .. import request
 
             request.start_time = time.time()
@@ -147,6 +148,7 @@ def setup_debug_logging(app: "BustAPI"):
     def _debug_log_request(response):
         try:
             import time
+
             from .. import logging, request
 
             start_time = getattr(request, "start_time", time.time())
