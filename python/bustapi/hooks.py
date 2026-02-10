@@ -5,7 +5,7 @@ Hook decorators and lifecycle management for BustAPI.
 from typing import Callable, Type, Union
 
 
-class HooksMixin:
+class RequestLifecycle:
     """Mixin providing request lifecycle hooks and error handlers."""
 
     def before_request(self, f: Callable) -> Callable:

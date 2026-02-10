@@ -7,7 +7,7 @@ import re
 from typing import Any, Callable, Optional
 
 
-class RoutingMixin:
+class RouteRegistration:
     """Mixin providing Flask-compatible route decorators."""
 
     def add_url_rule(

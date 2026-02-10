@@ -66,7 +66,7 @@ class _RequestContext:
             _request_ctx.reset(self.token)
 
 
-class ContextMixin:
+class ContextManagement:
     """Mixin providing context management methods."""
 
     def app_context(self):

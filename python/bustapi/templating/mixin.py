@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 from ..responses import HTMLResponse
 
 
-class TemplatingMixin:
+class TemplateRendering:
     """Mixin for templating support."""
 
     template_folder: Optional[str]

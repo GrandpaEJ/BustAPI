@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from .app import BustAPI
 
 
-class ExtractionMixin:
+class ParameterExtraction:
     """Mixin providing parameter extraction and dependency resolution."""
 
     def _extract_path_params(self, rule: str, method: str, path: str):

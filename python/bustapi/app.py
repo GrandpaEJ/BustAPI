@@ -9,28 +9,28 @@ import inspect
 import os
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
-from .context import ContextMixin, _AppContext, _RequestContext
+from .context import ContextManagement, _AppContext, _RequestContext
 from .core.helpers import get_root_path
 from .core.logging import get_logger
 from .dispatch import create_async_wrapper, create_sync_wrapper
-from .extraction import ExtractionMixin
-from .hooks import HooksMixin
+from .extraction import ParameterExtraction
+from .hooks import RequestLifecycle
 from .http.request import Request, _request_ctx
 from .http.response import Response, make_response
 from .middleware import MiddlewareManager
 from .routing.blueprints import Blueprint
-from .routing.decorators import RoutingMixin
+from .routing.decorators import RouteRegistration
 from .server.wsgi import WSGIAdapter
 from .sessions import SecureCookieSessionInterface
-from .templating.mixin import TemplatingMixin
+from .templating.mixin import TemplateRendering
 
 
 class BustAPI(
-    RoutingMixin,
-    ExtractionMixin,
-    HooksMixin,
-    ContextMixin,
-    TemplatingMixin,
+    RouteRegistration,
+    ParameterExtraction,
+    RequestLifecycle,
+    ContextManagement,
+    TemplateRendering,
     WSGIAdapter,
 ):
     """
