@@ -18,15 +18,21 @@ from .hooks import HooksMixin
 from .http.request import Request, _request_ctx
 from .http.response import Response, make_response
 from .middleware import MiddlewareManager
-from .responses import HTMLResponse
 from .routing.blueprints import Blueprint
 from .routing.decorators import RoutingMixin
 from .server.wsgi import WSGIAdapter
-from .serving import run_server
 from .sessions import SecureCookieSessionInterface
+from .templating.mixin import TemplatingMixin
 
 
-class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapter):
+class BustAPI(
+    RoutingMixin,
+    ExtractionMixin,
+    HooksMixin,
+    ContextMixin,
+    TemplatingMixin,
+    WSGIAdapter,
+):
     """
     Flask-compatible application class built on Rust backend.
 
@@ -247,40 +253,6 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
         """Convert various return types to Response objects."""
         return make_response(*args)
 
-    def create_jinja_environment(self):
-        """Create Jinja2 environment."""
-        if self.jinja_env is None:
-            try:
-                from jinja2 import Environment, FileSystemLoader
-
-                template_folder = self.template_folder or "templates"
-                self.jinja_env = Environment(
-                    loader=FileSystemLoader(template_folder), **self.jinja_options
-                )
-            except ImportError:
-                pass
-        return self.jinja_env
-
-    def create_jinja_env(self):
-        """Create and cache a Jinja2 environment."""
-        if self.jinja_env is None:
-            try:
-                from .templating import create_jinja_env as _create_env
-
-                self.jinja_env = _create_env(self.template_folder)
-            except Exception as e:
-                raise RuntimeError(f"Failed to create Jinja environment: {e}") from e
-        return self.jinja_env
-
-    def render_template(self, template_name: str, **context) -> Response:
-        """Render a template using the native Rust engine."""
-        import json
-
-        html_content = self._rust_app.render_template(
-            template_name, json.dumps(context)
-        )
-        return HTMLResponse(html_content)
-
     def _handle_exception(self, exception: Exception) -> Response:
         """Handle exceptions and return appropriate error responses."""
         for exc_class_or_code, handler in self.error_handler_spec.items():
@@ -348,9 +320,11 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
         if debug:
             self.config["DEBUG"] = True
 
+        from .server import runner
+
         # Handle hot reload
         if reload or debug:
-            self._enable_hot_reload()
+            runner.enable_hot_reload()
 
         if workers is None:
             import multiprocessing
@@ -359,147 +333,13 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
 
         # Dispatch to appropriate server
         if server == "rust":
-            self._run_rust_server(host, port, workers, debug, verbose)
+            runner.run_server_rust(self, host, port, workers, debug, verbose)
         elif server == "uvicorn":
-            self._run_uvicorn(host, port, workers, debug, **options)
+            runner.run_server_uvicorn(self, host, port, workers, debug, **options)
         elif server == "gunicorn":
-            self._run_gunicorn(host, port, workers, debug, **options)
+            runner.run_server_gunicorn(self, host, port, workers, debug, **options)
         elif server == "hypercorn":
-            self._run_hypercorn(host, port, workers, debug, **options)
-
-    def _setup_debug_logging(self):
-        """Setup request logging for debug mode."""
-
-        def _debug_start_timer():
-            try:
-                import time
-
-                from bustapi import request
-
-                request.start_time = time.time()
-            except ImportError:
-                pass
-
-        def _debug_log_request(response):
-            try:
-                import time
-
-                from bustapi import logging, request
-
-                start_time = getattr(request, "start_time", time.time())
-                duration = time.time() - start_time
-                logging.log_request(
-                    request.method, request.path, response.status_code, duration
-                )
-            except ImportError:
-                pass
-            return response
-
-        self.before_request(_debug_start_timer)
-        self.after_request(_debug_log_request)
-
-    def _enable_hot_reload(self):
-        """Enable Rust-native hot reload."""
-        if os.environ.get("BUSTAPI_RELOADER_RUN") != "true":
-            try:
-                from . import bustapi_core
-
-                bustapi_core.enable_hot_reload(".")
-            except ImportError:
-                print("⚠️ Native hot reload not available in this build.")
-            except Exception as e:
-                print(f"⚠️ Failed to enable hot reload: {e}")
-
-    def _run_rust_server(self, host, port, workers, debug, verbose=False):
-        """Run the native Rust HTTP server."""
-        if workers > 1 and not debug:
-            from .multiprocess import spawn_workers
-
-            spawn_workers(self._rust_app, host, port, workers, debug, verbose)
-            return
-
-        try:
-            self._rust_app.run(host, port, workers, debug, verbose, workers)
-        except KeyboardInterrupt:
-            pass
-        except Exception as e:
-            print(f"❌ Server error: {e}")
-
-    def _run_uvicorn(self, host, port, workers, debug, **options):
-        """Run with Uvicorn ASGI server."""
-        try:
-            import uvicorn
-
-            config = uvicorn.Config(
-                app=self.asgi_app,
-                host=host,
-                port=port,
-                workers=workers,
-                log_level="debug" if debug else "info",
-                interface="asgi3",
-                **options,
-            )
-            server = uvicorn.Server(config)
-            server.run()
-        except ImportError:
-            print("❌ 'uvicorn' not installed. Install via `pip install uvicorn`.")
-        except Exception as e:
-            print(f"❌ Uvicorn error: {e}")
-
-    def _run_gunicorn(self, host, port, workers, debug, **options):
-        """Run with Gunicorn WSGI server."""
-        try:
-            from gunicorn.app.base import BaseApplication
-
-            class StandaloneApplication(BaseApplication):
-                def __init__(self, app, opts=None):
-                    self.application = app
-                    self.options = opts or {}
-                    super().__init__()
-
-                def load_config(self):
-                    config = {
-                        key: value
-                        for key, value in self.options.items()
-                        if key in self.cfg.settings and value is not None
-                    }
-                    for key, value in config.items():
-                        self.cfg.set(key.lower(), value)
-
-                def load(self):
-                    return self.application
-
-            gunicorn_options = {
-                "bind": f"{host}:{port}",
-                "workers": workers,
-                "loglevel": "debug" if debug else "info",
-                **options,
-            }
-
-            StandaloneApplication(self, gunicorn_options).run()
-        except ImportError:
-            print("❌ 'gunicorn' not installed. Install via `pip install gunicorn`.")
-        except Exception as e:
-            print(f"❌ Gunicorn error: {e}")
-
-    def _run_hypercorn(self, host, port, workers, debug, **options):
-        """Run with Hypercorn ASGI server."""
-        try:
-            import asyncio
-
-            from hypercorn.asyncio import serve
-            from hypercorn.config import Config
-
-            config = Config()
-            config.bind = [f"{host}:{port}"]
-            config.workers = workers
-            config.loglevel = "debug" if debug else "info"
-
-            asyncio.run(serve(self.asgi_app, config))
-        except ImportError:
-            print("❌ 'hypercorn' not installed. Install via `pip install hypercorn`.")
-        except Exception as e:
-            print(f"❌ Hypercorn error: {e}")
+            runner.run_server_hypercorn(self, host, port, workers, debug, **options)
 
     async def run_async(
         self,
@@ -512,7 +352,9 @@ class BustAPI(RoutingMixin, ExtractionMixin, HooksMixin, ContextMixin, WSGIAdapt
         """Run the application server asynchronously."""
         if debug:
             self.config["DEBUG"] = True
-            self._setup_debug_logging()
+            from .server import runner
+
+            runner.setup_debug_logging(self)
 
         try:
             await self._rust_app.run_async(host, port, debug, verbose, 1)
