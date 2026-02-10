@@ -125,6 +125,10 @@ def json_endpoint():
 def user(id):
     return {{"user_id": int(id)}}
 
+@app.static_route("/static")
+def static_endpoint():
+    return "Static Content"
+
 if __name__ == "__main__":
     # 8 workers with os.fork() + SO_REUSEPORT for true multiprocessing
     app.run(host="{HOST}", port={PORT}, workers={WORKERS_CONFIG["BustAPI"]}, debug=False)
@@ -145,6 +149,10 @@ def json_endpoint():
 @app.route("/user/<id>")
 def user(id):
     return jsonify({"user_id": int(id)})
+
+@app.route("/static")
+def static_endpoint():
+    return "Static Content"
 """
 
 CODE_FASTAPI = """
@@ -163,6 +171,10 @@ def json_endpoint():
 @app.get("/user/{id}")
 def user(id: int):
     return JSONResponse({"user_id": id})
+
+@app.get("/static", response_class=PlainTextResponse)
+def static_endpoint():
+    return "Static Content"
 """
 
 
@@ -182,6 +194,10 @@ async def json_endpoint(request):
 @app.route("/user/<id:int>")
 async def user(request, id):
     return response.json({{"user_id": id}})
+
+@app.route("/static")
+async def static_endpoint(request):
+    return response.text("Static Content")
 
 if __name__ == "__main__":
     app.run(host="{HOST}", port={PORT}, workers={WORKERS_CONFIG["Sanic"]}, access_log=False)
@@ -209,6 +225,7 @@ app = falcon.App()
 app.add_route("/", IndexResource())
 app.add_route("/json", JsonResource())
 app.add_route("/user/{{id}}", UserResource())
+app.add_route("/static", IndexResource())
 
 if __name__ == "__main__":
     import gunicorn.app.base
@@ -253,6 +270,10 @@ def user(id):
     response.content_type = 'application/json'
     return json.dumps({{"user_id": id}})
 
+@app.route("/static")
+def static_endpoint():
+    return "Static Content"
+
 if __name__ == "__main__":
     run(app, host="{HOST}", port={PORT}, server="gunicorn", workers={WORKERS_CONFIG["Bottle"]}, quiet=True)
 """
@@ -285,6 +306,7 @@ urlpatterns = [
     path("", index),
     path("json", json_endpoint),
     path("user/<int:id>", user),
+    path("static", index),
 ]
 
 application = get_wsgi_application()
@@ -335,6 +357,10 @@ def json_endpoint():
 @app.router.get("/user/:id")
 def user(id: int):
     return json({"user_id": id})
+
+@app.router.get("/static")
+def static_endpoint():
+    return "Static Content"
 """
 
 
@@ -614,7 +640,7 @@ def benchmark_framework(name: str):
 
     results = []
     try:
-        endpoints = ["/", "/json", "/user/10"]
+        endpoints = ["/", "/json", "/user/10", "/static"]
         for ep in endpoints:
             print(f"   Measuring {ep}...", end="", flush=True)
             res = run_wrk(ep)

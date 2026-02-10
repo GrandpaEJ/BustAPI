@@ -178,6 +178,53 @@ class RouteRegistration:
 
         return decorator
 
+    def static_route(
+        self, rule: str, methods: list = None, content_type: str = "application/json"
+    ) -> Callable:
+        """
+        Register a purely static route served directly from Rust memory.
+
+        The decorated function is executed ONCE at startup. Its return value
+        is serialized and stored in the Rust backend.
+
+        Runtime cost: 0 Python ops.
+
+        Args:
+            rule: URL rule
+            methods: HTTP methods (default: ["GET"])
+            content_type: Content-Type header (default: "application/json")
+
+        Example:
+            @app.static_route("/api/version")
+            def version():
+                return {"version": "1.0.0"}
+        """
+        if methods is None:
+            methods = ["GET"]
+
+        def decorator(f: Callable) -> Callable:
+            # Execute function immediately to get static content
+            result = f()
+
+            # Serialize content
+            if isinstance(result, (dict, list)):
+                import json
+
+                body = json.dumps(result)
+            elif isinstance(result, str):
+                body = result
+            else:
+                body = str(result)
+
+            # Register with Rust backend
+            if hasattr(self, "_rust_app"):
+                for method in methods:
+                    self._rust_app.add_fast_route(method, rule, body, content_type)
+
+            return f
+
+        return decorator
+
     def _parse_turbo_params(self, rule: str) -> list:
         """
         Parse route pattern and extract typed parameters.

@@ -98,6 +98,10 @@ def json_endpoint():
 def user(id):
     return {{"user_id": int(id)}}
 
+@app.static_route("/static")
+def static_endpoint():
+    return "Static Content"
+
 if __name__ == "__main__":
     # 8 workers with os.fork() + SO_REUSEPORT for true multiprocessing
     app.run(host="{HOST}", port={PORT}, workers={WORKERS_CONFIG["BustAPI"]}, debug=False)
@@ -118,6 +122,10 @@ def json_endpoint():
 @app.route("/user/<id>")
 def user(id):
     return jsonify({"user_id": int(id)})
+
+@app.route("/static")
+def static_endpoint():
+    return "Static Content"
 """
 
 CODE_FASTAPI = """
@@ -136,6 +144,10 @@ def json_endpoint():
 @app.get("/user/{id}")
 def user(id: int):
     return JSONResponse({"user_id": id})
+
+@app.get("/static", response_class=PlainTextResponse)
+def static_endpoint():
+    return "Static Content"
 """
 
 CODE_CATZILLA = f"""
@@ -153,6 +165,10 @@ def json_endpoint(request: Request) -> Response:
 @app.get("/user/{{id}}")
 def user(request, id: int) -> Response:
     return JSONResponse({{"user_id": id}})
+
+@app.get("/static")
+def static_endpoint(request: Request) -> Response:
+    return Response("Static Content")
 
 if __name__ == "__main__":
     app.listen(host="{HOST}", port={PORT})
@@ -427,7 +443,7 @@ def benchmark_framework(name: str):
 
     results = []
     try:
-        endpoints = ["/", "/json", "/user/10"]
+        endpoints = ["/", "/json", "/user/10", "/static"]
         for ep in endpoints:
             print(f"   Measuring {ep}...", end="", flush=True)
             res = run_wrk(ep)

@@ -231,8 +231,15 @@ impl PyBustApp {
 
         Ok(())
     }
-    pub fn add_fast_route(&self, method: &str, path: &str, response_body: String) -> PyResult<()> {
-        let fast_handler = FastRouteHandler::new(response_body);
+    #[pyo3(signature = (method, path, response_body, content_type="application/json"))]
+    pub fn add_fast_route(
+        &self,
+        method: &str,
+        path: &str,
+        response_body: String,
+        content_type: &str,
+    ) -> PyResult<()> {
+        let fast_handler = FastRouteHandler::new(response_body).with_content_type(content_type);
 
         let state = self.state.clone();
         let method_enum = std::str::FromStr::from_str(method)

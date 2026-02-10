@@ -35,31 +35,27 @@ impl Default for ServerConfig {
 
 /// Fast route handler that returns static response (no Python needed)
 pub struct FastRouteHandler {
-    response_body: String,
-    content_type: String,
+    response: crate::response::ResponseData,
 }
 
 impl FastRouteHandler {
     pub fn new(response_body: String) -> Self {
-        Self {
-            response_body,
-            content_type: "application/json".to_string(),
-        }
+        let mut response =
+            crate::response::ResponseData::with_body(response_body.as_bytes().to_vec());
+        response.set_header("Content-Type", "application/json");
+        Self { response }
     }
 
     #[allow(dead_code)]
     pub fn with_content_type(mut self, content_type: &str) -> Self {
-        self.content_type = content_type.to_string();
+        self.response.set_header("Content-Type", content_type);
         self
     }
 }
 
 impl RouteHandler for FastRouteHandler {
     fn handle(&self, _req: RequestData) -> crate::response::ResponseData {
-        let mut resp =
-            crate::response::ResponseData::with_body(self.response_body.as_bytes().to_vec());
-        resp.set_header("Content-Type", &self.content_type);
-        resp
+        self.response.clone()
     }
 }
 
@@ -106,11 +102,6 @@ pub async fn handle_request(
 ) -> HttpResponse {
     let start_time = Instant::now();
     tracing::debug!("handle_request path={} method={}", req.path(), req.method());
-    std::fs::write(
-        "/tmp/bustapi_debug.txt",
-        format!("handle_request path={}\n", req.path()),
-    )
-    .ok();
     for (k, v) in req.headers() {
         tracing::debug!("Header: {} = {:?}", k, v);
     }
