@@ -43,7 +43,6 @@ dev = [
     "ruff>=0.12.10",
     "mypy>=1.0",
     "pre-commit>=3.0",
-    "ruff>=0.1.0",
     "sqlmodel>=0.0.16",
 ]
 
