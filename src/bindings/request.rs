@@ -42,6 +42,86 @@ impl PyUploadedFile {
     }
 }
 
+/// Lazy wrapper for headers
+#[pyclass]
+#[derive(Clone)]
+pub struct PyHeaderMap {
+    headers: HashMap<String, String>,
+}
+
+#[pymethods]
+impl PyHeaderMap {
+    fn __getitem__(&self, key: String) -> PyResult<String> {
+        // Case-insensitive lookup for headers
+        let key_lower = key.to_lowercase();
+        self.headers.iter()
+            .find(|(k, _)| k.to_lowercase() == key_lower)
+            .map(|(_, v)| v.clone())
+            .ok_or_else(|| pyo3::exceptions::PyKeyError::new_err(key))
+    }
+
+    fn get(&self, key: String, default: Option<String>) -> Option<String> {
+        let key_lower = key.to_lowercase();
+        self.headers.iter()
+            .find(|(k, _)| k.to_lowercase() == key_lower)
+            .map(|(_, v)| v.clone())
+            .or(default)
+    }
+
+    fn items(&self) -> Vec<(String, String)> {
+        self.headers.clone().into_iter().collect()
+    }
+
+    fn keys(&self) -> Vec<String> {
+        self.headers.keys().cloned().collect()
+    }
+    
+    fn values(&self) -> Vec<String> {
+        self.headers.values().cloned().collect()
+    }
+
+    fn __contains__(&self, key: String) -> bool {
+        let key_lower = key.to_lowercase();
+        self.headers.keys().any(|k| k.to_lowercase() == key_lower)
+    }
+    
+    fn __len__(&self) -> usize {
+        self.headers.len()
+    }
+}
+
+/// Lazy wrapper for query parameters
+#[pyclass]
+#[derive(Clone)]
+pub struct PyQueryMap {
+    params: HashMap<String, String>,
+}
+
+#[pymethods]
+impl PyQueryMap {
+    fn __getitem__(&self, key: String) -> PyResult<String> {
+        self.params.get(&key).cloned()
+            .ok_or_else(|| pyo3::exceptions::PyKeyError::new_err(key))
+    }
+
+    fn get(&self, key: String, default: Option<String>) -> Option<String> {
+        self.params.get(&key).cloned().or(default)
+    }
+
+    fn items(&self) -> Vec<(String, String)> {
+        self.params.clone().into_iter().collect()
+    }
+    
+    fn __contains__(&self, key: String) -> bool {
+        self.params.contains_key(&key)
+    }
+    
+    fn __len__(&self) -> usize {
+        self.params.len()
+    }
+}
+
+
 #[pymethods]
 impl PyRequest {
     #[getter]
@@ -60,13 +140,13 @@ impl PyRequest {
     }
 
     #[getter]
-    pub fn headers(&self) -> HashMap<String, String> {
-        self.inner.headers.clone()
+    pub fn headers(&self) -> PyHeaderMap {
+        PyHeaderMap { headers: self.inner.headers.clone() }
     }
 
     #[getter]
-    pub fn args(&self) -> HashMap<String, String> {
-        self.inner.query_params.clone()
+    pub fn args(&self) -> PyQueryMap {
+        PyQueryMap { params: self.inner.query_params.clone() }
     }
 
     #[getter]
@@ -89,6 +169,13 @@ impl PyRequest {
 
     pub fn get_data(&self, py: Python) -> Py<PyBytes> {
         PyBytes::new(py, &self.inner.body).into()
+    }
+
+    pub fn get_buffer(&self, py: Python) -> PyResult<Py<PyAny>> {
+         // Zero-copy buffer access using memoryview
+         let bytes = PyBytes::new(py, &self.inner.body);
+         let memoryview = py.import("builtins")?.call_method1("memoryview", (bytes,))?;
+         Ok(memoryview.into())
     }
 
     pub fn json(&self, py: Python) -> PyResult<Py<PyAny>> {

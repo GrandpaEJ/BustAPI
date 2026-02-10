@@ -6,5 +6,5 @@ pub mod typed_turbo;
 pub mod websocket;
 
 pub use app::PyBustApp;
-pub use request::PyRequest;
+pub use request::{PyHeaderMap, PyQueryMap, PyRequest};
 pub use websocket::{PyWebSocketConnection, PyWebSocketHandler};

@@ -22,9 +22,9 @@ def create_turbo_wrapper(handler: Callable) -> Callable:
     """
 
     @wraps(handler)
-    def wrapper(rust_request, path_params=None):
-        # path_params is passed when using PyTypedTurboHandler for caching
-        # but we ignore it since handler takes no arguments
+    def wrapper(*args):
+        # args might contain rust_request or params, but we ignore them
+        # since this is a static turbo route (no params)
         result = handler()
         if isinstance(result, dict):
             return (result, 200, {"Content-Type": "application/json"})
@@ -58,10 +58,10 @@ def create_typed_turbo_wrapper(handler: Callable, param_names: list) -> Callable
     """
 
     @wraps(handler)
-    def wrapper(rust_request, path_params: dict):
-        # path_params already parsed and typed by Rust (e.g., {"id": 123})
+    def wrapper(*args):
+        # args are the positional path params extracted by Rust
         try:
-            result = handler(**path_params)
+            result = handler(*args)
         except TypeError as e:
             # Handler signature mismatch
             return (

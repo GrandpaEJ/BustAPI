@@ -194,31 +194,35 @@ impl PyTypedTurboHandler {
         Ok(params)
     }
 
-    /// Convert params to Python dict with proper types
-    fn to_py_dict(&self, py: Python, params: &HashMap<String, TypedValue>) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
+    /// Convert params to Python tuple (faster than dict)
+    fn to_py_tuple(&self, py: Python, params: &HashMap<String, TypedValue>) -> PyResult<Py<pyo3::types::PyTuple>> {
+        let mut elements = Vec::with_capacity(self.param_specs.len());
 
-        for (name, value) in params {
-            match value {
-                TypedValue::Int(n) => {
-                    dict.set_item(name, PyInt::new(py, *n))?;
+        for (name, _) in &self.param_specs {
+            if let Some(value) = params.get(name) {
+                 match value {
+                    TypedValue::Int(n) => {
+                        elements.push(PyInt::new(py, *n).into_any());
+                    }
+                    TypedValue::BigInt(s) => {
+                        let int_type = py.get_type::<PyInt>();
+                        let py_int = int_type.call1((s,))?;
+                        elements.push(py_int.into_any());
+                    }
+                    TypedValue::Float(n) => {
+                        elements.push(PyFloat::new(py, *n).into_any());
+                    }
+                    TypedValue::Str(s) => {
+                        elements.push(PyString::new(py, s).into_any());
+                    }
                 }
-                TypedValue::BigInt(s) => {
-                    // Use Python's int() for arbitrary precision
-                    let int_type = py.get_type::<PyInt>();
-                    let py_int = int_type.call1((s,))?;
-                    dict.set_item(name, py_int)?;
-                }
-                TypedValue::Float(n) => {
-                    dict.set_item(name, PyFloat::new(py, *n))?;
-                }
-                TypedValue::Str(s) => {
-                    dict.set_item(name, PyString::new(py, s))?;
-                }
+            } else {
+                // Should not happen if extract_params works correctly, but safe fallback
+                elements.push(py.None().into_bound(py));
             }
         }
-
-        Ok(dict.into())
+        
+        Ok(pyo3::types::PyTuple::new(py, elements)?.into())
     }
 }
 
@@ -246,11 +250,12 @@ impl RouteHandler for PyTypedTurboHandler {
         };
 
         let response = Python::attach(|py| {
-            // Convert to Python dict
-            let py_params = match self.to_py_dict(py, &params) {
-                Ok(d) => d,
+            // Convert to Python tuple (fast path)
+            // We assume the handler accepts positional arguments matching the route params
+            let py_args = match self.to_py_tuple(py, &params) {
+                Ok(t) => t,
                 Err(e) => {
-                    tracing::error!("Failed to convert params to Python: {:?}", e);
+                    tracing::error!("Failed to convert params to Python tuple: {:?}", e);
                     return ResponseData::error(
                         actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
                         Some("Parameter conversion error"),
@@ -258,9 +263,8 @@ impl RouteHandler for PyTypedTurboHandler {
                 }
             };
 
-            // Call Python handler with (rust_request=None, path_params=dict)
-            // We pass None for rust_request since typed turbo doesn't use it
-            match self.handler.call1(py, (py.None(), py_params)) {
+            // Call Python handler with (*args)
+            match self.handler.call1(py, py_args) {
                 Ok(result) => convert_py_result_to_response(py, result, &req.headers),
                 Err(e) => {
                     tracing::error!("Typed turbo handler error: {:?}", e);
