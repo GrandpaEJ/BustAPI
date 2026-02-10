@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented here.
 
+## [0.10.2] - 2026-02-10
+
+### Refactoring
+
+- **Structural Overhaul**: `app.py` has been split into semantic mixins for better maintainability:
+  - `RequestLifecycle`: Hooks and error handling.
+  - `ContextManagement`: Application and request context.
+  - `ParameterExtraction`: Dependency injection and param parsing.
+  - `RouteRegistration`: Routing decorators.
+  - `TemplateRendering`: Template engine integration.
+- **Server Runner**: Server execution logic moved to `python/bustapi/server/runner.py`.
+- **Cleanup**: Removed legacy `python/bustapi/serving.py`.
+
+### Fixed
+
+- **Dependencies**: Removed duplicate `ruff` entry in `pyproject.toml`.
+
 ## [0.10.1] - 2026-02-05
 
 ### Fixed
@@ -17,7 +34,6 @@ All notable changes to this project will be documented here.
   - `debug=True`: Now shows only a clean request summary (Time, Status, Latency, Method, Path).
   - `verbose=True`: Enables detailed `DEBUG` logs (Headers, Tracing events) for deep inspection.
 - **Examples**: Added `examples/ws` with a functional anonymous chat demo.
-
 
 ## [0.10.0] - 2026-02-02
 
@@ -122,9 +138,6 @@ All notable changes to this project will be documented here.
 ### Performance
 
 - **Optimized Route Matching**: Deterministic scoring system and Rust-side optimizations.
-
-
-
 
 ## [0.8.0] - 2026-01-14
 
@@ -418,7 +431,6 @@ All notable changes to this project will be documented here.
 - Server now uses Actix-web's built-in worker pool (auto-scales to CPU cores)
 
 ### Added
-
 
 - Expected 30k-100k+ RPS with dynamic Python handlers
 
