@@ -70,6 +70,8 @@ pub struct PyTypedTurboHandler {
     pattern: String,
     /// (param_name, param_type) in order of appearance in route
     param_specs: Vec<(String, ParamType)>,
+    /// Pre-split pattern parts to avoid splitting on every request
+    pattern_parts: Vec<String>,
     /// Cache TTL in seconds (0 = no caching)
     cache_ttl: u64,
     /// Response cache: path -> cached response
@@ -90,11 +92,19 @@ impl PyTypedTurboHandler {
     ) -> Self {
         // Parse pattern to get param order
         let param_specs = Self::parse_pattern(&pattern, &param_types);
+        
+        // Pre-calculate pattern parts
+        let pattern_parts: Vec<String> = pattern
+            .trim_matches('/')
+            .split('/')
+            .map(|s| s.to_string())
+            .collect();
 
         Self {
             handler,
             pattern,
             param_specs,
+            pattern_parts,
             cache_ttl,
             cache: RwLock::new(HashMap::new()),
         }
@@ -105,7 +115,7 @@ impl PyTypedTurboHandler {
         pattern: &str,
         param_types: &HashMap<String, String>,
     ) -> Vec<(String, ParamType)> {
-        let mut specs = Vec::new();
+        let mut specs = Vec::new(); // Optimized below
 
         for part in pattern.split('/') {
             if part.starts_with('<') && part.ends_with('>') {
@@ -130,13 +140,17 @@ impl PyTypedTurboHandler {
 
     /// Extract and convert parameters from request path
     fn extract_params(&self, path: &str) -> Result<HashMap<String, TypedValue>, String> {
-        let pattern_parts: Vec<&str> = self.pattern.trim_matches('/').split('/').collect();
-        let path_parts: Vec<&str> = path.trim_matches('/').split('/').collect();
+        // FAST PATH: No params to extract
+        if self.param_specs.is_empty() {
+             return Ok(HashMap::new());
+        }
 
         let mut params = HashMap::new();
         let mut spec_idx = 0;
+        
+        let mut path_segments = path.trim_matches('/').split('/');
 
-        for (i, pp) in pattern_parts.iter().enumerate() {
+        for pp in &self.pattern_parts {
             if pp.starts_with('<') && pp.ends_with('>') {
                 if spec_idx >= self.param_specs.len() {
                     return Err("Parameter spec mismatch".to_string());
@@ -147,16 +161,18 @@ impl PyTypedTurboHandler {
 
                 // Handle path wildcard (matches rest of path)
                 if matches!(param_type, ParamType::Path) {
-                    let remaining: String = path_parts[i..].join("/");
-                    params.insert(name.clone(), TypedValue::Str(remaining));
+                    // Consume remaining segments
+                    let remaining: Vec<&str> = path_segments.collect();
+                    let remaining_str = remaining.join("/");
+                    params.insert(name.clone(), TypedValue::Str(remaining_str));
                     break;
                 }
 
-                if i >= path_parts.len() {
-                    return Err(format!("Missing path segment for parameter '{}'", name));
-                }
-
-                let value = path_parts[i];
+                let value = match path_segments.next() {
+                    Some(v) => v,
+                    None => return Err(format!("Missing path segment for parameter '{}'", name)),
+                };
+                
                 let typed_value = match param_type {
                     ParamType::Int => {
                         // Try fast i64 parse first
@@ -188,6 +204,10 @@ impl PyTypedTurboHandler {
                 };
 
                 params.insert(name.clone(), typed_value);
+            } else {
+                 // Static segment, just advance path iterator
+                 // Note: Router already matched this, so we assume it matches
+                 path_segments.next();
             }
         }
 
