@@ -1,4 +1,5 @@
 pub mod app;
+pub mod compiled;
 pub mod converters;
 pub mod handlers;
 pub mod request;

@@ -28,7 +28,12 @@ class RouteRegistration:
             provide_automatic_options: Add OPTIONS handling automatically
             **options: Additional options (methods, etc.)
         """
-        from ..dispatch import create_async_wrapper, create_sync_wrapper
+        from ..dispatch import (
+            create_async_raw_wrapper,
+            create_async_wrapper,
+            create_raw_wrapper,
+            create_sync_wrapper,
+        )
 
         if view_func is None:
             raise ValueError("view_func required")
@@ -40,23 +45,33 @@ class RouteRegistration:
         if isinstance(methods, str):
             methods = [methods]
 
+        # Check for raw mode
+        is_raw = options.pop("raw", False)
+
         self.view_functions[endpoint] = view_func
         self.url_map[rule] = {"endpoint": endpoint, "methods": methods}
 
-        # Register parameter validators for this route
+        # Register parameter validators for this route (skip for raw?)
+        # Raw mode users handle their own validation, but registering specs doesn't hurt.
         for method in methods:
             self._register_func_params(rule, method, view_func)
 
         # Register with Rust backend
         for method in methods:
             if inspect.iscoroutinefunction(view_func):
-                self._rust_app.add_async_route(
-                    method, rule, create_async_wrapper(self, view_func, rule)
-                )
+                if is_raw:
+                    wrapper = create_async_raw_wrapper(view_func)
+                else:
+                    wrapper = create_async_wrapper(self, view_func, rule)
+
+                self._rust_app.add_async_route(method, rule, wrapper)
             else:
-                self._rust_app.add_route(
-                    method, rule, create_sync_wrapper(self, view_func, rule)
-                )
+                if is_raw:
+                    wrapper = create_raw_wrapper(view_func)
+                else:
+                    wrapper = create_sync_wrapper(self, view_func, rule)
+
+                self._rust_app.add_route(method, rule, wrapper)
 
     def route(self, rule: str, **options) -> Callable:
         """
@@ -220,6 +235,91 @@ class RouteRegistration:
             if hasattr(self, "_rust_app"):
                 for method in methods:
                     self._rust_app.add_fast_route(method, rule, body, content_type)
+
+            return f
+
+        return decorator
+
+        return decorator
+
+    def compiled_route(self, rule: str, methods: list = None) -> Callable:
+        """
+        Register a compiled dynamic route (Rust-only execution).
+
+        The decorated function is executed ONCE at startup with "TraceValue" objects.
+        The result is compiled into a pure Rust template.
+
+        Runtime cost: 0 Python ops.
+
+        Args:
+            rule: Route pattern
+            methods: HTTP methods (default: ["GET"])
+
+        Example:
+            @app.compiled_route("/user/<int:id>")
+            def get_user(id):
+                return {"id": id, "status": "active"}
+        """
+        if methods is None:
+            methods = ["GET"]
+
+        # Parse params
+        param_specs = self._parse_turbo_params(rule)
+
+        def decorator(f: Callable) -> Callable:
+            # Import TraceValue and TraceExpr
+            try:
+                from ..bustapi_core import TraceExpr, TraceValue
+            except ImportError:
+                # Fallback for dev/mocking
+                class TraceValue:
+                    def __init__(self, n, t):
+                        pass
+
+                    def __add__(self, o):
+                        return TraceExpr()
+
+                    def __sub__(self, o):
+                        return TraceExpr()
+
+                    def __mul__(self, o):
+                        return TraceExpr()
+
+                    def __truediv__(self, o):
+                        return TraceExpr()
+
+                class TraceExpr:
+                    def __add__(self, o):
+                        return TraceExpr()
+
+                    def __sub__(self, o):
+                        return TraceExpr()
+
+                    def __mul__(self, o):
+                        return TraceExpr()
+
+                    def __truediv__(self, o):
+                        return TraceExpr()
+
+            # Create trace objects
+            traces = {}
+            for name, type_str in param_specs:
+                traces[name] = TraceValue(name, type_str)
+
+            # Execute function to get template structure
+            try:
+                # We assume the function uses matching argument names
+                result = f(**traces)
+            except Exception as e:
+                raise RuntimeError(  # noqa: B904
+                    f"Failed to compile route '{rule}'. Ensure handler accepts arguments matching route parameters. Error: {e}"
+                )
+
+            # Register with Rust backend
+            param_types = dict(param_specs)
+            if hasattr(self, "_rust_app"):
+                for method in methods:
+                    self._rust_app.add_compiled_route(method, rule, result, param_types)
 
             return f
 

@@ -173,6 +173,39 @@ impl PyBustApp {
         Ok(())
     }
 
+    /// Add a compiled route (Rust-only execution)
+    ///
+    /// Takes a structural representation of the response and compiles it
+    /// into a pure Rust template handler.
+    #[pyo3(signature = (method, path, structure, param_types))]
+    pub fn add_compiled_route(
+        &self,
+        py: Python,
+        method: &str,
+        path: &str,
+        structure: Py<PyAny>,
+        param_types: std::collections::HashMap<String, String>,
+    ) -> PyResult<()> {
+        let py_handler = crate::bindings::compiled::PyCompiledHandler::new(
+            py,
+            structure,
+            path.to_string(),
+            param_types,
+        )?;
+
+        let state = self.state.clone();
+        let method_enum = std::str::FromStr::from_str(method)
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid HTTP method"))?;
+        let path = path.to_string();
+
+        self.runtime.block_on(async {
+            let mut routes = state.routes.write().await;
+            routes.add_route(method_enum, path, py_handler);
+        });
+
+        Ok(())
+    }
+
     /// Add an async route with a Python handler
     pub fn add_async_route(&self, method: &str, path: &str, handler: Py<PyAny>) -> PyResult<()> {
         let py_handler = crate::bindings::handlers::PyAsyncRouteHandler::new(handler);

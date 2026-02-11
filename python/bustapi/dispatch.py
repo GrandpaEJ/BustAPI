@@ -39,6 +39,53 @@ def create_turbo_wrapper(handler: Callable) -> Callable:
 
     return wrapper
 
+    return wrapper
+
+
+def create_raw_wrapper(handler: Callable) -> Callable:
+    """Wrapper for raw handlers (request only, no context)."""
+
+    @wraps(handler)
+    def wrapper(rust_request, path_params=None):
+        # Directly call handler with the Rust request object
+        # We ignore path_params for raw mode to keep it simple/fast
+        result = handler(rust_request)
+
+        if isinstance(result, tuple):
+            return result
+        elif isinstance(result, (dict, list)):
+            return (result, 200, {"Content-Type": "application/json"})
+        elif isinstance(result, str):
+            return (result, 200, {"Content-Type": "text/html; charset=utf-8"})
+        elif isinstance(result, bytes):
+            return (result, 200, {"Content-Type": "application/octet-stream"})
+        else:
+            return (str(result), 200, {"Content-Type": "text/plain"})
+
+    return wrapper
+
+
+def create_async_raw_wrapper(handler: Callable) -> Callable:
+    """Async wrapper for raw handlers (request only, no context)."""
+
+    @wraps(handler)
+    async def wrapper(rust_request):
+        # As above, but async
+        result = await handler(rust_request)
+
+        if isinstance(result, tuple):
+            return result
+        elif isinstance(result, (dict, list)):
+            return (result, 200, {"Content-Type": "application/json"})
+        elif isinstance(result, str):
+            return (result, 200, {"Content-Type": "text/html; charset=utf-8"})
+        elif isinstance(result, bytes):
+            return (result, 200, {"Content-Type": "application/octet-stream"})
+        else:
+            return (str(result), 200, {"Content-Type": "text/plain"})
+
+    return wrapper
+
 
 def create_typed_turbo_wrapper(handler: Callable, param_names: list) -> Callable:
     """

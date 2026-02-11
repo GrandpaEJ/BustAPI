@@ -38,9 +38,12 @@ pub use response::ResponseData;
 fn bustapi_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_class::<bindings::PyBustApp>()?;
-    m.add_class::<bindings::PyRequest>()?;
-    m.add_class::<bindings::PyHeaderMap>()?;
-    m.add_class::<bindings::PyQueryMap>()?;
+    m.add_class::<bindings::request::PyRequest>()?;
+    m.add_class::<bindings::request::PyHeaderMap>()?;
+    m.add_class::<bindings::request::PyQueryMap>()?;
+    m.add_class::<bindings::compiled::TraceValue>()?;
+    m.add_class::<bindings::compiled::TraceExpr>()?;
+    m.add_class::<bindings::compiled::PyCompiledHandler>()?;
     m.add_class::<rate_limiter::PyRateLimiter>()?;
     m.add_class::<logger::PyFastLogger>()?;
     m.add_class::<crypto::Signer>()?;
