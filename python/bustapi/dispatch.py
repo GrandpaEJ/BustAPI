@@ -160,6 +160,10 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                         if name not in kwargs and name in request.args:
                             kwargs[name] = request.args.get(name)
 
+                    # Inject request object if handler expects it
+                    if "request" in expected_args:
+                        kwargs["request"] = request
+
                     call_kwargs = (
                         kwargs
                         if has_kwargs
@@ -206,6 +210,10 @@ def create_sync_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callabl
                     for name in expected_args:
                         if name not in kwargs and name in request.args:
                             kwargs[name] = request.args.get(name)
+
+                    # Inject request object if handler expects it
+                    if "request" in expected_args:
+                        kwargs["request"] = request
 
                     call_kwargs = (
                         kwargs
@@ -323,6 +331,10 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
                         if name not in kwargs and name in request.args:
                             kwargs[name] = request.args.get(name)
 
+                    # Inject request object if handler expects it
+                    if "request" in expected_args:
+                        kwargs["request"] = request
+
                     call_kwargs = (
                         kwargs
                         if has_kwargs
@@ -368,6 +380,10 @@ def create_async_wrapper(app: "BustAPI", handler: Callable, rule: str) -> Callab
                     for name in expected_args:
                         if name not in kwargs and name in request.args:
                             kwargs[name] = request.args.get(name)
+
+                    # Inject request object if handler expects it
+                    if "request" in expected_args:
+                        kwargs["request"] = request
 
                     call_kwargs = (
                         kwargs

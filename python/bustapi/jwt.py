@@ -185,8 +185,8 @@ def _get_jwt() -> JWT:
         return _jwt_instance
 
     # Try to get from current app
-    if request and hasattr(request, "_app") and request._app:
-        jwt_ext = request._app.extensions.get("jwt")
+    if request and hasattr(request, "app") and request.app:
+        jwt_ext = request.app.extensions.get("jwt")
         if jwt_ext:
             return jwt_ext
 
