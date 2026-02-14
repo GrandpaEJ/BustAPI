@@ -190,7 +190,11 @@ def _get_jwt() -> JWT:
         if jwt_ext:
             return jwt_ext
 
-    raise RuntimeError("No JWT instance found. Initialize JWT(app) first.")
+    raise RuntimeError(
+        "No JWT instance found. Initialize JWT(app) on your main application. "
+        "When using Blueprints, initialize JWT on the main app in your entry point file, "
+        "not in the blueprint definition file."
+    )
 
 
 def _get_token_from_request() -> Optional[str]:

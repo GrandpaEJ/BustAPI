@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented here.
 
+## [0.10.3] - 2026-02-14
+
+### Fixed
+
+- **Request Parameter Injection** ([#22](https://github.com/GrandpaEJ/BustAPI/issues/22)):
+  - Fixed route handlers not receiving the `request` parameter when declared in their signature.
+  - Added automatic request parameter injection in both sync and async wrapper functions.
+  - JWT authentication endpoints now work correctly with request-dependent handlers.
+
+- **Blueprint JWT Support** ([#23](https://github.com/GrandpaEJ/BustAPI/issues/23)):
+  - Improved error message when JWT is not initialized, with specific guidance for Blueprint usage.
+  - Added comprehensive example (`examples/routing/blueprint_with_jwt.py`) showing correct JWT + Blueprint pattern.
+  - Clarified that JWT must be initialized on the main app, not in blueprint files.
+
 ## [0.10.2] - 2026-02-10
 
 ### Refactoring
