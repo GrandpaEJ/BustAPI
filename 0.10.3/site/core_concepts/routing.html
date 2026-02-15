@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Routing - BustAPI Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+    <script src="../script.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../assets/logo.png">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-controls">
+                <button id="menu-button" aria-label="Menu">☰</button>
+                <a href="../index.html" class="brand">
+                    <img src="../assets/logo.png" alt="Logo" style="height: 30px; margin-right: 10px; vertical-align: middle;">
+                    BustAPI <span style="font-size: 0.8em; opacity: 0.7; margin-left: 5px;">v0.5.0</span>
+                </a>
+            </div>
+
+            <div class="header-controls">
+                <a href="../changelog.html" style="color:white; font-size:0.9rem; font-weight:500; margin-right: 15px;">Changelog</a>
+                <iframe src="https://ghbtns.com/github-btn.html?user=GrandpaEJ&repo=bustapi&type=star&count=true" frameborder="0" scrolling="0" width="100" height="20" title="GitHub" style="margin-right: 10px;"></iframe>
+                <button id="theme-toggle" aria-label="Toggle Theme">◐</button>
+            </div>
+</header>
+
+        <div class="layout">
+            <div class="overlay"></div>
+            <nav class="sidebar">
+                <div class="nav-section">
+                    <h3>Getting Started</h3>
+                    <ul>
+                        <li><a href="../getting_started/index.html">Introduction</a></li>
+                        <li><a href="../getting_started/quickstart.html">Quickstart</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Core Concepts</h3>
+                    <ul>
+                        <li><a href="routing.html" class="active">Routing</a></li>
+                        <li><a href="request_data.html">Request Data</a></li>
+                        <li><a href="responses.html">Responses</a></li>
+                        <li><a href="templates.html">Templates</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Advanced</h3>
+                    <ul>
+                        <li><a href="../advanced/blueprints.html">Blueprints</a></li>
+                        <li><a href="../advanced/middleware.html">Middleware</a></li>
+                        <li><a href="../advanced/dependency_injection.html">Dependency Injection</a></li>
+                        <li><a href="../advanced/validation.html">Validation</a></li>
+                        <li><a href="../advanced/async_support.html">Async Support</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>API Reference</h3>
+                    <ul>
+                        <li><a href="../api/app.html">BustAPI Class</a></li>
+                        <li><a href="../api/context.html">Context Proxies</a></li>
+                        <li><a href="../api/utilities.html">Utilities</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Examples</h3>
+                    <ul>
+                        <li><a href="../examples/index.html">Gallery</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="content">
+                <h1>Routing</h1>
+
+                <p>Routing is the mechanism of mapping a URL to a specific function in your code. BustAPI uses a
+                    high-performance Radix Tree implementation in Rust for this purpose.</p>
+
+                <h2>Basic Registration</h2>
+                <p>Use the <code>@app.route()</code> decorator to register a view function.</p>
+
+                <pre><code class="language-python">@app.route("/")
+def index():
+    return "Index Page"
+
+@app.route("/hello")
+def hello():
+    return "Hello Page"</code></pre>
+
+                <div class="admonition note">
+                    <span class="admonition-title">Trailing Slashes</span>
+                    <p>BustAPI enforces strict matching. <code>/hello</code> and <code>/hello/</code> are different
+                        URLs. We recommend being consistent with your slash usage.</p>
+                </div>
+
+                <h2>Variable Rules</h2>
+                <p>You can capture parts of the URL as variables. The variable part is marked with
+                    <code>&lt;variable_name&gt;</code>.</p>
+
+                <pre><code class="language-python">@app.route("/user/&lt;username&gt;")
+def show_user(username):
+    # username is passed as a string
+    return f"User: {username}"</code></pre>
+
+                <h3>Type Converters</h3>
+                <p>You can enforce types directly in the URL rule. If the type match fails, BustAPI returns a 404
+                    automatically.</p>
+
+                <table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
+                    <tr style="border-bottom: 2px solid var(--border);">
+                        <th style="text-align:left; padding: 0.5rem;">Converter</th>
+                        <th style="text-align:left; padding: 0.5rem;">Description</th>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 0.5rem;"><code>&lt;string:name&gt;</code></td>
+                        <td style="padding: 0.5rem;">Accepts any text without slashes (default).</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 0.5rem;"><code>&lt;int:id&gt;</code></td>
+                        <td style="padding: 0.5rem;">Accepts positive integers only.</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 0.5rem;"><code>&lt;float:val&gt;</code></td>
+                        <td style="padding: 0.5rem;">Accepts positive floating point numbers.</td>
+                    </tr>
+                </table>
+
+                <pre><code class="language-python">@app.route("/post/&lt;int:post_id&gt;")
+def show_post(post_id):
+    # post_id is now a python int, not a string!
+    return f"Post ID: {post_id}"</code></pre>
+
+                <h2>HTTP Methods</h2>
+                <p>Web applications use different HTTP methods for different actions. By default, a route only answers
+                    to <code>GET</code>.</p>
+
+                <pre><code class="language-python">@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        return do_the_login()
+    else:
+        return show_the_login_form()</code></pre>
+
+                <h3>Shorthand Decorators</h3>
+                <p>BustAPI provides shortcuts for common methods, which are often cleaner to read.</p>
+
+                <pre><code class="language-python">@app.get("/items")
+def get_items():
+    return ["item1", "item2"]
+
+@app.post("/items")
+def create_item():
+    return "Created"</code></pre>
+
+                <div style="margin-top: 2rem; display: flex; justify-content: space-between;">
+                    <a href="../getting_started/quickstart.html" class="btn btn-secondary">&larr; Quickstart</a>
+                    <a href="request_data.html" class="btn btn-primary">Next: Request Data &rarr;</a>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

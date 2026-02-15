@@ -1,0 +1,76 @@
+/* Custom CSS for BustAPI Docs */
+
+/* Hero section styling */
+.md-typeset h1 {
+  font-weight: 700;
+  margin-bottom: 0.5em;
+}
+
+/* Button styling */
+.md-button {
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.md-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Grid cards responsiveness */
+.grid.cards {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+/* Performance table styling */
+.md-typeset table:not([class]) th {
+  background: var(--md-primary-fg-color);
+  color: white;
+}
+
+/* Code block enhancements */
+.md-typeset pre {
+  border-radius: 8px;
+}
+
+/* Admonition icons */
+.md-typeset .admonition.tip {
+  border-color: #00c853;
+}
+
+.md-typeset .admonition.warning {
+  border-color: #ff9100;
+}
+
+/* Footer styling */
+.md-footer {
+  margin-top: 2rem;
+}
+
+/* Tab styling */
+.md-typeset .tabbed-labels > label {
+  font-weight: 500;
+}
+
+/* Mobile responsiveness */
+@media screen and (max-width: 76.1875em) {
+  .grid.cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Logo animation */
+.md-header__button.md-logo img {
+  transition: transform 0.3s ease;
+}
+
+.md-header__button.md-logo:hover img {
+  transform: rotate(-10deg) scale(1.1);
+}
