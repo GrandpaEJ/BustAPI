@@ -1,5 +1,5 @@
 # BustAPI — High-Performance Python Web Framework 
-# [New Location]=>**[RUSTxPY](https://github.com/RUSTxPY/BustAPI)**
+# [New Location]=>**[RUSTxPY/BustAPI](https://github.com/RUSTxPY/BustAPI)**
 
 <p align="center">
   <img src="https://github.com/GrandpaEJ/BustAPI/releases/download/v0.1.5/BustAPI.png" alt="BustAPI - Fast Python Web Framework powered by Rust and Actix-Web" width="200">
